@@ -1876,4 +1876,71 @@ if(CPKS.edit)await Co("cpacks").doc(CPKS.edit).update(d);else await Co("cpacks")
 toast(CPKS.edit?"Sobre actualizado":"Sobre guardado y enviado a "+u.name);Object.assign(CPKS,{name:"",sel:[],style:0,edit:null,q:"",f:"all",lim:150,to:u.name})}catch(e){toast("No se pudo guardar el sobre")}CPKS.busy=0;render();loadCpk()},
 cpkopen(b){cpkOpen(b.dataset.id)}});
 {const st=document.createElement("style");st.textContent=".cpk-st{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0}.cpk-st img{height:150px;border-radius:8px;cursor:pointer;opacity:.6;border:2px solid transparent}.cpk-st img.on{opacity:1;border-color:var(--gold,#f1c75b);box-shadow:0 0 16px #f1c75b66}.cpk-sel{display:flex;gap:6px;flex-wrap:wrap}.cpk-m{width:62px;cursor:pointer;text-align:center;font-size:10px}.cpk-m img{width:100%;border-radius:4px}.cpk-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-top:10px}.cpk-c{cursor:pointer;text-align:center;font-size:11px;line-height:1.2;padding:4px;border-radius:8px;border:2px solid transparent;background:#ffffff0a}.cpk-c img{width:100%;border-radius:4px;aspect-ratio:3/4;object-fit:cover;background:#0006}.cpk-c.on{border-color:var(--gold,#f1c75b);background:#f1c75b22}.cpk-c:hover{background:#ffffff18}.cpk-c.on::after{content:'✓';display:block;color:var(--gold,#f1c75b);font-weight:800}.pill.on{outline:2px solid var(--gold,#f1c75b)}";document.head.appendChild(st)}
+
+/* ===== VIP: personalización para una usuaria (Arely Ríos) — solo la edita el administrador ===== */
+let VP=null,VD=null,VOPEN=0;
+const vipClone=o=>JSON.parse(JSON.stringify(o||{}));
+const vipDef=()=>({on:1,name:"Arely Ríos",nk:nkey("Arely Ríos"),packs:{},story:{}});
+function vipMine(){return VP&&VP.on&&U&&VP.nk&&U.nk===VP.nk?VP:null}
+function vipSeason(s){if(!s||!s.nodes)return;const v=vipMine();Object.keys(s.nodes).forEach(id=>{const n=s.nodes[id],o=v&&(v.story||{})[s.sid+"|"+id];
+if(!o){if(n._r0){n.rw=n._r0;delete n._r0}return}
+if(!n._r0)n._r0=vipClone(n.rw);const b=n._r0,r={...b};
+if(o.gold!=null)r.gold=+o.gold;if(o.xp!=null)r.xp=+o.xp;if(+o.cid&&CB[o.cid]){r.cm="spec";r.cid=+o.cid}
+const pk={...(b.packs||{})};Object.keys(o.packs||{}).forEach(k=>{pk[k]=Math.max(0,+o.packs[k]||0)});r.packs=pk;n.rw=r})}
+function vipWatch(){UN.push(D("config","vip").onSnapshot(s=>{VP=s.exists?s.data():null;vipSeason(typeof STY!="undefined"?STY:null);if(typeof syPaint=="function")syPaint()},()=>{}))}
+{const _ns=normSeason;normSeason=function(d,sid){const s=_ns(d,sid);vipSeason(s);return s}}
+{const _gp=genPack;genPack=function(t){const v=vipMine(),l=v&&v.packs&&v.packs[t];if(l&&l.length){const r=l.map(Number).filter(i=>CB[i]);if(r.length)return r}return _gp(t)}}
+{const _wm=watchMine;watchMine=function(){_wm();vipWatch()}}
+{const _rd=render;render=function(){_rd.apply(this,arguments);vipBtn()}}
+{const st=document.createElement("style");st.textContent=`#vipb{position:fixed;right:14px;bottom:14px;z-index:60;width:44px;height:44px;border-radius:50%;border:2px solid #ffd86b;background:#1a1450;color:#ffd86b;font-size:20px;cursor:pointer;box-shadow:0 4px 16px #000a}
+#vipm{position:fixed;inset:0;z-index:200;background:#000c;overflow:auto;padding:18px}
+#vipm .vp{max-width:920px;margin:0 auto;background:#0b0930;border:1px solid #ffd86b66;border-radius:14px;padding:16px 18px;color:#fff;font-size:14px}
+#vipm h2{margin:16px 0 6px;color:#ffd86b;font:800 19px Cinzel,serif}#vipm h3{margin:8px 0 4px;font-size:15px}
+#vipm .r{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+#vipm input,#vipm select{background:#171253;color:#fff;border:1px solid #ffffff33;border-radius:8px;padding:6px 8px}
+#vipm input[type=number]{width:80px}#vipm input[list]{width:210px}
+#vipm label{display:inline-flex;gap:5px;align-items:center}
+#vipm .ch{display:inline-flex;gap:6px;align-items:center;background:#ffffff14;border-radius:14px;padding:3px 10px;font-size:13px}
+#vipm .ch b{cursor:pointer;color:#ff7a8a}#vipm .nd{border-top:1px solid #ffffff1a;padding:6px 0}#vipm small{opacity:.7}`;document.head.appendChild(st)}
+function vipBtn(){let b=document.getElementById("vipb");const show=U&&U.admin&&app.style.display!="none";if(!show){if(b)b.remove();return}
+if(!b){b=document.createElement("button");b.id="vipb";b.title="Personalizar usuaria";b.textContent="👑";b.onclick=()=>{VD=VP?vipClone(VP):vipDef();VD.packs=VD.packs||{};VD.story=VD.story||{};VOPEN=1;vipRender()};document.body.appendChild(b)}}
+function vipRender(){let m=document.getElementById("vipm");if(!VOPEN){if(m)m.remove();return}
+if(!m){m=document.createElement("div");m.id="vipm";document.body.appendChild(m);m.addEventListener("click",vipClick);m.addEventListener("change",vipChange)}
+const y=m.scrollTop,d=VD,pks=Object.keys(PKI),cn=id=>CB[id]?esc(CB[id][1]):"#"+id,sy=typeof STY!="undefined"?STY:null;
+let h=`<datalist id="vipdl">${C.map(c=>`<option value="${c[0]} · ${esc(c[1])}">`).join("")}</datalist><div class="vp"><div class="r"><h2 style="margin:0;flex:1">👑 Personalizar usuaria</h2><button class="mini ghost" data-v="close">Cerrar</button></div>
+<h2>Usuaria</h2><div class="r"><label>Nombre de la usuaria <input id="vpnm" value="${esc(d.name||"")}" maxlength="40"></label><label><input type="checkbox" id="vpon" ${d.on?"checked":""}> Activado</label></div>
+<small>Todo lo de abajo se aplica a la cuenta con este nombre. Si cambias el nombre aquí, la personalización pasa a otra cuenta.</small>
+<div class="r"><label>Cambiar el nombre de su cuenta a <input id="vprn" maxlength="40" placeholder="nuevo nombre"></label><button class="mini" data-v="rename">Cambiar nombre</button></div>
+<h2>Sobres (contenido fijo)</h2><small>Elige las cartas exactas que le saldrán al abrir cada tipo de sobre (hasta 10). Vacío = sobre normal al azar.</small>`;
+pks.forEach(t=>{h+=`<div class="nd"><h3>${esc(PKI[t][0])}</h3><div class="r">${(d.packs[t]||[]).map((id,i)=>`<span class="ch">${cn(id)}<b data-v="rm" data-t="${t}" data-i="${i}">✕</b></span>`).join("")}</div><div class="r"><input list="vipdl" data-pk="${t}" placeholder="Escribe el nombre de la carta..."><button class="mini" data-v="add" data-t="${t}">Agregar</button></div></div>`});
+h+=`<h2>Modo historia${sy?" · "+esc(sy.name||""):""}</h2><small>Deja en blanco para el premio normal (se ve en gris). Las cartas y sobres solo se dan la primera vez que gana ese rival.</small>`;
+if(!sy||!sy.nodes)h+=`<p><small>Aún no carga la historia.</small></p>`;else Object.keys(sy.nodes).forEach(id=>{const n=sy.nodes[id],b=n._r0||n.rw||{},o=d.story[sy.sid+"|"+id]||{},pk=o.packs||{};
+h+=`<div class="nd"><b>${esc(n.name||id)}</b> <small>${esc(n.path||"")}</small><div class="r"><label>Monedas <input type="number" min="0" data-sk="${id}" data-f="gold" value="${o.gold??""}" placeholder="${b.gold||0}"></label><label>XP <input type="number" min="0" data-sk="${id}" data-f="xp" value="${o.xp??""}" placeholder="${b.xp||0}"></label><label>Carta <input list="vipdl" data-sk="${id}" data-f="cid" value="${o.cid&&CB[o.cid]?o.cid+" · "+esc(CB[o.cid][1]):""}" placeholder="normal"></label>${pks.map(t=>`<label>${esc(PKI[t][0])} <input type="number" min="0" data-sk="${id}" data-f="pk:${t}" value="${pk[t]??""}" placeholder="${(b.packs||{})[t]||0}"></label>`).join("")}</div></div>`});
+h+=`<h2>Regalo ahora</h2><small>Se le entrega de inmediato a su cuenta.</small><div class="r"><label>Monedas <input type="number" id="vgg"></label><label>XP <input type="number" id="vgx"></label></div><div class="r"><select id="vgp">${pks.map(t=>`<option value="${t}">${esc(PKI[t][0])}</option>`).join("")}</select><label>Cantidad <input type="number" id="vgn" min="0" value="0"></label><input list="vipdl" id="vgc" placeholder="Carta (opcional)"><button class="mini" data-v="gift">Dar regalo</button></div>
+<div class="r" style="margin-top:14px"><button data-v="save">Guardar cambios</button><span id="vpmsg"></span></div></div>`;
+m.innerHTML=h;m.scrollTop=y}
+const vipMsg=t=>{const e=document.getElementById("vpmsg");if(e)e.textContent=t;toast(t)};
+function vipChange(e){const t=e.target,d=VD;if(!d)return;
+if(t.id=="vpnm"){d.name=t.value.trim();d.nk=nkey(d.name)}else if(t.id=="vpon")d.on=t.checked?1:0;
+else if(t.dataset.sk){const sid=STY.sid,key=sid+"|"+t.dataset.sk,o=d.story[key]||(d.story[key]={packs:{}}),f=t.dataset.f,v=t.value.trim();
+if(f=="cid"){const id=parseInt(v);if(CB[id])o.cid=id;else delete o.cid}
+else if(f.startsWith("pk:")){const k=f.slice(3);if(v==="")delete o.packs[k];else o.packs[k]=Math.max(0,+v||0)}
+else{if(v==="")delete o[f];else o[f]=Math.max(0,+v||0)}
+if(o.gold==null&&o.xp==null&&!o.cid&&!Object.keys(o.packs||{}).length)delete d.story[key]}}
+async function vipUid(nk){const s=await D("names",nk).get();return s.exists?s.data().uid:null}
+async function vipClick(e){const b=e.target.closest("[data-v]");if(!b||!VD)return;const d=VD,v=b.dataset.v,m=document.getElementById("vipm");
+try{
+if(v=="close"){VOPEN=0;vipRender()}
+else if(v=="add"){const t=b.dataset.t,id=parseInt(m.querySelector(`[data-pk="${t}"]`).value);if(!CB[id])return toast("Elige una carta de la lista");d.packs[t]=d.packs[t]||[];if(d.packs[t].length>=10)return toast("Máximo 10 cartas por sobre");d.packs[t].push(id);vipRender()}
+else if(v=="rm"){d.packs[b.dataset.t].splice(+b.dataset.i,1);vipRender()}
+else if(v=="save"){Object.keys(d.packs).forEach(k=>{if(!d.packs[k].length)delete d.packs[k]});if(!d.nk||!d.name)return toast("Escribe el nombre de la usuaria");await D("config","vip").set(d);vipMsg("✅ Guardado para "+d.name)}
+else if(v=="rename"){const nn=m.querySelector("#vprn").value.trim().replace(/\s+/g," "),nk=nkey(nn);if(nn.length<3)return toast("El nombre debe tener al menos 3 caracteres");
+const uid=await vipUid(d.nk);if(!uid)return toast("No encuentro la cuenta de "+d.name);
+await db.runTransaction(async tx=>{const nr=D("names",nk),r=await tx.get(nr);if(r.exists&&r.data().uid!=uid)throw"NAME";tx.set(nr,{uid});if(nk!=d.nk)tx.delete(D("names",d.nk));tx.update(D("users",uid),{name:nn,nk})}).catch(x=>{throw x==="NAME"?"Ese nombre ya está en uso":"No se pudo cambiar el nombre"});
+d.name=nn;d.nk=nk;Object.keys(d.packs).forEach(k=>{if(!d.packs[k].length)delete d.packs[k]});await D("config","vip").set(d);vipRender();vipMsg("✅ Ahora se llama "+nn)}
+else if(v=="gift"){const uid=await vipUid(d.nk);if(!uid)return toast("No encuentro la cuenta de "+d.name);const g=+m.querySelector("#vgg").value||0,x=+m.querySelector("#vgx").value||0,pt=m.querySelector("#vgp").value,pn=Math.max(0,Math.floor(+m.querySelector("#vgn").value||0)),cid=parseInt(m.querySelector("#vgc").value),u={};
+if(g)u.gold=FV.increment(g);if(x)u.xp=FV.increment(x);if(pn)u["col.packs."+pt]=FV.increment(pn);if(CB[cid])u["col.inv."+cid]=FV.increment(1);
+if(!Object.keys(u).length)return toast("Escribe qué quieres regalar");await D("users",uid).update(u);vipMsg("🎁 Regalo entregado a "+d.name)}
+}catch(x){toast(typeof x=="string"?x:"No se pudo completar")}}
+
 </script></body></html>
