@@ -509,7 +509,7 @@ if(G.over)return;await startTurn(0)}
 $("#end").onclick=()=>{if(G.t||G.busy||G.over)return;$("#mn").style.display="none";clr();G.busy=1;tx({t:"end"});startTurn(NX(0))};
 function start(decks,first){ly.innerHTML="";$("#ov").style.display="none";Object.assign(G,{t:0,n:0,busy:1,mv:2,sel:null,pick:null,over:0,bw:0,rw:0,rwHtml:"",place:0,godNerf:0,n3:G.n3p||0,tg:1,spec:0,specDone:0});G.n3p=0;applyMode();P=(G.n3?[0,1,2]:[0,1]).map((_,k)=>({lp:8000,deck:decks?decks[k].map(x=>({...x})):(k==0&&U&&deckOf(U.col))||sh(C.slice()).slice(0,30).map(([id,n,a,d])=>({id,n,a,d})),hand:[],gy:[],A:[null,null,null],D:[null,null,null]}));
 P.forEach((_,p)=>{$(`#lp${p} .n`).textContent=8000;$(`#lp${p} i`).style.width="100%";$(`#lp${p}`).classList.remove("low");updDk(p);updGY(p)});$("#lg").innerHTML="";$("#pi").textContent="";$("#lp0 b").textContent=ON.on?U.name.toUpperCase():"TÚ";$("#lp1 b").textContent=ON.on?ON.opp.toUpperCase():(STORY.cur?STORY.cur.name.toUpperCase():"RIVAL");$("#pv").removeAttribute("src");
-(async()=>{await bn("¡DUELO!");for(let i=0;i<5;i++){await draw(0);await draw(1)}await startTurn(first||0)})()}
+(async()=>{await bn("¡DUELO!");for(let i=0;i<5;i++){await draw(0);await draw(1);if(G.n3)await draw(2)}await startTurn(first||0)})()}
 $("#go").onclick=()=>ON.on?exitOnline():STORY.cur?(STORY.cur.practice?(STORY.cur.trio?startTrioCPU(STORY.cur.practice):startPrac(STORY.cur.practice)):(nDone(STORY.cur.id)>0?storyBack():storyRetry())):startCpu();
 [0,1].forEach(p=>["a","d"].forEach(s=>{const b=document.createElement("div");b.className="bd "+(p?"e":"p");b.style.top=SY(p,s)-8+"px";st.insertBefore(b,document.querySelector(".sl"))}));
 for(let k=0;k<34;k++){const m=document.createElement("div"),z=2+rnd(4);m.className="mt";m.style.cssText=`left:${rnd(1280)}px;top:${300+rnd(450)}px;width:${z}px;height:${z}px;animation-duration:${8+rnd(10)}s;animation-delay:-${rnd(12)}s;background:${k%3?"#9fd8ff":"#ffd86b"}`;st.insertBefore(m,ly)}$("#dk0").onclick=ev=>{ev.stopPropagation();drawMove()};
@@ -792,7 +792,7 @@ setTimeout(()=>{PKV.busy=0;PKV.r=r.map((id,i)=>({id,had:had[i]}));PKV.i=0;PKV.mo
 
 /* ---- partida en línea ---- */
 function tx(m){if(!ON.on)return;m.n=ON.seq++;m.by=ON.role;D("matches",ON.mid).collection("moves").doc(String(m.n).padStart(5,"0")).set(m).catch(()=>toast("Problema de conexión al enviar tu jugada"))}
-async function rxPump(){if(ON.pumping||!ON.on)return;ON.pumping=1;try{while(ON.on&&!G.over&&G.t!=0&&!G.bw){ON.q.sort((a,b)=>a.n-b.n);while(ON.q.length&&ON.q[0].n<ON.seq)ON.q.shift();const m=ON.q[0];if(!m||m.n!==ON.seq)break;ON.q.shift();ON.seq++;await rxApply(m)}}finally{ON.pumping=0}}
+async function rxPump(){if(ON.pumping||!ON.on)return;ON.pumping=1;try{while(ON.on&&!G.over&&G.t!=0&&!G.bw){ON.q.sort((a,b)=>a.n-b.n);while(ON.q.length&&ON.q[0].n<ON.seq)ON.q.shift();const m=ON.q[0];if(!m||m.n!==ON.seq)break;ON.q.shift();ON.seq++;try{await rxApply(m)}catch(e){console.error("rxApply",e,m);G.busy=0;G.bw=0}}}finally{ON.pumping=0}}
 async function rxApply0(m){const q=P[1];
 if(m.t=="draw"){G.busy=1;await takeCards(1);if(!G.over)await spend()}
 else if(m.t=="sum"){G.busy=1;await summon(1,q.hand[m.h],m.s,m.i);await spend()}
