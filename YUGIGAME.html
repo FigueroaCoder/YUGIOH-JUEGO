@@ -463,7 +463,7 @@ async function drawMove(){if(G.t||G.busy||G.over||G.mv<1)return;if(P[0].hand.len
 function calc(a,col){if(a.mode=="split"&&col!=null&&!a.neg)return fxSplit(a,col);let rem=a.a;const e=OP(a.owner),E=P[e],L=fxLane(a,col,E),ev=[];[...L].forEach(c=>{if(rem<=0)return;if(fxImmune(a,c)){ev.push({c,k:0,x:0});rem=0;return}if(c.pos=="d"&&c.d==0){ev.push({c,k:1,x:0,s:1});rem=0;return}if(rem>=c.d){ev.push({c,k:1,x:c.d});rem-=c.d}else{ev.push({c,k:0,x:rem});rem=0}});return{ev,lp:rem,e}}
 function handClick(c,e){if(G.t||G.busy||G.over||G.mv<1)return;clr();const it=[];if(P[0].A.includes(null))it.push(["Invocar en ATAQUE",()=>askSlot(c,"a")]);if(P[0].D.includes(null))it.push(["Invocar en DEFENSA",()=>askSlot(c,"d")]);if(!it.length)return msg("Tu campo está lleno");menu(parseInt(e.style.left)-30,500,it)}
 function askSlot(c,s){clr();G.pick={c,s};document.querySelectorAll(`.sl[data-p="0"][data-s="${s}"]`).forEach(e=>{if(!AR(0,s)[+e.dataset.i])e.classList.add("pk")});msg("Elige el espacio donde colocarla")}
-async function pl(c,s,i){G.busy=1;tx({t:"sum",h:P[0].hand.indexOf(c),s,i});await summon(0,c,s,i);await spend()}
+async function pl(c,s,i){G.busy=1;tx({t:"sum",h:P[0].hand.indexOf(c),id:c.id,s,i});await summon(0,c,s,i);await spend()}
 function setPos(c){c.el.querySelector(".ci").style.transform=`rotate(${(c.owner&&!G.n3?180:0)+(c.pos=="d"?90:0)}deg)`;c.el.classList.toggle("d",c.pos=="d");c.el.classList.toggle("sh",c.pos=="d"&&c.d==0);c.el.querySelector(".lb").innerHTML=c.pos=="d"?`<span class="d">${c.d==0?"🛡 ":""}DEF ${c.d}</span>`:`<span class="a">ATK ${c.a}</span><span class="d">DEF ${c.d}</span>`}
 async function summon0(p,c,pos,i){const q=P[p],ar=AR(p,pos);if(i==null)i=ar.indexOf(null);q.hand.splice(q.hand.indexOf(c),1);c.he.remove();layout(p);Object.assign(c,{pos,owner:p,i});ar[i]=c;
 const e=c.el=document.createElement("div");e.className="fc"+(p?" en":"")+(G.n3?" o3":"");e.style.cssText=`left:${SX(i,p)}px;top:${SY(p,pos)}px;opacity:0;transform:translateY(${p?-130:130}px) scale(1.6);--c:${p?"#ff5468":"#52e0ff"}`;
@@ -1384,7 +1384,7 @@ if(G.over)return;await startTurn(NX(s))}
 async function npc(){return G.n3?npc3():npc2()}
 async function rxApply(m){if(!G.n3)return rxApply0(m);const A=G.t,q=P[A];
 if(m.t=="draw"){G.busy=1;await takeCards(A);if(!G.over)await spend()}
-else if(m.t=="sum"){G.busy=1;await summon(A,q.hand[m.h],m.s,m.i);await spend()}
+else if(m.t=="sum"){G.busy=1;await summon(A,rxCard(A,m),m.s,m.i);await spend()}
 else if(m.t=="flip"){await flip(AR(A,m.p)[m.i],1)}else if(m.t=="lat"){await lat(AR(A,m.p)[m.i],m.j,1)}
 else if(m.t=="atk"){const a=q.A[m.i];a.mode=m.m||null;await pAttack(a,m.c,1,LOC(m.tp))}
 else if(m.t=="gyatk"){const g=q.gy.find(x=>fxk(x)=="infi"&&!x.neg&&!x.gyUsed);fxInit(g);g.gy=1;await pAttack(g,m.c,1,LOC(m.tp))}
@@ -1398,6 +1398,10 @@ ON.subs.push(D("matches",r.mid).collection("moves").orderBy("n").onSnapshot(s=>{
 ON.subs.push(D("matches",r.mid).onSnapshot(d=>{const x=d.data();if(!x)return;ON.beats=x;[0,1,2].forEach(a=>{if(x["gone_"+a]&&a!==ON.my&&!ON.goneDone[a]){ON.goneDone[a]=1;notify("Jugador fuera",NAME(LOC(a))+" abandonó la partida")}});if(!G.over&&G.n3&&G.t!=0&&alive(G.t)&&x["gone_"+ABS(G.t)]&&ON.kickFor!==G.n){ON.kickFor=G.n;const n=G.n;setTimeout(()=>{if(G.n===n)doKick()},1800)}}));
 ON.bt=setInterval(()=>{D("matches",r.mid).update({["beat_"+my]:Date.now()}).catch(()=>{});const cl=$("#claim");if(!G.over&&G.n3&&G.t!=0&&alive(G.t)){const b=(ON.beats||{})["beat_"+ABS(G.t)]||0;cl.textContent="ELIMINAR A "+NAME(G.t).toUpperCase()+" (INACTIVO)";cl.style.display=(Date.now()-b>40000&&Date.now()-(G.tst||0)>25000)?"block":"none"}else cl.style.display="none"},5000);
 $("#surr").style.display="block";$("#claim").style.display="none";
+D("matches",r.mid).update({["ver_"+my]:BUILD3}).catch(()=>{});
+{let lk="",lt=Date.now();const iv=setInterval(async()=>{if(!ON.on||G.over||G.t==0)return;const k=G.n+":"+ON.seq+":"+G.t;if(k!==lk){lk=k;lt=Date.now();return}
+if(Date.now()-lt<7000||ON.pollBusy)return;ON.pollBusy=1;try{const sn=await D("matches",r.mid).collection("moves").where("n",">=",ON.seq).get();sn.docs.forEach(dc=>{const x=dc.data();if(x.by!==ON.role&&!ON.q.some(y=>y.n===x.n))ON.q.push(x)});rxPump()}catch(e){}ON.pollBusy=0},4000);ON.subs.push(()=>clearInterval(iv));
+const vt=setTimeout(()=>{if(ON.on&&ON.beats&&[0,1,2].some(a=>a!==ON.my&&ON.beats["ver_"+a]!==BUILD3))notify("Versión distinta del juego","Algún jugador tiene una versión vieja. Pídanle que recargue la página (Ctrl+F5, o borrar caché en el celular) para evitar fallos.")},20000);ON.subs.push(()=>clearTimeout(vt))}
 const decks=[0,1,2].map(i=>r.decks[r.seats[ABS(i)]].map(x=>({...x})));
 G.n3p=1;start(decks,LOC(r.first));G.names=[0,1,2].map(i=>i==0?U.name:(r.names[r.seats[ABS(i)]]||"Rival"));setNames()}
 /* salas en línea */
@@ -2047,4 +2051,11 @@ function gfNext(){if(GF.showing||!GF.queue.length)return;gfStyle();const g=GF.qu
  const o=document.createElement("div");o.id="gfp";o.innerHTML=`<div class="gfp-b"><div class="gfp-t">🎁 ¡REGALO!</div><div class="gfp-f">${g.f?"De "+esc(g.f):"Del administrador"}</div>${g.m?`<div class="gfp-m">“${esc(g.m)}”</div>`:""}<div class="gfp-l">${L.join("")}</div>${cs?`<div class="gfp-c">${cs}</div>`:""}<button class="go" style="margin-top:16px;border-radius:10px;cursor:pointer;font:800 18px Rajdhani,sans-serif">¡Recibir!</button></div>`;
  o.querySelector("button").onclick=()=>{o.remove();GF.showing=0;gfNext()};document.body.appendChild(o);try{snd(660,.25,"sine",.1,990);setTimeout(()=>snd(880,.3,"sine",.1,1320),180)}catch(_){}}
 Object.assign(ACT,{ggift(){gfOpen()}});
+
+/* ===== Trío en línea: robustez ===== */
+const BUILD3="t3-2026.11.11b";
+function rxCard(A,m){const q=P[A];let c=q.hand[m.h];if(c&&(m.id==null||c.id==m.id))return c;
+ if(m.id!=null){c=q.hand.find(x=>x.id==m.id);if(c)return c;const k=q.deck.findIndex(x=>x.id==m.id);if(k>=0){c=q.deck.splice(k,1)[0];try{updDk(A)}catch(e){}}}
+ if(!c){const b=CB[m.id]||[];c={id:m.id,n:b[1]||"?",a:b[2]||0,d:b[3]||0}}
+ if(!c.he)c.he=document.createElement("img");q.hand.push(c);return c}
 </script></body></html>
