@@ -530,15 +530,17 @@ try{FV=firebase.firestore.FieldValue}catch(e){}
 try{if(localStorage.getItem("duelo_activedb")==="2"&&DBS[2])ADB=2}catch(e){}
 db=DBS[ADB]||DBS[1]||DBS[2]||null;
 const K=n=>"duelo_"+n,Co=n=>db.collection(K(n)),D=(n,id)=>Co(n).doc(String(id)),nowS=()=>Date.now()+SO;
-/* ========= DOS BASES DE DATOS · CAMBIO AUTOMÁTICO (1 ⇄ 2) =========
+/* ========= DOS BASES DE DATOS · MIGRACIÓN MANUAL (1 ⇄ 2) =========
+   - El administrador aprieta "🔁 Migrar base": se copia todo idéntico a la otra base y se cambia.
    - Un documento "duelo_config/active" (puntero) vive en ambas bases: {db, seq, day, state}.
-   - El puntero con mayor "seq" manda; todos los jugadores lo leen al abrir y lo escuchan en vivo.
-   - Se dispara solo cuando un jugador falla 2 veces seguidas al retar a otro.
-   - Máximo 1 cambio por día (día de California, que es cuando Firebase reinicia sus cuotas).      */
+   - El puntero con mayor "seq" manda; todos lo leen al abrir el juego y lo escuchan en vivo.
+   - Mientras se copia, los demás jugadores ven una pantalla de espera; al terminar se recargan solos.
+   - Máximo 1 migración por día (día de California, cuando Firebase reinicia sus cuotas).            */
 const FO={
- FAILS:0,BUSY:0,seq:0,blk:"",cool:0,
+ BUSY:0,seq:0,NEXT:0,ONCE:true,STALE:90000,mg:{1:0,2:0},
  cid:Math.random().toString(36).slice(2,10),
  LOCK_MS:10*60*1000,
+ PROJ:{1:"halloween-9c9c6",2:"ct-search-fbcea"},
  TOPS:["config","users","names","creds","presence","categories","cards","custom_cards","card_requests","avatars","cpacks","trades","auctions","chats","rooms","notifs","challenges","matches"],
  SUBS:{matches:["moves","chat","viewers"],chats:["msgs"]},
  SKIP:{config:["active","ping"]},
@@ -550,35 +552,41 @@ const FO={
  use(n){ADB=n;db=DBS[n];try{localStorage.setItem("duelo_activedb",String(n))}catch(e){}},
  go(n){FO.use(n);try{sessionStorage.setItem("duelo_dbsw",String(n))}catch(e){}location.reload()},
  async boot(){const p=await FO.pick();if(p){FO.seq=p.seq||0;if(DBS[p.db]&&p.db!==ADB)FO.use(p.db)}FO.watch()},
- watch(){[1,2].forEach(n=>{if(!DBS[n])return;try{FO.ref(n).onSnapshot(s=>{if(!s.exists||s.metadata.hasPendingWrites)return;const p=s.data();if(!p||(p.db!==1&&p.db!==2)||(p.seq||0)<=FO.seq)return;FO.seq=p.seq;if(p.db!==ADB&&!FO.BUSY){try{toast("🔄 El juego cambió de servidor. Recargando…",4000)}catch(e){}setTimeout(()=>FO.go(p.db),1500)}},()=>{})}catch(e){}})},
- ok(){FO.FAILS=0},
- fail(){if(++FO.FAILS>=2){FO.FAILS=0;FO.run()}},
- ov(t){let e=document.getElementById("fo_ov");if(t===null){if(e)e.remove();return}if(!e){e=document.createElement("div");e.id="fo_ov";e.style.cssText="position:fixed;inset:0;z-index:99999;background:rgba(5,8,20,.93);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;white-space:pre-line;font:600 16px/1.5 system-ui,sans-serif;padding:24px";document.body.appendChild(e)}e.textContent=t},
- async run(){
-  if(FO.BUSY||!DBS[1]||!DBS[2])return;
-  const day=FO.day();
-  if(FO.blk===day||Date.now()<FO.cool)return;
-  FO.BUSY=1;const from=ADB,to=from===1?2:1;let locked=0;
+ /* pantalla de espera para los demás jugadores mientras el admin migra */
+ sync(){const w=[1,2].some(n=>FO.mg[n]&&Date.now()-FO.mg[n]<FO.STALE);FO.ov(w?"🔄 El administrador está actualizando el servidor…\nEn unos minutos podrás seguir jugando.":null)},
+ watch(){
+  [1,2].forEach(n=>{if(!DBS[n])return;try{FO.ref(n).onSnapshot(s=>{if(!s.exists||s.metadata.hasPendingWrites)return;const p=s.data()||{};
+   if(p.state==="migrating"){FO.mg[n]=p.lock!==FO.cid?Date.now():0;FO.sync();return}
+   FO.mg[n]=0;FO.sync();
+   if((p.db!==1&&p.db!==2)||(p.seq||0)<=FO.seq)return;FO.seq=p.seq;
+   if(p.db!==ADB&&!FO.BUSY){try{toast("🔄 El juego cambió de servidor. Recargando…",4000)}catch(e){}setTimeout(()=>FO.go(p.db),1500)}},()=>{})}catch(e){}});
+  setInterval(FO.sync,10000)},
+ ov(t){let e=document.getElementById("fo_ov");if(t===null){if(e)e.remove();return}if(!e){e=document.createElement("div");e.id="fo_ov";e.style.cssText="position:fixed;inset:0;z-index:2147483000;background:rgba(5,8,20,.93);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;white-space:pre-line;font:600 18px/1.5 Rajdhani,system-ui,sans-serif;padding:24px";document.body.appendChild(e)}e.textContent=t},
+ /* migración: solo la inicia el administrador. draw(html,botones) pinta el panel. */
+ async migrate(draw,best){
+  if(FO.BUSY||!U||!U.admin)return;
+  if(!DBS[1]||!DBS[2])return toast("Falta configurar una de las dos bases de datos");
+  const day=FO.day(),from=ADB,to=from===1?2:1;
+  if(FO.ONCE&&best&&best.day===day)return toast("Hoy ya se migró. Se podrá volver a migrar mañana.",6000);
+  if(!confirm("¿Migrar todo a la base "+to+"?\nMientras dure la copia los jugadores verán una pantalla de espera."))return;
+  FO.BUSY=1;let locked=0,hb=0;const cl='<button data-fo="close">Cerrar</button>';
   try{
-   const best=await FO.pick();
-   if(best&&best.db!==from&&DBS[best.db])return FO.go(best.db);
-   if(best&&best.day===day){FO.blk=day;toast("⚠️ Hoy ya se cambió de base de datos. Se podrá volver a cambiar mañana.",6000);return}
-   /* ¿la base actual de verdad está fallando? si aún deja escribir, el error fue otro */
-   let alive=0;try{await FO.tmo(DBS[from].collection(K("config")).doc("ping").set({t:Date.now(),by:FO.cid}),6000);alive=1}catch(e){}
-   if(alive){toast("La conexión ya funciona. Intenta retar de nuevo.",4000);return}
-   /* candado en la base destino para que solo un jugador migre */
-   try{await FO.tmo(DBS[to].runTransaction(async tx=>{const r=FO.ref(to),s=await tx.get(r),p=s.exists?s.data():{};if(p.state==="migrating"&&p.lock!==FO.cid&&Date.now()-(p.lockTs||0)<FO.LOCK_MS)throw"LOCKED";tx.set(r,{...p,state:"migrating",lock:FO.cid,lockTs:Date.now()})}),9000);locked=1}
-   catch(e){FO.cool=Date.now()+60000;toast(e==="LOCKED"?"🔄 Otro jugador ya está cambiando de servidor…":"No se pudo conectar con la base de respaldo",5000);return}
-   FO.ov("🔄 Cambiando de servidor…\nNo cierres esta pantalla");
-   await FO.copy(from,to,t=>FO.ov("🔄 Cambiando de servidor…\nNo cierres esta pantalla\n\n"+t));
-   const np={db:to,seq:(best?best.seq||0:0)+1,day,ts:Date.now(),state:"ok",by:FO.cid};
-   await FO.tmo(DBS[to].collection(K("config")).doc("active").set(np),9000);locked=0;
-   try{await FO.tmo(DBS[from].collection(K("config")).doc("active").set(np),4000)}catch(e){}
-   FO.go(to);
+   draw("<p>Conectando con la base "+to+"…</p>","");
+   try{await FO.tmo(DBS[to].runTransaction(async tx=>{const r=FO.ref(to),s=await tx.get(r),p=s.exists?s.data():{};if(p.state==="migrating"&&p.lock!==FO.cid&&Date.now()-(p.lockTs||0)<FO.LOCK_MS)throw"LOCKED";tx.set(r,{...p,state:"migrating",lock:FO.cid,lockTs:Date.now(),by:U.name})}),9000)}
+   catch(e){throw new Error(e==="LOCKED"?"Ya hay otra migración en curso.":"No se pudo conectar con la base "+to+". Revisa que Firestore esté creado y que sus reglas permitan leer y escribir.")}
+   locked=1;
+   hb=setInterval(()=>{FO.ref(to).update({lockTs:Date.now()}).catch(()=>{})},20000);
+   await FO.copy(from,to,t=>draw("<p>Copiando todo a la base "+to+"… no cierres esta ventana.</p><p style=\"color:#7fe3ff\">"+esc(t)+"</p>",""));
+   const np={db:to,seq:(best?best.seq||0:0)+1,day,ts:Date.now(),state:"ok",by:U.name};
+   await FO.tmo(FO.ref(to).set(np),9000);locked=0;FO.seq=np.seq;
+   try{await FO.tmo(FO.ref(from).set(np),4000)}catch(e){}
+   FO.NEXT=to;
+   draw("<h3>✅ Migración lista</h3><p>Todo se copió idéntico a la base "+to+". Los jugadores conectados se recargarán solos y ya pueden seguir. Pulsa continuar para entrar tú también.</p>",'<button class="go" data-fo="reload">Continuar</button>');
   }catch(e){
-   console.error("[cambio de base]",e);FO.ov(null);FO.cool=Date.now()+10*60*1000;
-   toast("No se pudo cambiar de base de datos. Se reintentará más tarde.",6000);
+   console.error("[migración]",e);
+   draw("<h3>❌ No se pudo migrar</h3><p>"+esc(e&&e.message||String(e))+"</p><p>No se cambió nada: el juego sigue en la base "+from+".</p>",cl);
   }finally{
+   clearInterval(hb);
    if(locked){try{await FO.tmo(DBS[to].runTransaction(async tx=>{const r=FO.ref(to),s=await tx.get(r),p=s.exists?s.data():{};if(p.lock===FO.cid)tx.set(r,{...p,state:"ok",lock:null})}),6000)}catch(e){}}
    FO.BUSY=0}
  },
@@ -604,7 +612,7 @@ const FO={
  }
 };
 FO.ready=FO.boot().catch(()=>{});
-try{const w=sessionStorage.getItem("duelo_dbsw");if(w){sessionStorage.removeItem("duelo_dbsw");setTimeout(()=>{try{toast("🔄 Servidor actualizado automáticamente (base "+w+")",5000)}catch(e){}},3500)}}catch(e){}
+try{const w=sessionStorage.getItem("duelo_dbsw");if(w){sessionStorage.removeItem("duelo_dbsw");setTimeout(()=>{try{toast("✅ Servidor actualizado: ya estás en la base "+w,5000)}catch(e){}},3500)}}catch(e){}
 
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const nkey=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
@@ -694,8 +702,8 @@ if(dn(U.col)!=30){toast("Arma tu mazo de 30 cartas primero");return showApp("col
 try{await db.runTransaction(async tx=>{const r=await tx.get(D("challenges",c.id));if(!r.exists||r.data().status!="pending")throw"GONE";tx.set(D("matches",c.id),m);tx.update(D("challenges",c.id),{status:"accepted",matchId:c.id})});startOnline(c.id,"b",m)}catch(e){toast(e==="GONE"?"El reto ya no está disponible":"No se pudo aceptar el reto")}}
 async function challenge(id){if(!onlineOK())return toast("🔒 El modo en línea se desbloquea al completar el tutorial y el siguiente duelo de la historia",5000);if(dn(U.col)!=30){toast("Arma tu mazo de 30 cartas primero");return showApp("col")}id=(id||"").trim();if(!id)return toast("Escribe el ID o el nombre del rival");if(OUT)return toast("Ya tienes un reto pendiente");
 try{const u=await resolveUser(id);if(!u)return toast("No existe un jugador con ese ID o nombre");id=u.uid;if(id==U.uid)return toast("Ese eres tú");const inc=INC.find(c=>c.from==id);if(inc)return acceptCh(inc);
-const ref=Co("challenges").doc();await FO.tmo(ref.set({from:U.uid,fromName:U.name,to:id,toName:u.name,status:"pending",createdAt:FV.serverTimestamp()}),8000);FO.ok();OUT={id:ref.id,to:id,name:u.name};showInc();
-setTimeout(()=>{if(OUT&&OUT.id==ref.id){D("challenges",ref.id).update({status:"expired"}).catch(()=>{});OUT=null;showInc();toast("El reto expiró sin respuesta")}},CHMS+1500)}catch(e){toast("No se pudo enviar el reto");FO.fail(e)}}
+const ref=Co("challenges").doc();await ref.set({from:U.uid,fromName:U.name,to:id,toName:u.name,status:"pending",createdAt:FV.serverTimestamp()});OUT={id:ref.id,to:id,name:u.name};showInc();
+setTimeout(()=>{if(OUT&&OUT.id==ref.id){D("challenges",ref.id).update({status:"expired"}).catch(()=>{});OUT=null;showInc();toast("El reto expiró sin respuesta")}},CHMS+1500)}catch(e){toast("No se pudo enviar el reto")}}
 /* ---- catálogo de cartas en la base de datos ---- */
 async function syncCards(){try{const cs=await Co("categories").get(),have=new Set(cs.docs.map(d=>d.id)),cd=await Co("cards").get(),ex={};cd.docs.forEach(d=>ex[d.id]=d.data());
 const ops=[];BC.forEach(([k,nm],i)=>{if(!have.has(k))ops.push([D("categories",k),{n:nm,o:i,b:1}])});
@@ -1125,7 +1133,7 @@ const HM_TAB={cpk:"cpk",rank:"online",lobby:"home",story:"story",online:"online"
 const packsN=()=>Object.values(((U&&U.col)||{}).packs||{}).reduce((a,b)=>a+b,0),trdN=()=>TR.in.filter(t=>t.status=="open").length+TR.out.filter(t=>t.status=="countered").length,reqN=()=>REQ.filter(r=>r.status=="pending").length+NU.filter(u=>u.status=="pending").length;
 function shell(){const a=HM_TAB[VW]||"home",tab=(k,l,act,n,x="")=>`<button class="sh-tab ${x} ${a==k?"on":""}" data-act="${act}">${l}${n?`<i>${n}</i>`:""}</button>`;
 return`<header class="sh"><div class="sh-in"><div class="sh-logo" data-act="goback"><span>DUELO</span><b>DE MONSTRUOS</b></div>
-<nav class="sh-nav">${tab("home","Inicio","goback")}${tab("ms","🎯 Misiones","gms",msN()||"")}${tab("story","Historia","gstory")}${tab("online",onlineOK()?"En línea":"🔒 En línea","gonl")}${tab("col","Colección","gcol")}${tab("pk","Sobres","gpk",packsN())}${tab("prac","Práctica","gprac")}${tab("trio","Trío","gtrio")}${tab("shop","Tienda","gshop")}${tab("roul","Ruleta","groul",rlAvail()?"1":"")}${tab("auc","Subastas","gauc")}${tab("trd","Cambios","gtrd",trdN())}${tab("chat","💬 Chat","gchat",chUnN()||"")}${U.admin?tab("adm","Admin cartas","goadm","","ad")+tab("req","Solicitudes","greq",reqN(),"ad")+tab("sadm","Admin historia","gsadm","","ad")+tab("intro","Admin intro","gintro","","ad")+tab("radm","Admin ruleta","gradm","","ad")+tab("cpk","Sobres especiales","gcpk","","ad")+tab("gift","🎁 Regalos","ggift","","ad")+tab("ann","📢 Novedades","gann","","ad")+tab("hl","🤪 Hora Loca","ghl","","ad"):""}</nav>
+<nav class="sh-nav">${tab("home","Inicio","goback")}${tab("ms","🎯 Misiones","gms",msN()||"")}${tab("story","Historia","gstory")}${tab("online",onlineOK()?"En línea":"🔒 En línea","gonl")}${tab("col","Colección","gcol")}${tab("pk","Sobres","gpk",packsN())}${tab("prac","Práctica","gprac")}${tab("trio","Trío","gtrio")}${tab("shop","Tienda","gshop")}${tab("roul","Ruleta","groul",rlAvail()?"1":"")}${tab("auc","Subastas","gauc")}${tab("trd","Cambios","gtrd",trdN())}${tab("chat","💬 Chat","gchat",chUnN()||"")}${U.admin?tab("adm","Admin cartas","goadm","","ad")+tab("req","Solicitudes","greq",reqN(),"ad")+tab("sadm","Admin historia","gsadm","","ad")+tab("intro","Admin intro","gintro","","ad")+tab("radm","Admin ruleta","gradm","","ad")+tab("cpk","Sobres especiales","gcpk","","ad")+tab("gift","🎁 Regalos","ggift","","ad")+tab("ann","📢 Novedades","gann","","ad")+tab("hl","🤪 Hora Loca","ghl","","ad")+tab("mig","🔁 Migrar base","gmig","","ad"):""}</nav>
 <div class="sh-r"><button class="sh-fs" data-act="fs" title="Pantalla completa">⛶</button><span class="sh-coin">${IC.coin}<b>${U.gold||0}</b></span><button class="sh-me" data-act="goprof"><span class="sh-lv">${lvlOf(U.xp)}</span>${U.ph?`<img class="sh-ph" src="${U.ph}" alt="">`:`<span class="sh-ph sh-ini">${esc((U.name||"?").trim().charAt(0).toUpperCase())}</span>`}<span class="sh-nm">${esc(U.name)}</span></button></div></div></header>`}
 const bestCards=n=>myCards().slice().sort((a,b)=>RAR(b)[2]-RAR(a)[2]||CB[b][2]-CB[a][2]).slice(0,n);
 const onTxt=()=>{if(!onlineOK())return"🔒 Bloqueado · gana 2 duelos de historia ("+onProg()+"/2)";const n=PR.filter(p=>U&&p.id!=U.uid&&isOn(p)).length;return n?`${n} jugador${n>1?"es":""} conectado${n>1?"s":""}`:"Reta a tus amigos"};
@@ -2467,6 +2475,21 @@ async function hlPublish(m){const mu=+String(document.getElementById("hlm_x").va
  await hlSave({on:true,id:String(nowS()),from:f,to:t,mult:mu,ts:nowS(),by:U.name},m,"🤪 Hora Loca activada para todos")}
 async function hlSave(d,m,ok){if(!db)return toast("Sin conexión");try{await D("config","horaloca").set(d);toast(ok);m.remove()}catch(e){toast("No se pudo guardar. Revisa tu conexión")}}
 Object.assign(ACT,{ghl(){hlOpen()}});
+/* ---- admin: botón "Migrar base" ---- */
+async function foOpen(){
+ if(!U||!U.admin)return;gfStyle();
+ const to=ADB===1?2:1;
+ const m=document.getElementById("fom")||document.body.appendChild(Object.assign(document.createElement("div"),{id:"fom",className:"gfm0"}));
+ m.style.cssText="position:fixed;inset:0;z-index:2147482500;display:flex;align-items:center;justify-content:center;background:#050816d9;backdrop-filter:blur(4px);font:600 16px Rajdhani,sans-serif;color:#fff";
+ const draw=(h,b)=>{m.innerHTML=`<div class="gfb"><h2>🔁 Migrar base de datos</h2>${h}<div class="gfa" style="flex-wrap:wrap">${b}</div></div>`};
+ draw("<p>Consultando estado…</p>",'<button data-fo="close">Cerrar</button>');
+ const best=await FO.pick();
+ draw(`<p>Base actual: <b>${ADB}</b> (${FO.PROJ[ADB]}) · Base destino: <b>${to}</b> (${FO.PROJ[to]})</p><p style="color:#cfd6ff">${best&&best.day?"Última migración: "+esc(best.day)+".":"Todavía no se ha migrado nunca."} Se copia todo idéntico a la base destino y, al terminar, todos los jugadores pasan a usarla. Solo se permite una migración por día.</p>`,
+  `<button data-fo="close">Cerrar</button><button class="go" data-fo="go">Migrar a la base ${to}</button>`);
+ m.onclick=e=>{if(e.target===m&&!FO.BUSY){m.remove();return}const b=e.target.closest("[data-fo]");if(!b)return;const a=b.dataset.fo;
+  if(a==="close"&&!FO.BUSY)m.remove();else if(a==="go")FO.migrate(draw,best);else if(a==="reload")FO.go(FO.NEXT)}}
+Object.assign(ACT,{gmig(){foOpen()}});
+
 
 
 /* ===== MODO ESPECTADOR: quien no está jugando puede ver en vivo un duelo en línea 1 contra 1; los jugadores reciben un aviso con el nombre ===== */
