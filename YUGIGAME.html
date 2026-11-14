@@ -565,7 +565,7 @@ function rLobby(){return`<div class="ap"><div class="hd"><div><b class="nm">${es
 <details><summary>Reglas</summary><p>Cada jugador tiene 8000 puntos de vida y 2 movimientos por turno (robar, invocar, cambiar de posición o atacar; atacar termina el turno). Las cartas en defensa protegen a las de ataque que tienen detrás; el daño que sobra pasa a las siguientes cartas y a los puntos de vida. No se puede atacar en el primer turno. Una carta con 0 de DEF en modo defensa es un ESCUDO: se destruye al primer ataque, pero el ataque no pasa a nada más.</p></details></div></div>`}
 function renderList(){renderPlist();renderFriends()}
 function renderPlist(){const e=$("#plist");if(!e)return;const L=PR.filter(p=>p.id!=U.uid&&p.st!="off"&&p.ts&&nowS()-p.ts.toMillis()<70000).sort((a,b)=>a.name.localeCompare(b.name));
-e.innerHTML=L.length?L.map(p=>`<div class="pl"><span class="dot ${p.st=="duel"?"bz":""}"></span>${avHtml(p.id,p.name,28)}<b>${esc(p.name)}</b><small>${p.st=="duel"?"En duelo":p.dnd?"🔕 No molestar":p.st=="cpu"?"Jugando contra la CPU":"Disponible"}</small><button class="mini" data-act="chu" data-id="${p.id}" ${p.st=="duel"||p.dnd?"disabled":""}>Retar</button><button class="mini ghost" data-act="trto" data-id="${p.id}">Cambio</button>${(U.friends||[]).includes(p.id)?'<button class="mini ghost" disabled>✓ Amigo</button>':`<button class="mini" data-act="fadd" data-id="${p.id}">＋ Amigo</button>`}</div>`).join(""):'<p class="mut">No hay otros jugadores activos ahora. Comparte tu ID para que te reten.</p>'}
+e.innerHTML=L.length?L.map(p=>`<div class="pl"><span class="dot ${p.st=="duel"||p.st=="spec"?"bz":""}"></span>${avHtml(p.id,p.name,28)}<b>${esc(p.name)}</b><small>${p.st=="duel"?"En duelo":p.st=="spec"?"👁 Viendo un duelo":p.dnd?"🔕 No molestar":p.st=="cpu"?"Jugando contra la CPU":"Disponible"}</small><button class="mini" data-act="chu" data-id="${p.id}" ${p.st=="duel"||p.st=="spec"||p.dnd?"disabled":""}>Retar</button>${p.st=="duel"&&p.mid?`<button class="mini" data-act="specv" data-mid="${esc(p.mid)}">👁 Ver</button>`:""}<button class="mini ghost" data-act="trto" data-id="${p.id}">Cambio</button>${(U.friends||[]).includes(p.id)?'<button class="mini ghost" disabled>✓ Amigo</button>':`<button class="mini" data-act="fadd" data-id="${p.id}">＋ Amigo</button>`}</div>`).join(""):'<p class="mut">No hay otros jugadores activos ahora. Comparte tu ID para que te reten.</p>'}
 function rProf(){const s=U.stats||{},p=s.played||0,w=s.wins||0,l=s.losses||0;const H=[...(U.history||[])].sort((a,b)=>b.d-a.d).slice(0,15);
 return`<div class="ap"><div class="hd"><button class="mini" data-act="goback">← Volver</button></div><h1>MI PERFIL</h1>
 <div class="pn"><h2>${esc(U.name)}${U.admin?" · Administrador":""}</h2><p>ID: <b class="id">${U.uid}</b></p>
@@ -586,7 +586,7 @@ function setUser(uid,d){U={uid,name:d.name,nk:d.nk,admin:d.nk===ADMIN_NK,stats:d
 function logout(){if(U)D("presence",U.uid).set({name:U.name,st:"off",ts:FV.serverTimestamp(),lc:Date.now()}).catch(()=>{});stopNet();try{localStorage.removeItem("duelo_ses")}catch(e){}U=null;AU={tab:"login",err:"",busy:0};showApp("auth")}
 /* ---- red: presencia, retos, cartas ---- */
 function stopNet(){UN.forEach(f=>{try{f()}catch(e){}});UN=[];UT.forEach(clearInterval);UT=[];INC=[];OUT=null;showInc()}
-function beat(st){if(!U||!db)return;if(st)U.st=st;D("presence",U.uid).set({name:U.name,st:U.st,ts:FV.serverTimestamp(),lc:Date.now(),dnd:dndOn()}).catch(()=>{})}
+function beat(st){if(!U||!db)return;if(st)U.st=st;D("presence",U.uid).set({name:U.name,st:U.st,ts:FV.serverTimestamp(),lc:Date.now(),dnd:dndOn(),mid:(ON.on&&!ON.spec&&ON.mid&&(ON.role=="a"||ON.role=="b"))?ON.mid:""}).catch(()=>{})}
 function startNet(){stopNet();beat("lobby");watchNotifs();UT.push(setInterval(()=>{beat();if((VW=="lobby"||VW=="online")&&app.style.display!="none")renderList()},20000));
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)beat()});
 UN.push(Co("presence").onSnapshot(s=>{PR=s.docs.map(d=>({id:d.id,...d.data({serverTimestamps:"estimate"}),pend:d.metadata.hasPendingWrites}));const me=PR.find(p=>p.id==U.uid);if(me&&!me.pend&&me.ts&&me.lc)SO=me.ts.toMillis()-me.lc;if(VW=="lobby"||VW=="online")renderList();else if(VW=="chat")chUpd()},()=>{}));
@@ -791,7 +791,7 @@ try{await D("users",U.uid).update(u)}catch(e){PKV.busy=0;toast("No se pudo abrir
 setTimeout(()=>{PKV.busy=0;PKV.r=r.map((id,i)=>({id,had:had[i]}));PKV.i=0;PKV.mode=mode;PKV.g=(PKV.g||0)+1;mode=="auto"?showOne():showAll();fxo().insertAdjacentHTML("beforeend",'<div class="flash"></div>')},850)}
 
 /* ---- partida en línea ---- */
-function tx(m){if(!ON.on)return;m.n=ON.seq++;m.by=ON.role;D("matches",ON.mid).collection("moves").doc(String(m.n).padStart(5,"0")).set(m).catch(()=>toast("Problema de conexión al enviar tu jugada"))}
+function tx(m){if(!ON.on||ON.spec)return;m.n=ON.seq++;m.by=ON.role;D("matches",ON.mid).collection("moves").doc(String(m.n).padStart(5,"0")).set(m).catch(()=>toast("Problema de conexión al enviar tu jugada"))}
 async function rxPump(){if(ON.pumping||!ON.on)return;ON.pumping=1;try{while(ON.on&&!G.over&&G.t!=0&&!G.bw){ON.q.sort((a,b)=>a.n-b.n);while(ON.q.length&&ON.q[0].n<ON.seq)ON.q.shift();const m=ON.q[0];if(!m||m.n!==ON.seq)break;ON.q.shift();ON.seq++;try{await rxApply(m)}catch(e){console.error("rxApply",e,m);G.busy=0;G.bw=0}}}finally{ON.pumping=0}}
 async function rxApply0(m){const q=P[1];
 if(m.t=="draw"){G.busy=1;await takeCards(1);if(!G.over)await spend()}
@@ -954,7 +954,7 @@ cleanupOnline();ST.sel=id;STORY.cur={id,name:n.name,err:+((n.deck||{}).err)||0};
 function storyBack(){STORY.cur=null;$("#ov").style.display="none";beat("lobby");showApp("story")}
 function storyRetry(){const id=STORY.cur&&STORY.cur.id;STORY.cur=null;if(id)startStory(id)}
 async function storyWin(id){const n=STY.nodes[id];if(!n||!U)return null;const first=!(nDone(id)>0),r=n.rw||{},pc=first?1:rep(),sid=STY.sid,
-g=Math.round((r.gold||0)*pc),x=Math.round((r.xp||0)*pc),got={first,gold:g,xp:x,card:0,packs:{},up:0,newOpen:[]},was=new Set(Object.keys(STY.nodes).filter(isOpenS)),oldL=myLv();
+g=Math.round((r.gold||0)*pc*hlMul()),x=Math.round((r.xp||0)*pc*hlMul()),got={first,gold:g,xp:x,card:0,packs:{},up:0,newOpen:[]},was=new Set(Object.keys(STY.nodes).filter(isOpenS)),oldL=myLv();
 const u={gold:FV.increment(g),xp:FV.increment(x),[`sp.${sid}.${id}`]:FV.increment(1)};
 if(first){const pl=(r.cm=="rand"||r.cm=="list")?poolIds(n):(r.cm=="spec"&&CB[r.cid]?[+r.cid]:[]);if(pl.length)got.card=pw1(pl);
 if(got.card)u["col.inv."+got.card]=FV.increment(1);
@@ -1042,7 +1042,7 @@ const HM_TAB={cpk:"cpk",rank:"online",lobby:"home",story:"story",online:"online"
 const packsN=()=>Object.values(((U&&U.col)||{}).packs||{}).reduce((a,b)=>a+b,0),trdN=()=>TR.in.filter(t=>t.status=="open").length+TR.out.filter(t=>t.status=="countered").length,reqN=()=>REQ.filter(r=>r.status=="pending").length+NU.filter(u=>u.status=="pending").length;
 function shell(){const a=HM_TAB[VW]||"home",tab=(k,l,act,n,x="")=>`<button class="sh-tab ${x} ${a==k?"on":""}" data-act="${act}">${l}${n?`<i>${n}</i>`:""}</button>`;
 return`<header class="sh"><div class="sh-in"><div class="sh-logo" data-act="goback"><span>DUELO</span><b>DE MONSTRUOS</b></div>
-<nav class="sh-nav">${tab("home","Inicio","goback")}${tab("ms","🎯 Misiones","gms",msN()||"")}${tab("story","Historia","gstory")}${tab("online",onlineOK()?"En línea":"🔒 En línea","gonl")}${tab("col","Colección","gcol")}${tab("pk","Sobres","gpk",packsN())}${tab("prac","Práctica","gprac")}${tab("trio","Trío","gtrio")}${tab("shop","Tienda","gshop")}${tab("roul","Ruleta","groul",rlAvail()?"1":"")}${tab("auc","Subastas","gauc")}${tab("trd","Cambios","gtrd",trdN())}${tab("chat","💬 Chat","gchat",chUnN()||"")}${U.admin?tab("adm","Admin cartas","goadm","","ad")+tab("req","Solicitudes","greq",reqN(),"ad")+tab("sadm","Admin historia","gsadm","","ad")+tab("intro","Admin intro","gintro","","ad")+tab("radm","Admin ruleta","gradm","","ad")+tab("cpk","Sobres especiales","gcpk","","ad")+tab("gift","🎁 Regalos","ggift","","ad")+tab("ann","📢 Novedades","gann","","ad"):""}</nav>
+<nav class="sh-nav">${tab("home","Inicio","goback")}${tab("ms","🎯 Misiones","gms",msN()||"")}${tab("story","Historia","gstory")}${tab("online",onlineOK()?"En línea":"🔒 En línea","gonl")}${tab("col","Colección","gcol")}${tab("pk","Sobres","gpk",packsN())}${tab("prac","Práctica","gprac")}${tab("trio","Trío","gtrio")}${tab("shop","Tienda","gshop")}${tab("roul","Ruleta","groul",rlAvail()?"1":"")}${tab("auc","Subastas","gauc")}${tab("trd","Cambios","gtrd",trdN())}${tab("chat","💬 Chat","gchat",chUnN()||"")}${U.admin?tab("adm","Admin cartas","goadm","","ad")+tab("req","Solicitudes","greq",reqN(),"ad")+tab("sadm","Admin historia","gsadm","","ad")+tab("intro","Admin intro","gintro","","ad")+tab("radm","Admin ruleta","gradm","","ad")+tab("cpk","Sobres especiales","gcpk","","ad")+tab("gift","🎁 Regalos","ggift","","ad")+tab("ann","📢 Novedades","gann","","ad")+tab("hl","🤪 Hora Loca","ghl","","ad"):""}</nav>
 <div class="sh-r"><button class="sh-fs" data-act="fs" title="Pantalla completa">⛶</button><span class="sh-coin">${IC.coin}<b>${U.gold||0}</b></span><button class="sh-me" data-act="goprof"><span class="sh-lv">${lvlOf(U.xp)}</span>${U.ph?`<img class="sh-ph" src="${U.ph}" alt="">`:`<span class="sh-ph sh-ini">${esc((U.name||"?").trim().charAt(0).toUpperCase())}</span>`}<span class="sh-nm">${esc(U.name)}</span></button></div></div></header>`}
 const bestCards=n=>myCards().slice().sort((a,b)=>RAR(b)[2]-RAR(a)[2]||CB[b][2]-CB[a][2]).slice(0,n);
 const onTxt=()=>{if(!onlineOK())return"🔒 Bloqueado · gana 2 duelos de historia ("+onProg()+"/2)";const n=PR.filter(p=>U&&p.id!=U.uid&&isOn(p)).length;return n?`${n} jugador${n>1?"es":""} conectado${n>1?"s":""}`:"Reta a tus amigos"};
@@ -1179,8 +1179,8 @@ avail=id=>((U.col.inv||{})[id]||0)-((U.col.deck||{})[id]||0);
 function lvPrize(l){const m=l%3;if(m==0)return{pk:l<8?"p1":l<16?"p2":"p3"};if(m==1)return{cl:Math.min(5,1+Math.floor(l/4))};return{gold:60+15*l}}
 function lvPrizeTxt(l){const p=lvPrize(l);return p.pk?"1 sobre "+PKI[p.pk][0]:p.cl?"1 carta de nivel "+p.cl:p.gold+" monedas"}
 function xpInject(){if(!U||!["lobby","prof","prac"].includes(VW))return;const ap=app.querySelector(".ap");if(!ap)return;const L=myLv(),xp=U.xp||0,a=xpFor(L),b=xpFor(L+1),pc=Math.round((xp-a)/(b-a)*100);let n="";for(let i=1;i<=4;i++)n+=`<div>Nivel ${L+i}: ${lvPrizeTxt(L+i)} <small class="mut">(${xpFor(L+i)} XP)</small></div>`;const h=`<div class="pn xpc"><h2>Nivel ${L}</h2><div class="bar"><i style="width:${pc}%"></i></div><small>${xp-a} / ${b-a} XP para el nivel ${L+1} · te faltan ${b-xp} XP</small><p class="mut" style="margin:8px 0 2px">Próximos premios:</p>${n}</div>`;ap.insertAdjacentHTML("beforeend",h)}
-async function applyReward(g,x,prize){if(!U)return{g:0,x:0};const cg=Math.max(g,-(U.gold||0)),cx=Math.max(x,-(U.xp||0));U.gold=(U.gold||0)+cg;U.xp=(U.xp||0)+cx;const u={gold:FV.increment(cg),xp:FV.increment(cx)};U.col.inv=U.col.inv||{};U.col.packs=U.col.packs||{};if(prize){if(prize.k=="card"){u["col.inv."+prize.id]=FV.increment(1);U.col.inv[prize.id]=(U.col.inv[prize.id]||0)+1}else{u["col.packs."+prize.t]=FV.increment(1);U.col.packs[prize.t]=(U.col.packs[prize.t]||0)+1}}try{await D("users",U.uid).update(u)}catch(e){toast("No se pudieron guardar los premios")}await checkLevels();return{g:cg,x:cx}}
-async function checkLevels(){if(!U)return;const L=myLv();if(U.lvr==null){U.lvr=L;D("users",U.uid).update({lvr:L}).catch(()=>{});return}if(L<=U.lvr)return;const u={lvr:L},tx2=[];U.col.inv=U.col.inv||{};U.col.packs=U.col.packs||{};for(let l=U.lvr+1;l<=L;l++){const p=lvPrize(l);let t=lvPrizeTxt(l);if(p.pk){u["col.packs."+p.pk]=FV.increment(1);U.col.packs[p.pk]=(U.col.packs[p.pk]||0)+1}else if(p.cl){let pool=C.filter(c=>lv(c[0])=="n"+p.cl);if(!pool.length)pool=C.slice();const id=pool[Math.floor(Math.random()*pool.length)][0];u["col.inv."+id]=FV.increment(1);U.col.inv[id]=(U.col.inv[id]||0)+1;t="la carta "+cnm(id)}else{u.gold=FV.increment(p.gold);U.gold=(U.gold||0)+p.gold}tx2.push(`¡NIVEL ${l}! Premio: ${t}`)}U.lvr=L;try{await D("users",U.uid).update(u)}catch(e){}tx2.forEach((t,i)=>setTimeout(()=>toast(t,6000),i*700))}
+async function applyReward(g,x,prize){if(!U)return{g:0,x:0};{const _m=hlMul();if(g>0)g=Math.round(g*_m);if(x>0)x=Math.round(x*_m)}const cg=Math.max(g,-(U.gold||0)),cx=Math.max(x,-(U.xp||0));U.gold=(U.gold||0)+cg;U.xp=(U.xp||0)+cx;const u={gold:FV.increment(cg),xp:FV.increment(cx)};U.col.inv=U.col.inv||{};U.col.packs=U.col.packs||{};if(prize){if(prize.k=="card"){u["col.inv."+prize.id]=FV.increment(1);U.col.inv[prize.id]=(U.col.inv[prize.id]||0)+1}else{u["col.packs."+prize.t]=FV.increment(1);U.col.packs[prize.t]=(U.col.packs[prize.t]||0)+1}}try{await D("users",U.uid).update(u)}catch(e){toast("No se pudieron guardar los premios")}await checkLevels();return{g:cg,x:cx}}
+async function checkLevels(){if(!U)return;const L=myLv();if(U.lvr==null){U.lvr=L;D("users",U.uid).update({lvr:L}).catch(()=>{});return}if(L<=U.lvr)return;const u={lvr:L},tx2=[];U.col.inv=U.col.inv||{};U.col.packs=U.col.packs||{};for(let l=U.lvr+1;l<=L;l++){const p=lvPrize(l);let t=lvPrizeTxt(l);if(p.pk){u["col.packs."+p.pk]=FV.increment(1);U.col.packs[p.pk]=(U.col.packs[p.pk]||0)+1}else if(p.cl){let pool=C.filter(c=>lv(c[0])=="n"+p.cl);if(!pool.length)pool=C.slice();const id=pool[Math.floor(Math.random()*pool.length)][0];u["col.inv."+id]=FV.increment(1);U.col.inv[id]=(U.col.inv[id]||0)+1;t="la carta "+cnm(id)}else{const _gm=Math.round(p.gold*hlMul());u.gold=FV.increment(_gm);U.gold=(U.gold||0)+_gm;if(_gm!=p.gold)t=_gm+" monedas (×"+hlF(hlMul())+" Hora Loca)"}tx2.push(`¡NIVEL ${l}! Premio: ${t}`)}U.lvr=L;try{await D("users",U.uid).update(u)}catch(e){}tx2.forEach((t,i)=>setTimeout(()=>toast(t,6000),i*700))}
 const T3R=[[300,220],[170,130],[90,70]],t3rw=(pl,d)=>{if(!d)return T3R[pl-1];const w=prW(d),l=prL(d);return pl==1?[Math.round(w[0]*1.5),Math.round(w[1]*1.5)]:pl==2?w:l},t3card=()=>{const pool=C.filter(c=>/^n[345]$/.test(lv(c[0]))).map(c=>c[0]);return pool.length?{k:"card",id:pw1(pool)}:null};
 function settle(win){if(!U||G.rw)return;G.rw=1;let g=0,x=0,tag="",pz=null,pl3=0;if(G.n3&&!(ON.on&&ON.ab)){pl3=win?1:(G.place||3);[g,x]=t3rw(pl3,(!ON.on&&STORY.cur&&STORY.cur.practice)||0);tag="Puesto "+pl3;if(pl3==1)pz=t3card()}else if(ON.on){if(ON.ab){g=-ABN;x=-ABN;tag="Abandonaste"}else if(ON.oppAb){g=ABN;x=ABN;tag="Tu rival abandonó";pz=ON.bonus}else if(win){[g,x]=FR.w;pz=ON.bonus}else[g,x]=FR.l}else if(STORY.cur&&STORY.cur.practice){[g,x]=win?prW(STORY.cur.practice):prL(STORY.cur.practice)}else if(STORY.cur&&!win&&STY.nodes[STORY.cur.id]){[g,x]=STL}else return;
 if(!win&&ON.on&&ON.bonus&&!ON.ab)ON.bonus=null;
@@ -1343,7 +1343,7 @@ PKIMG.pwu="data:image/webp;base64,UklGRvb6AABXRUJQVlA4IOr6AABwogKdASqkAXYCPj0aik
 const alive=p=>!!P&&!!P[p]&&!P[p].out,
 NX=t=>{const n=P.length;for(let k=1;k<=n;k++){const q=(t+k)%n;if(alive(q))return q}return t},
 OP=p=>{if(!G.n3)return 1-p;if(p===G.t)return(G.tg!==p&&alive(G.tg))?G.tg:NX(p);return(alive(G.t)&&G.t!==p)?G.t:NX(p)},
-NAME=p=>G.n3?(p==0?"Tú":(G.names&&G.names[p])||"Rival "+p):(p?"El rival":"Tú"),
+NAME=p=>G.n3?(p==0?"Tú":(G.names&&G.names[p])||"Rival "+p):(p?(ON.spec?ON.bn:"El rival"):(ON.spec?ON.an:"Tú")),
 ATKN=()=>G.n3?3:1,
 ABS=l=>(l+(ON.my||0))%3,LOC=a=>(a-(ON.my||0)+3)%3,
 oppsF=p=>P.map((_,i)=>i).filter(i=>i!==p&&alive(i)).flatMap(i=>field(i));
@@ -1545,7 +1545,7 @@ Object.assign(ACT,{
 groul(){RL.res=null;showApp("roul")},
 async rspin(){if(RL.busy||!U)return;if(!db)return toast("Necesitas conexión para girar la ruleta");const key=rlKey();if((U.roul||{}).d===key)return toast("Ya usaste tu ruleta de hoy. Vuelve después de las 12 de la noche");
 const wh=rlWheel(key);if(!wh.length)return toast("La ruleta no tiene premios hoy");const sum=wh.reduce((a,p)=>a+p.w,0);let x=rlRand()*sum,idx=wh.length-1;for(let i=0;i<wh.length;i++){x-=wh[i].w;if(x<0){idx=i;break}}
-const pz=wh[idx];RL.busy=1;RL.res=null;render();
+const pz=Object.assign({},wh[idx]);{const _m=hlMul();if(_m>1&&(pz.k=="gold"||pz.k=="xp")){const o=String(pz.v);pz.v=Math.round(pz.v*_m);pz.lab=(pz.lab.includes(o)?pz.lab.replace(o,String(pz.v)):pz.lab)+" (×"+hlF(_m)+" Hora Loca)"}}RL.busy=1;RL.res=null;render();
 try{await rlClaim(key,pz)}catch(e){RL.busy=0;render();return toast(e==="USED"?"Ya usaste tu ruleta de hoy":"No se pudo girar. Revisa tu conexión e inténtalo de nuevo")}
 const sg=360/wh.length,cur=((RL.ang%360)+360)%360,jit=(rlRand()-.5)*sg*.7,add=((((-idx*sg+jit)-cur)%360)+360)%360,tg=RL.ang+360*6+add;RL.ang=tg;
 const sv=$("#rlw");if(sv){sv.getBoundingClientRect();sv.style.transition="transform 5.6s cubic-bezier(.12,.62,.08,1)";sv.style.transform=`rotate(${tg}deg)`}
@@ -1784,7 +1784,7 @@ e.onclick=async ev=>{const b=ev.target.closest("[data-m]");if(!b)return;clearInt
 function forfeitMatch(m,my,opp){D("matches",m.id).update({status:"abandoned",gone:my,["settled_"+my]:true}).catch(()=>{});recordLoss(opp);notify("Duelo perdido","No volviste a tiempo al duelo contra "+opp)}
 function recordLoss(opp){if(!U||!db)return;const e={r:"l",vs:opp,m:"online",d:Date.now(),t:0};U.stats=U.stats||{};U.stats.played=(U.stats.played||0)+1;U.stats.losses=(U.stats.losses||0)+1;U.history=[...(U.history||[]),e];D("users",U.uid).update({"stats.played":FV.increment(1),"stats.losses":FV.increment(1),history:FV.arrayUnion(e)}).catch(()=>{});rkApply(false)}
 function dcBanner(t){let b=document.getElementById("dcb");if(!t){if(b)b.remove();return}if(!b){b=document.createElement("div");b.id="dcb";document.body.appendChild(b)}b.textContent="⚠️ "+t}
-function dcWatch(){clearInterval(ON.dcT);ON.dcAt=0;ON.oppVis=null;if(!ON.vh){ON.vh=1;document.addEventListener("visibilitychange",()=>{if(ON.on&&!G.n3&&ON.mid)D("matches",ON.mid).update({["beat_"+ON.role]:Date.now(),["vis_"+ON.role]:!document.hidden}).catch(()=>{})})}
+function dcWatch(){clearInterval(ON.dcT);ON.dcAt=0;ON.oppVis=null;if(!ON.vh){ON.vh=1;document.addEventListener("visibilitychange",()=>{if(ON.on&&!ON.spec&&!G.n3&&ON.mid)D("matches",ON.mid).update({["beat_"+ON.role]:Date.now(),["vis_"+ON.role]:!document.hidden}).catch(()=>{})})}
 ON.dcT=setInterval(()=>{if(!ON.on||G.n3||G.over){dcBanner(null);return}const gap=Date.now()-ON.lastSeen,lim=ON.oppVis===false?180000:25000;
 if(gap<15000){if(ON.dcAt){ON.dcAt=0;dcBanner(null);toast("✅ "+ON.opp+" volvió al duelo")}return}
 if(gap>=lim){if(!ON.dcAt){ON.dcAt=Date.now();notify("⚠️ Rival desconectado",ON.opp+" perdió la conexión. Tiene 1 minuto para volver.")}const l=Math.max(0,60000-(Date.now()-ON.dcAt));dcBanner(ON.opp+" se desconectó · tiene "+Math.ceil(l/1000)+" s para volver");
@@ -2004,19 +2004,20 @@ function gfStyle(){if(document.getElementById("gfcss"))return;const s=document.c
 #gfp .gfp-b{width:min(440px,92vw);text-align:center;background:linear-gradient(160deg,#1b2260,#0a0e2b);border:2.5px solid var(--gold,#ffd86b);border-radius:20px;padding:24px 22px;box-shadow:0 0 60px #ffd86b55,0 20px 70px #000c}
 #gfp .gfp-t{font-size:34px;font-weight:800;color:var(--gold,#ffd86b);letter-spacing:2px}
 #gfp .gfp-f{color:#9fb0ff;margin:2px 0 12px}
-#gfp .gfp-m{font-style:italic;margin:6px 0 12px;color:#fff}
+#gfp .gfp-m{font-style:italic;margin:6px 0 12px;color:#fff;white-space:pre-line}
+.gfb textarea{background:#0b1035;border:1.5px solid #ffffff44;border-radius:9px;color:#fff;padding:8px 10px;font:600 16px Rajdhani,sans-serif;width:100%;box-sizing:border-box;resize:vertical}
 #gfp .gfp-l{display:flex;flex-direction:column;gap:6px;margin:8px 0 16px;font-size:20px}
 #gfp .gfp-c{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
 #gfp .gfp-c div{width:70px;font-size:12px}#gfp .gfp-c img{width:70px;height:100px}
 `;document.head.appendChild(s)}
 async function gfOpen(){if(!U||!U.admin||!db)return;gfStyle();GF.sel=null;GF.cards={};GF.q="";
  const m=document.getElementById("gfm")||document.body.appendChild(Object.assign(document.createElement("div"),{id:"gfm"}));
- m.innerHTML=`<div class="gfb"><h2>🎁 Enviar regalo de compensación</h2>
+ m.innerHTML=`<div class="gfb"><h2>🎁 Enviar regalo</h2>
  <h3>1 · Usuario</h3><input id="gfq" placeholder="Buscar usuario por nombre…" autocomplete="off"><div class="gfu" id="gful">Cargando usuarios…</div><div class="gfsel" id="gfsel">Ningún usuario elegido</div>
  <h3>2 · Regalo</h3><div class="gfr"><label>🪙 Monedas<input id="gfg" type="number" min="0" value="0"></label><label>⭐ Experiencia<input id="gfx" type="number" min="0" value="0"></label></div>
  <h3>Sobres</h3><div class="gfr">${Object.keys(PKI).map(t=>`<label>${esc(PKI[t][0])}<input type="number" min="0" value="0" data-pk="${t}"></label>`).join("")}</div>
  <h3>Cartas</h3><input id="gfcq" placeholder="Buscar carta por nombre…" autocomplete="off"><div class="gfcl" id="gfcl"></div><div class="gfs" id="gfcs"></div>
- <h3>Mensaje (opcional)</h3><input id="gfmsg" maxlength="120" placeholder="Ej: Compensación por el error en el juego de tres">
+ <h3>Título del regalo</h3><input id="gfti" maxlength="40" placeholder="Ej: Regalo de compensación · ¡Feliz cumpleaños! · Premio especial (vacío = ¡REGALO!)" autocomplete="off"><h3>Mensaje / concepto (opcional)</h3><textarea id="gfmsg" maxlength="300" rows="3" style="min-height:70px" placeholder="Ej: Compensación por el error en el juego de tres"></textarea>
  <div class="gfa"><button data-gf="close">Cancelar</button><button class="go" data-gf="send">Enviar regalo</button></div></div>`;
  m.onclick=e=>{const b=e.target.closest("[data-gf]");if(e.target===m){m.remove();return}if(!b)return;const a=b.dataset.gf;
   if(a=="close")m.remove();else if(a=="send")gfSend();
@@ -2041,16 +2042,16 @@ async function gfSend(){if(GF.busy)return;if(!GF.sel){toast("Elige un usuario");
  document.querySelectorAll("#gfm [data-pk]").forEach(i=>{const k=n(i.value);if(k)p[i.dataset.pk]=k});
  const c={};Object.keys(GF.cards).forEach(id=>{if(GF.cards[id]>0)c[id]=GF.cards[id]});
  if(!g&&!x&&!Object.keys(p).length&&!Object.keys(c).length){toast("Agrega algo al regalo");return}
- const msg=document.getElementById("gfmsg").value.trim().slice(0,120),up={};
+ const msg=document.getElementById("gfmsg").value.trim().slice(0,300),ti=document.getElementById("gfti").value.trim().slice(0,40),up={};
  if(g)up.gold=FV.increment(g);if(x)up.xp=FV.increment(x);for(const t in p)up["col.packs."+t]=FV.increment(p[t]);for(const id in c)up["col.inv."+id]=FV.increment(c[id]);
- GF.busy=1;try{const bt=db.batch();bt.update(D("users",GF.sel.uid),up);bt.set(Co("notifs").doc(),{to:GF.sel.uid,t:"Regalo",x:"",gift:{g,x,p,c,m:msg,f:U.name},ts:Date.now()});await bt.commit();
+ GF.busy=1;try{const bt=db.batch();bt.update(D("users",GF.sel.uid),up);bt.set(Co("notifs").doc(),{to:GF.sel.uid,t:ti||"Regalo",x:"",gift:{g,x,p,c,m:msg,ti,f:U.name},ts:Date.now()});await bt.commit();
   toast("🎁 Regalo enviado a "+GF.sel.name);const m=document.getElementById("gfm");if(m)m.remove()}catch(e){toast("No se pudo enviar el regalo")}GF.busy=0}
 function gfShow(g){GF.queue.push(g);gfNext()}
 function gfNext(){if(GF.showing||!GF.queue.length)return;gfStyle();const g=GF.queue.shift(),L=[];GF.showing=1;
  if(g.g)L.push(`<div>🪙 <b>${g.g}</b> monedas</div>`);if(g.x)L.push(`<div>⭐ <b>${g.x}</b> de experiencia</div>`);
  for(const t in(g.p||{}))L.push(`<div>📦 <b>${g.p[t]}</b> × ${esc(PKI[t]?PKI[t][0]:t)}</div>`);
  const cs=Object.keys(g.c||{}).map(id=>`<div>${IMG[id]?`<img src="${IMG[id][0]}" alt="">`:""}${esc(CB[id]?CB[id][1]:"Carta")}${g.c[id]>1?" ×"+g.c[id]:""}</div>`).join("");
- const o=document.createElement("div");o.id="gfp";o.innerHTML=`<div class="gfp-b"><div class="gfp-t">🎁 ¡REGALO!</div><div class="gfp-f">${g.f?"De "+esc(g.f):"Del administrador"}</div>${g.m?`<div class="gfp-m">“${esc(g.m)}”</div>`:""}<div class="gfp-l">${L.join("")}</div>${cs?`<div class="gfp-c">${cs}</div>`:""}<button class="go" style="margin-top:16px;border-radius:10px;cursor:pointer;font:800 18px Rajdhani,sans-serif">¡Recibir!</button></div>`;
+ const o=document.createElement("div");o.id="gfp";o.innerHTML=`<div class="gfp-b"><div class="gfp-t" style="font-size:${g.ti&&g.ti.length>18?(g.ti.length>28?22:27):34}px">🎁 ${g.ti?esc(g.ti):"¡REGALO!"}</div><div class="gfp-f">${g.f?"De "+esc(g.f):"Del administrador"}</div>${g.m?`<div class="gfp-m">“${esc(g.m)}”</div>`:""}<div class="gfp-l">${L.join("")}</div>${cs?`<div class="gfp-c">${cs}</div>`:""}<button class="go" style="margin-top:16px;border-radius:10px;cursor:pointer;font:800 18px Rajdhani,sans-serif">¡Recibir!</button></div>`;
  o.querySelector("button").onclick=()=>{o.remove();GF.showing=0;gfNext()};document.body.appendChild(o);try{snd(660,.25,"sine",.1,990);setTimeout(()=>snd(880,.3,"sine",.1,1320),180)}catch(_){}}
 Object.assign(ACT,{ggift(){gfOpen()}});
 
@@ -2091,7 +2092,7 @@ function msList(k){const K=msKeys(),r=rlSeed("ms|"+k+"|"+K[k]+"|"+U.uid),pool=(k
  for(let i=pool.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}return pool.slice(0,3)}
 let msT=null;
 function msFlush(){clearTimeout(msT);msT=setTimeout(()=>{if(!U||!db)return;U.ms.u=Date.now();D("users",U.uid).update({ms:U.ms}).catch(()=>{})},1500)}
-function mEv(t,n=1){try{if(!U)return;const s=msEnsure();if(!s)return;let ch=0;
+function mEv(t,n=1){try{if(!U||ON.spec)return;const s=msEnsure();if(!s)return;let ch=0;
  [["d",s.dp,s.dc],["w",s.wp,s.wc]].forEach(([k,pr,cl])=>msList(k).forEach(m=>{if(m.t!==t||cl[m.id])return;const a=pr[m.id]||0;if(a>=m.n)return;pr[m.id]=Math.min(m.n,a+n);ch=1;
   if(pr[m.id]>=m.n)toast("🎯 Misión completada: "+m.txt+" · reclámala en Misiones")}));
  if(ch){msFlush();if(VW=="ms"&&app.style.display!="none")render()}}catch(e){console.error("mEv",e)}}
@@ -2104,7 +2105,7 @@ function rMs(){const s=msEnsure();
   return`<div class="msr ${done&&!c?"msdn":""} ${c?"mscl":""}"><div class="mst"><b>${m.txt}</b><div class="msbar"><i style="width:${Math.round(p/m.n*100)}%"></i></div><small class="mut">${p} / ${m.n}</small></div><div class="msrw">${msRw(m)}</div>${c?'<span style="color:#7dff9c">✔ Reclamada</span>':done?`<button data-act="msclaim" data-k="${k}" data-id="${m.id}">RECLAMAR</button>`:""}</div>`};
  return`<div class="ap msb"><div class="hd"><button class="mini" data-act="goback">← Inicio</button></div><h1>MISIONES</h1>${[["d","Misiones diarias"],["w","Misiones semanales"]].map(([k,t])=>`<div class="pn"><h2>${t} <small class="mut" style="font-size:14px;font-weight:600">· se reinician en ${msLeft(k)}</small></h2>${msList(k).map(m=>row(k,m)).join("")}</div>`).join("")}${msN()>1?'<div class="row"><button data-act="msall">RECLAMAR TODAS</button></div>':""}</div>`}
 async function msClaim(list){if(!U||!db||MSB)return;MSB=1;const s=msEnsure(),up={};let g=0,pk={};
- list.forEach(([k,id])=>{const m=(k=="d"?MS_D:MS_W).find(x=>x.id==id),pr=k=="d"?s.dp:s.wp,cl=k=="d"?s.dc:s.wc;if(!m||cl[id]||(pr[id]||0)<m.n)return;cl[id]=1;g+=m.g;if(m.pk)pk[m.pk]=(pk[m.pk]||0)+1});
+ list.forEach(([k,id])=>{const m=(k=="d"?MS_D:MS_W).find(x=>x.id==id),pr=k=="d"?s.dp:s.wp,cl=k=="d"?s.dc:s.wc;if(!m||cl[id]||(pr[id]||0)<m.n)return;cl[id]=1;g+=Math.round(m.g*hlMul());if(m.pk)pk[m.pk]=(pk[m.pk]||0)+1});
  if(!g){MSB=0;return}
  up.gold=FV.increment(g);for(const t in pk)up["col.packs."+t]=FV.increment(pk[t]);s.u=Date.now();up.ms=s;
  try{await D("users",U.uid).update(up);toast("🎁 Recompensa: 🪙 "+g+Object.keys(pk).map(t=>" + 📦 "+(PKI[t]?PKI[t][0]:t)+(pk[t]>1?" ×"+pk[t]:"")).join(""))}
@@ -2321,5 +2322,130 @@ watchNotifs=function(){UN.push(Co("notifs").where("to","==",U.uid).onSnapshot(s=
  try{const s=await D("rooms",U.uid).get();if(s.exists&&s.data().status=="open"){INV.sel.clear();if(ids.length)await sendInv(ids)}}catch(e){}}}
 Object.assign(ACT,{async tinvite(){const m=TRO.mine;if(!m||m.host!=U.uid)return toast("Primero crea una sala");const ids=[...INV.sel].filter(i=>!m.mem.includes(i));if(!ids.length)return toast("Elige a quién invitar");INV.sel.clear();await sendInv(ids);render()}});
 }catch(e){console.error("bloque extra",e)}})();
+
+
+/* ===== HORA LOCA: el admin la programa (de qué hora a qué hora) y todo el dinero y la experiencia ganados se multiplican por 12 (sobres no) ===== */
+const hlX=h=>{const m=+((h||HL||{}).mult);return m>0?m:2},hlF=n=>String(+(+n).toFixed(2));let HL=null,HLP=null,HLN={id:"",st:0,en:0};
+function hlState(h){h=h||HL;if(!h||!h.on||!h.from||!h.to)return"none";const n=nowS();return n<h.from?"pending":n<h.to?"active":"ended"}
+function hlMul(){try{return hlState()=="active"?hlX():1}catch(e){return 1}}
+function hlT(ms){const d=new Date(ms),n=new Date(nowS()),t=d.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"});
+ if(d.toDateString()==n.toDateString())return t;
+ const tm=new Date(n.getFullYear(),n.getMonth(),n.getDate()+1);if(d.toDateString()==tm.toDateString())return"mañana "+t;
+ return d.toLocaleDateString("es-MX",{weekday:"short",day:"numeric",month:"short"})+", "+t}
+function hlRange(h){const a=new Date(h.from),b=new Date(h.to),n=new Date(nowS());
+ return(a.toDateString()==n.toDateString()&&b.toDateString()==n.toDateString()?"hoy ":"")+"de "+hlT(h.from)+" a "+hlT(h.to)}
+const hlSeen=()=>{let l="";try{l=localStorage.getItem("duelo_hl_"+(U&&U.uid))||""}catch(e){}return l};
+const hlMark=id=>{try{localStorage.setItem("duelo_hl_"+U.uid,id)}catch(e){}};
+function hlStyle(){if(document.getElementById("hlcss"))return;const s=document.createElement("style");s.id="hlcss";
+ s.textContent="#hlb{position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:2400;pointer-events:none;padding:4px 14px;border-radius:999px;font:800 14px Rajdhani,sans-serif;letter-spacing:.08em;color:#1a0030;background:linear-gradient(90deg,#ff3df2,#ffd86b,#52e0ff,#7dff9c,#ff3df2);background-size:300% 100%;animation:hlbg 3s linear infinite;box-shadow:0 0 16px #ff3df2aa;white-space:nowrap}@keyframes hlbg{to{background-position:300% 0}}";
+ document.head.appendChild(s)}
+function hlBanner(){let b=document.getElementById("hlb");const st=U&&HL?hlState():"none";
+ if(st!="active"){if(b)b.remove();return}
+ if(!b){hlStyle();b=document.createElement("div");b.id="hlb";document.body.appendChild(b)}
+ const l=Math.max(0,HL.to-nowS()),m=Math.floor(l/60000),sc=Math.floor(l%60000/1000),t=m>=60?Math.floor(m/60)+" h "+(m%60)+" min":m+":"+String(sc).padStart(2,"0");
+ const h="🤪 HORA LOCA ×"+hlF(hlX())+" · quedan "+t;if(b.textContent!==h)b.textContent=h}
+function hlOnSnap(d){const prev=HLP;HL=d;HLP=d;if(!U)return;const st=hlState();
+ if(prev&&prev.on&&hlState(prev)!="ended"&&(!d||!d.on)){notify("Hora Loca cancelada","El administrador canceló la Hora Loca.");hlBanner();return}
+ if(!d||!d.id||st=="none"){hlBanner();return}
+ if(HLN.id!=d.id){HLN={id:d.id,st:st=="pending"?0:1,en:st=="ended"?1:0}}
+ if(hlSeen()!==d.id){hlMark(d.id);if(st!="ended")notify("🤪 ¡HORA LOCA!","Todo el dinero y la experiencia que ganes se multiplica ×"+hlF(hlX(d))+" "+hlRange(d)+" (los sobres no se multiplican)")}
+ hlBanner()}
+setInterval(()=>{try{if(!U||!HL){hlBanner();return}const st=hlState();
+ if(st=="active"&&!HLN.st){HLN.st=1;hlMark(HL.id);notify("🤪 ¡EMPEZÓ LA HORA LOCA!","Todo el dinero y la experiencia ×"+hlF(hlX())+" hasta las "+hlT(HL.to)+" (los sobres no se multiplican)")}
+ if(st=="ended"&&HLN.st&&!HLN.en){HLN.en=1;notify("Terminó la Hora Loca","Las ganancias vuelven a la normalidad hasta la próxima.")}
+ hlBanner()}catch(e){}},1000);
+function watchHl(){UN.push(D("config","horaloca").onSnapshot(s=>{try{hlOnSnap(s.exists?s.data():null)}catch(e){console.error("hora loca",e)}},()=>{}))}
+{const _sn=startNet;startNet=function(){const r=_sn.apply(this,arguments);try{watchHl()}catch(e){}return r}}
+/* ---- panel del administrador ---- */
+function hlOpen(){if(!U||!U.admin||!db)return;gfStyle();
+ const m=document.getElementById("hlm")||document.body.appendChild(Object.assign(document.createElement("div"),{id:"hlm"}));
+ m.style.cssText="position:fixed;inset:0;z-index:2147482000;display:flex;align-items:center;justify-content:center;background:#050816d9;backdrop-filter:blur(4px);font:600 16px Rajdhani,sans-serif;color:#fff";
+ const st=hlState(),pad=n=>String(n).padStart(2,"0"),loc=ms=>{const d=new Date(ms);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes())};
+ const f0=Math.ceil(nowS()/60000)*60000;
+ const cur=st=="active"?`🟢 <b>ACTIVA ahora</b> · ${esc(hlRange(HL))}`:st=="pending"?`🕒 <b>Programada</b> · ${esc(hlRange(HL))}`:(HL&&HL.on&&HL.from?`La última Hora Loca terminó (${esc(hlRange(HL))}).`:"No hay ninguna Hora Loca activa ni programada.");
+ m.innerHTML=`<div class="gfb" style="width:min(520px,94vw)"><h2>🤪 Hora Loca</h2>
+ <p style="margin:0 0 8px;color:#cfd6ff">Mientras dure, <b>todo el dinero y la experiencia</b> que ganen los jugadores se multiplica por el número que elijas (los sobres no). Al activarla, todos reciben una notificación con el horario.</p>
+ <p style="margin:0 0 4px">${cur}${(st=="active"||st=="pending")&&HL?" · ×"+hlF(hlX(HL)):""}</p>
+ <h3>Multiplicador (×)</h3><input id="hlm_x" type="number" min="1" max="1000" step="0.1" value="${hlF(HL&&HL.mult>0?HL.mult:2)}" placeholder="Ej: 2, 1.5, 1.7">
+ <h3>Desde</h3><input id="hlf" type="datetime-local" style="color-scheme:dark" value="${loc(f0)}">
+ <h3>Hasta</h3><input id="hlt" type="datetime-local" style="color-scheme:dark" value="${loc(f0+36e5)}">
+ <div class="gfs"><button data-hl="dur" data-m="30">+30 min</button><button data-hl="dur" data-m="60">+1 h</button><button data-hl="dur" data-m="120">+2 h</button><button data-hl="dur" data-m="180">+3 h</button></div>
+ <p style="margin:6px 0 0;font-size:13px;color:#9fb0ff">Los botones fijan «Hasta» contando desde «Desde». Las horas son las de tu dispositivo.</p>
+ <div class="gfa" style="flex-wrap:wrap"><button data-hl="close">Cerrar</button>${st=="active"||st=="pending"?'<button data-hl="off">Cancelar Hora Loca</button>':""}<button class="go" data-hl="on">Activar para todos</button></div></div>`;
+ m.onclick=async e=>{const b=e.target.closest("[data-hl]");if(e.target===m){m.remove();return}if(!b)return;const a=b.dataset.hl;
+  if(a=="close")m.remove();
+  else if(a=="dur"){const f=new Date(document.getElementById("hlf").value).getTime();if(!f)return toast("Primero elige la hora de inicio");document.getElementById("hlt").value=loc(f+(+b.dataset.m)*60000)}
+  else if(a=="on")await hlPublish(m);
+  else if(a=="off"){if(!confirm("¿Cancelar la Hora Loca?"))return;await hlSave({...(HL||{}),on:false,ts:nowS(),by:U.name},m,"Hora Loca cancelada")}}}
+async function hlPublish(m){const mu=+String(document.getElementById("hlm_x").value).replace(",","."),f=new Date(document.getElementById("hlf").value).getTime(),t=new Date(document.getElementById("hlt").value).getTime();
+ if(!(mu>=1&&mu<=1000))return toast("El multiplicador debe ser un número de 1 en adelante (ej. 2 o 1.5)");if(!f||!t)return toast("Elige la hora de inicio y la de fin");if(t<=f)return toast("La hora de fin debe ser después de la de inicio");if(t<=nowS())return toast("La hora de fin ya pasó");
+ if(!confirm("¿Activar la Hora Loca ×"+hlF(mu)+" "+hlRange({from:f,to:t})+"?\nTodos los jugadores recibirán una notificación."))return;
+ await hlSave({on:true,id:String(nowS()),from:f,to:t,mult:mu,ts:nowS(),by:U.name},m,"🤪 Hora Loca activada para todos")}
+async function hlSave(d,m,ok){if(!db)return toast("Sin conexión");try{await D("config","horaloca").set(d);toast(ok);m.remove()}catch(e){toast("No se pudo guardar. Revisa tu conexión")}}
+Object.assign(ACT,{ghl(){hlOpen()}});
+
+
+/* ===== MODO ESPECTADOR: quien no está jugando puede ver en vivo un duelo en línea 1 contra 1; los jugadores reciben un aviso con el nombre ===== */
+let SP=null;
+["click","dblclick","mousedown","mouseup","pointerdown","pointerup","touchstart","touchend","contextmenu","keydown","keyup","keypress"].forEach(t=>document.addEventListener(t,e=>{
+ if(!ON.spec)return;const el=e.target&&e.target.closest?e.target:null;if(el&&el.closest("#spx,#ov,.tst,#hlb"))return;
+ e.stopPropagation();if(!/^touch/.test(t))e.preventDefault()},{capture:true,passive:false}));
+function specTr(t){if(!ON.spec||typeof t!="string")return t;const a=ON.an||"Jugador A",b=ON.bn||"Jugador B";
+ return t.replace(/^Pierdes /,a+" pierde ").replace(/^Atacas /,a+" ataca ").replace(/^Invocas /,a+" invoca ").replace(/^El rival /,b+" ").replace(/^Tú /,a+" ")}
+{const _l=log;log=function(t){return _l.call(this,specTr(t))};const _m=msg;msg=function(t){return _m.call(this,specTr(t))};
+ const _b=bn;bn=function(t){if(ON.spec&&typeof t=="string")t=t.replace("TU TURNO","TURNO DE "+String(ON.an||"A").toUpperCase()).replace("TURNO DEL RIVAL","TURNO DE "+String(ON.bn||"B").toUpperCase());return _b.call(this,t)}}
+function specUI(on){let b=document.getElementById("spx");if(!on){if(b)b.remove();return}
+ if(!b){if(!document.getElementById("spxcss")){const st=document.createElement("style");st.id="spxcss";
+  st.textContent="#spx{position:fixed;left:54px;bottom:10px;z-index:2450;display:flex;gap:8px;align-items:center;background:#0a0c24ee;border:1px solid #ffffff55;border-radius:999px;padding:5px 6px 5px 14px;color:#fff;font:700 14px Rajdhani,sans-serif;letter-spacing:.04em;box-shadow:0 4px 16px #000a;max-width:calc(100vw - 70px)}#spx span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#spx button{clip-path:none;box-shadow:none;border:1px solid #ffffff66;background:#ff3b6b;color:#fff;border-radius:999px;padding:4px 12px;font:800 13px Rajdhani,sans-serif;cursor:pointer}";
+  document.head.appendChild(st)}
+  b=document.createElement("div");b.id="spx";b.innerHTML="<span></span><button type=\"button\">SALIR</button>";document.body.appendChild(b);b.querySelector("button").onclick=()=>exitOnline()}
+ b.firstChild.textContent="👁 ESPECTANDO · "+ON.an+" vs "+ON.bn}
+function specEnd(aWon,why){if(!ON.spec||G.over)return;G.over=1;G.busy=1;G.fast=0;
+ const nm=aWon?ON.an:ON.bn,o=$("#ov");o.querySelector("h1").textContent="🏆 GANÓ "+String(nm).toUpperCase();o.querySelector("p").textContent=why||"Fin del duelo";
+ $("#go").textContent="SALIR";$("#ovm").style.display="none";$("#oxit").style.display="none";$("#orev").style.display="none";o.style.display="flex"}
+function specEndIdle(aWon,why,tries){if(!ON.spec||G.over)return;if((SP&&(SP.run||SP.q.length))&&(tries||0)<25)return setTimeout(()=>specEndIdle(aWon,why,(tries||0)+1),700);specEnd(aWon,why)}
+async function specApply(m){const t0=Date.now(),wait=async f=>{while(ON.spec&&!G.over&&!f()){if(Date.now()-t0>60000)throw"timeout";await new Promise(r=>setTimeout(r,15))}};
+ if(m.t=="res"){specEnd(m.by!="a",(m.by=="a"?ON.an:ON.bn)+" se rindió");return}
+ if(m.t=="kick")return;
+ if(m.by=="a"){await wait(()=>G.t==0&&!G.busy&&!G.bw&&!G.over);if(ON.spec&&!G.over)await myApply(m)}
+ else{await wait(()=>G.t==1&&!G.bw&&!ON.pumping&&!G.over);if(ON.spec&&!G.over)await rxApply0(m)}}
+async function specPump(){if(!SP||SP.run)return;const me=SP;me.run=1;
+ try{while(ON.spec&&SP===me&&!G.over){me.q.sort((a,b)=>a.n-b.n);while(me.q.length&&me.q[0].n<me.seq)me.q.shift();const m=me.q[0];if(!m||m.n!==me.seq)break;me.q.shift();me.seq++;await specApply(m);
+   if(G.fast&&me.target>=0&&me.seq>=me.target)G.fast=0}}
+ catch(e){console.error("espectador",e);if(ON.spec&&SP===me){toast("Se perdió la sincronización del duelo");exitOnline()}}
+ finally{me.run=0}
+ if(ON.spec&&SP===me&&G.fast&&me.target>=0&&me.seq>=me.target)G.fast=0}
+function specCleanup(){const mid=ON.mid;ON.spec=0;G.over=1;G.busy=1;G.fast=0;SP=null;specUI(false);try{D("matches",mid).collection("viewers").doc(U.uid).delete().catch(()=>{})}catch(e){}}
+{const _co=cleanupOnline;cleanupOnline=function(){if(ON.spec)specCleanup();return _co.apply(this,arguments)}}
+{const _end=end;end=function(win){if(ON.spec){specEnd(!!win,"Los puntos de vida de un duelista llegaron a cero");return}return _end.apply(this,arguments)}}
+{const _rr=reportResult;reportResult=function(){if(ON.spec)return;return _rr.apply(this,arguments)}}
+async function startSpectate(mid){if(!U||!db)return;
+ if(ON.on)return toast("Termina tu partida antes de ver otro duelo");
+ if(!onlineOK())return toast("Aún no tienes desbloqueado el modo en línea");
+ let m;try{const s=await D("matches",mid).get();if(!s.exists)throw 0;m=s.data()}catch(e){return toast("No se pudo abrir ese duelo")}
+ if(m.trio||!m.decks||!m.decks.a||!m.decks.b)return toast("Ese duelo no se puede ver");
+ if(m.status!="playing")return toast("Ese duelo ya terminó");
+ if(m.a==U.uid||m.b==U.uid)return toast("Ese duelo es tuyo");
+ if(ON.on)return;cleanupOnline();
+ const me=SP={q:[],seq:0,target:-1,run:0,mid};
+ Object.assign(ON,{on:1,role:"a",mid,q:[],seq:0,pumping:0,lastSeen:Date.now(),oppBeat:null,spec:1,trio:0,my:0,an:m.an||"Jugador A",bn:m.bn||"Jugador B",opp:m.bn||"Jugador B",oppId:m.b,ab:0,oppAb:0,bonus:null});
+ app.style.display="none";INC=[];showInc();beat("spec");specUI(true);
+ D("matches",mid).collection("viewers").doc(U.uid).set({uid:U.uid,name:U.name,ts:Date.now()}).catch(()=>{});
+ ON.subs.push(D("matches",mid).onSnapshot(d=>{const x=d.data();if(!x||!ON.spec||SP!==me||G.over)return;
+  if(x.status=="abandoned"&&x.gone)setTimeout(()=>specEndIdle(x.gone!="a",(x.gone=="a"?ON.an:ON.bn)+" abandonó el duelo"),2500);
+  else if(x.status=="finished")setTimeout(()=>{if(!ON.spec||G.over)return;const a=P&&P[0]?P[0].lp:1,b=P&&P[1]?P[1].lp:1;specEndIdle(b<=0?true:a<=0?false:a>=b,"El duelo terminó")},12000)},()=>{}));
+ G.fast=1;
+ start([m.decks.a.map(x=>({...x})),m.decks.b.map(x=>({...x}))],m.first=="a"?0:1);
+ G.specDone=1;$("#lp0 b").textContent=String(ON.an).toUpperCase();$("#lp1 b").textContent=String(ON.bn).toUpperCase();
+ $("#surr").style.display="none";$("#claim").style.display="none";
+ ON.subs.push(D("matches",mid).collection("moves").orderBy("n").onSnapshot(s=>{if(SP!==me)return;if(me.target<0){me.target=s.size;if(!me.target)G.fast=0}
+  s.docChanges().forEach(ch=>{if(ch.type=="added")me.q.push(ch.doc.data())});specPump()},()=>{toast("No se pudo seguir el duelo")}))}
+/* ---- aviso a los jugadores: alguien entró a verlos ---- */
+function specWatchViewers(mid){const seen={};
+ ON.subs.push(D("matches",mid).collection("viewers").onSnapshot(s=>{s.docChanges().forEach(ch=>{const x=ch.doc.data()||{},id=ch.doc.id;if(!U||id==U.uid)return;
+  if(ch.type=="removed"){if(seen[id])toast("👁 "+(x.name||"Un espectador")+" dejó de ver el duelo");delete seen[id];return}
+  const ts=x.ts||0;if(ts>(seen[id]||0)){seen[id]=ts;if(Date.now()-ts<90000)notify("👁 Nuevo espectador",(x.name||"Alguien")+" entró a ver tu duelo")}})},()=>{}))}
+{const _so=startOnline;startOnline=function(mid,role,m,rp){const was=ON.on;const r=_so.apply(this,arguments);try{if(!was&&ON.on&&ON.mid==mid&&!ON.spec&&(role=="a"||role=="b"))specWatchViewers(mid)}catch(e){}return r}}
+Object.assign(ACT,{specv(b){startSpectate(b.dataset.mid)}});
 
 </script></body></html>
