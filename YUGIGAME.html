@@ -451,15 +451,15 @@ function lp(p,v){v=Math.max(0,v);return new Promise(r=>{const o=P[p].lp,t0=perfo
 function updDk(p){$(`#dk${p} b`).textContent=P[p].deck.length;$(`#dk${p}`).style.opacity=P[p].deck.length?1:.25}
 function updGY(p){const g=P[p].gy,e=$(`#gy${p}`);e.style.backgroundImage=g.length?`url(${IMG[g[g.length-1].id][0]})`:"none"}
 function layout(p){const h=P[p].hand,n=h.length,t3=G.n3&&p>0,gap=Math.min(t3?8:p?56:100,640/Math.max(n,1)),cx=t3?(p==1?592:688):640;h.forEach((c,i)=>{const m=i-(n-1)/2,e=c.he;e.style.left=cx-50+m*gap+"px";e.style.top=(t3?-8+m*m:p?-86+m*m*1.5:612+m*m*3)+"px";e.style.setProperty("--r",m*(p?-3:3.5)+"deg")})}
-async function draw(p){const q=P[p];if(!q.deck.length){if(G.n3){await elimP(p);return}end(p==1);return}const c=q.deck.pop();q.hand.push(c);const e=c.he=document.createElement("img");e.className="hc"+(p?" o":"")+(G.n3&&p?" t3":"");e.src=p?BK:IMG[c.id][0];e.style.left=DK[p][0]+"px";e.style.top=DK[p][1]+"px";if(!p){e.onmouseenter=()=>pv(c);e.onclick=ev=>{ev.stopPropagation();handClick(c,e)}}ly.appendChild(e);e.offsetWidth;updDk(p);layout(p);snd(500,.12,"triangle",.05,900);await W(230)}
+async function draw(p){const q=P[p];if(!q.deck.length){if(hasCards(p))return;if(G.n3){await elimP(p);return}end(p==1);return}const c=q.deck.pop();q.hand.push(c);const e=c.he=document.createElement("img");e.className="hc"+(p?" o":"")+(G.n3&&p?" t3":"");e.src=p?BK:IMG[c.id][0];e.style.left=DK[p][0]+"px";e.style.top=DK[p][1]+"px";if(!p){e.onmouseenter=()=>pv(c);e.onclick=ev=>{ev.stopPropagation();handClick(c,e)}}ly.appendChild(e);e.offsetWidth;updDk(p);layout(p);snd(500,.12,"triangle",.05,900);await W(230)}
 function menu(x,y,items){const m=$("#mn");m.innerHTML="";let row=null;items.forEach(([t,f])=>{const b=document.createElement("button"),mv=t.indexOf("|mv|")>0;if(mv){const q=t.split("|mv|");b.textContent=q[0];b.title=q[1];b.className="mv"}else b.textContent=t;b.onclick=ev=>{ev.stopPropagation();m.style.display="none";f()};if(mv){if(!row){row=document.createElement("div");row.className="mvr";m.appendChild(row)}row.appendChild(b)}else m.appendChild(b)});m.style.cssText=`display:flex;left:${x}px;top:${y}px`}
 st.onclick=()=>{$("#mn").style.display="none";clr()};
 function clr(){G.sel=null;G.pick=null;document.querySelectorAll(".fc.sel,.fc.tg,.sl.pk,.lp.tgp").forEach(e=>e.classList.remove("sel","tg","pk","tgp"))}
-function hud(){$("#ph").innerHTML=(G.t?(G.n3?"TURNO DE "+NAME(G.t).toUpperCase():"TURNO DEL RIVAL"):"TU TURNO")+"<br>"+[0,1].map(k=>`<i class="${k<G.mv?"":"off"}"></i>`).join("")+" movimientos";$("#lp0").classList.toggle("act",!G.t);[1,2].forEach(k=>{const e=$("#lp"+k);if(e)e.classList.toggle("act",G.t==k)});$("#dk0").classList.toggle("pk",!G.t&&!G.busy&&!G.over&&G.mv>0&&P[0].hand.length<(P[0].hm||5))}
+function hud(){$("#ph").innerHTML=(G.t?(G.n3?"TURNO DE "+NAME(G.t).toUpperCase():"TURNO DEL RIVAL"):"TU TURNO")+"<br>"+[0,1].map(k=>`<i class="${k<G.mv?"":"off"}"></i>`).join("")+" movimientos";$("#lp0").classList.toggle("act",!G.t);[1,2].forEach(k=>{const e=$("#lp"+k);if(e)e.classList.toggle("act",G.t==k)});$("#dk0").classList.toggle("pk",!G.t&&!G.busy&&!G.over&&G.mv>0&&P[0].deck.length>0&&P[0].hand.length<(P[0].hm||5))}
 async function spend(){if(G.n3&&P[G.t]&&P[G.t].out){await done();return}G.mv--;if(G.mv<=0)await done();else{G.busy=0;hud()}}
 async function done(){if(G.over)return;G.busy=1;clr();await W(450);await startTurn(NX(G.t))}
-async function takeCards(p){const q=P[p];while(q.hand.length<(q.hm||5)&&!G.over&&!q.out)await draw(p);q.hm=0}
-async function drawMove(){if(G.t||G.busy||G.over||G.mv<1)return;if(P[0].hand.length>=(P[0].hm||5))return msg("Ya tienes cinco cartas en mano");clr();G.busy=1;tx({t:"draw"});await takeCards(0);if(!G.over)await spend()}
+async function takeCards(p){const q=P[p];while(q.hand.length<(q.hm||5)&&!G.over&&!q.out){if(!q.deck.length){if(!hasCards(p))await draw(p);break}await draw(p)}q.hm=0}
+async function drawMove(){if(G.t||G.busy||G.over||G.mv<1)return;if(!P[0].deck.length)return msg("Tu mazo está vacío");if(P[0].hand.length>=(P[0].hm||5))return msg("Ya tienes cinco cartas en mano");clr();G.busy=1;tx({t:"draw"});await takeCards(0);if(!G.over)await spend()}
 function calc(a,col){if(a.mode=="split"&&col!=null&&!a.neg)return fxSplit(a,col);let rem=a.a;const e=OP(a.owner),E=P[e],L=fxLane(a,col,E),ev=[];[...L].forEach(c=>{if(rem<=0)return;if(fxImmune(a,c)){ev.push({c,k:0,x:0});rem=0;return}if(c.pos=="d"&&c.d==0){ev.push({c,k:1,x:0,s:1});rem=0;return}if(rem>=c.d){ev.push({c,k:1,x:c.d});rem-=c.d}else{ev.push({c,k:0,x:rem});rem=0}});return{ev,lp:rem,e}}
 function handClick(c,e){if(G.t||G.busy||G.over||G.mv<1)return;clr();const it=[];if(P[0].A.includes(null))it.push(["Invocar en ATAQUE",()=>askSlot(c,"a")]);if(P[0].D.includes(null))it.push(["Invocar en DEFENSA",()=>askSlot(c,"d")]);if(!it.length)return msg("Tu campo está lleno");menu(parseInt(e.style.left)-30,500,it)}
 function askSlot(c,s){clr();G.pick={c,s};document.querySelectorAll(`.sl[data-p="0"][data-s="${s}"]`).forEach(e=>{if(!AR(0,s)[+e.dataset.i])e.classList.add("pk")});msg("Elige el espacio donde colocarla")}
@@ -492,7 +492,7 @@ if(R.lp>0&&ev.length)pop({i:1,owner:e,pos:"a"},"¡SOBRANTE! -"+R.lp+" LP","#ff3b
 if(r.dmg>0){await lp(e,P[e].lp-r.dmg);msg(`${e?NAME(e)+" pierde":"Pierdes"} ${r.dmg} LP`)}else if(ev.some(x=>x.s))msg("¡El escudo absorbe el ataque! Nada más es dañado");else if(!ev.some(x=>x.k))msg("La defensa resiste el ataque");
 await chk3();G.busy=1}
 function end(win){if(G.over)return;G.over=1;G.busy=1;if(!G.specDone)reportResult(win);(async()=>{const ttl=win?"¡VICTORIA!":(G.n3?"PUESTO "+(G.place||3):"DERROTA");await bn(ttl);const o=$("#ov");o.querySelector("h1").textContent=ttl;o.querySelector("p").textContent=win?(G.n3?"¡Eres el último duelista en pie!":"Reduciste los puntos de vida del rival a cero."):(G.n3?"Fuiste eliminado del duelo. Terminaste en el puesto "+(G.place||3)+" de 3.":"El rival redujo tus puntos de vida a cero.");$("#go").textContent=ON.on?"VOLVER A LA SALA":STORY.cur?(win&&!STORY.cur.practice?"VOLVER AL MAPA":win?"REPETIR RIVAL":"REINTENTAR"):"NUEVO DUELO";$("#ovm").textContent=STORY.cur?"VOLVER AL MAPA":"MENÚ";$("#ovm").style.display=ON.on?"none":"";$("#oxit").style.display=(STORY.cur&&!win&&!ON.on)?"":"none";$("#orev").style.display=(ON.on&&!G.n3&&!G.specDone)?"":"none";if(G.rwHtml)o.querySelector("p").insertAdjacentHTML("beforeend",G.rwHtml);o.style.display="flex";if(STORY.cur&&win)storyEnd().then(()=>checkLevels())})()}
-async function startTurn(p){G.t=p;G.tg=NX(p);G.tst=Date.now();G.n++;G.mv=2;clr();G.busy=1;G.bw=1;hud();await bn(p?(G.n3?"TURNO DE "+NAME(p).toUpperCase():"TURNO DEL RIVAL"):"TU TURNO");G.bw=0;if(G.over)return;if(p){if(ON.on)rxPump();else await npc()}else{G.busy=0;hud()}}
+async function startTurn(p){G.t=p;G.tg=NX(p);G.tst=Date.now();G.n++;G.mv=2;clr();G.busy=1;G.bw=1;hud();await bn(p?(G.n3?"TURNO DE "+NAME(p).toUpperCase():"TURNO DEL RIVAL"):"TU TURNO");G.bw=0;if(G.over)return;if(cardless(p)){if(G.n3){await elimP(p);await chk3();if(!G.over)await startTurn(NX(p))}else end(p==1);return}if(p){if(ON.on)rxPump();else await npc()}else{G.busy=0;hud()}}
 async function npc2(){await W(600);const me=P[1],op=P[0];let mv=2;
 while(mv>0&&!G.over){const hs=me.hand;let best=null,bs=0;
 if(G.n>ATKN())for(const a of me.A.filter(c=>c&&fxCanAtk(c))){const cs=[0,1,2].filter(i=>op.A[i]||op.D[i]);for(const col of cs.length?cs:[null]){const r=calc(a,col),s=r.ev.reduce((t,x)=>t+(x.s?400:x.k?1500+x.c.a:x.x),0)+r.lp*1.5;if((r.lp>0||r.ev.some(x=>x.k))&&s>bs){bs=s;best={a,col}}}}
@@ -582,7 +582,7 @@ async function doReg(name,pass){name=name.trim().replace(/\s+/g," ");const nk=nk
 for(let t=0;t<6;t++){const uid=rid(6),salt=rid(12);try{await db.runTransaction(async tx=>{const nr=D("names",nk),ur=D("users",uid);if((await tx.get(nr)).exists)throw"NAME";if((await tx.get(ur)).exists)throw"ID";tx.set(nr,{uid});tx.set(ur,{name,nk,stats:{played:0,wins:0,losses:0},history:[],createdAt:FV.serverTimestamp(),...(nk===ADMIN_NK?{}:{status:"pending"})});tx.set(D("creds",uid),{salt,hash:hx(salt+pass),toks:[]})});if(nk!==ADMIN_NK){AU.tab="login";AU.msg="✅ Solicitud enviada. El administrador debe aprobar tu cuenta antes de que puedas entrar. Vuelve a intentarlo más tarde.";return}await mkSession(uid);const u=await D("users",uid).get();return setUser(uid,u.data())}catch(e){if(e==="NAME")throw"Ese nombre ya está en uso";if(e!=="ID")throw"No se pudo crear el usuario. Revisa tu conexión y las reglas de Firestore."}}throw"No se pudo generar un ID, intenta de nuevo"}
 async function doRename(name){name=name.trim().replace(/\s+/g," ");const nk=nkey(name);if(name.length<3)throw"El nombre debe tener al menos 3 caracteres";if(nk==U.nk){if(name!=U.name){await D("users",U.uid).update({name});U.name=name;beat()}return}
 await db.runTransaction(async tx=>{const nr=D("names",nk),r=await tx.get(nr);if(r.exists&&r.data().uid!=U.uid)throw"NAME";tx.set(nr,{uid:U.uid});tx.delete(D("names",U.nk));tx.update(D("users",U.uid),{name,nk})}).catch(e=>{throw e==="NAME"?"Ese nombre ya está en uso":"No se pudo cambiar el nombre"});U.name=name;U.nk=nk;U.admin=nk===ADMIN_NK;beat()}
-function setUser(uid,d){U={uid,name:d.name,nk:d.nk,admin:d.nk===ADMIN_NK,stats:d.stats||{},history:d.history||[],st:"lobby",friends:Array.isArray(d.friends)?d.friends:[],gold:d.gold||0,xp:d.xp||0,story:d.story||{},sp:d.sp||{},col:d.col||NC(),lvr:d.lvr,ph:d.ph||"",onl:!!d.onl,roul:d.roul||{}};if(!d.col)D("users",uid).update({col:U.col}).catch(()=>{});VW="lobby";startNet();watchNewUsers();render()}
+function setUser(uid,d){U={uid,name:d.name,nk:d.nk,admin:d.nk===ADMIN_NK,stats:d.stats||{},history:d.history||[],st:"lobby",friends:Array.isArray(d.friends)?d.friends:[],gold:d.gold||0,xp:d.xp||0,story:d.story||{},sp:d.sp||{},col:d.col||NC(),lvr:d.lvr,ph:d.ph||"",onl:!!d.onl,roul:d.roul||{},ms:d.ms||{},ann:d.ann||""};if(!d.col)D("users",uid).update({col:U.col}).catch(()=>{});VW="lobby";startNet();watchNewUsers();render()}
 function logout(){if(U)D("presence",U.uid).set({name:U.name,st:"off",ts:FV.serverTimestamp(),lc:Date.now()}).catch(()=>{});stopNet();try{localStorage.removeItem("duelo_ses")}catch(e){}U=null;AU={tab:"login",err:"",busy:0};showApp("auth")}
 /* ---- red: presencia, retos, cartas ---- */
 function stopNet(){UN.forEach(f=>{try{f()}catch(e){}});UN=[];UT.forEach(clearInterval);UT=[];INC=[];OUT=null;showInc()}
@@ -666,7 +666,7 @@ const opts=()=>myCards().map(id=>`<option value="${id}">${esc(cnm(id))} (${CB[id
 const upd=o=>D("users",U.uid).update(o).catch(()=>toast("No se pudo guardar. Revisa tu conexión"));
 const rr=()=>{if(U&&app.style.display!="none"&&["col","pk","trd","lobby","online","up","req","story","shop"].includes(VW)&&!/^(tid|tfs|rid|rfs|fq|cq|cn|ca|cd)$/.test(document.activeElement.id))render()};
 function watchMine(){watchCustom();TR={in:[],out:[]};let f1=1,f2=1;
-UN.push(D("users",U.uid).onSnapshot(s=>{const d=s.data();if(d){U.friends=Array.isArray(d.friends)?d.friends:[];U.gold=d.gold||0;U.xp=d.xp||0;U.story=d.story||{};U.sp=d.sp||{};U.ph=d.ph||"";U.roul=d.roul||{};loadFN()}if(d&&d.col){U.col=d.col;rr()}renderList()}));
+UN.push(D("users",U.uid).onSnapshot(s=>{const d=s.data();if(d){U.friends=Array.isArray(d.friends)?d.friends:[];U.gold=d.gold||0;U.xp=d.xp||0;U.story=d.story||{};U.sp=d.sp||{};U.ph=d.ph||"";U.roul=d.roul||{};if(d.ms&&(d.ms.u||0)>=((U.ms&&U.ms.u)||0))U.ms=d.ms;if(d.ann)U.ann=d.ann;loadFN()}if(d&&d.col){U.col=d.col;rr()}renderList()}));
 UN.push(Co("trades").where("to","==",U.uid).onSnapshot(s=>{TR.in=s.docs.map(d=>({id:d.id,...d.data()}));if(!f1)s.docChanges().forEach(c=>{if(c.type=="added"&&c.doc.data().status=="open")notify("🔄 Propuesta de cambio",c.doc.data().fromName+" te propone un cambio de cartas");if(c.type=="modified"&&c.doc.data().status=="done"){const t=c.doc.data();tradeFx(t.counter,[t.offer])}});f1=0;rr()},()=>{}));
 UN.push(Co("trades").where("from","==",U.uid).onSnapshot(s=>{TR.out=s.docs.map(d=>({id:d.id,...d.data()}));if(!f2)s.docChanges().forEach(c=>{if(c.type!="modified")return;const t=c.doc.data(),m={countered:"respondió a tu oferta",rejected:"rechazó el cambio"}[t.status];if(m)notify("🔄 Cambio de cartas",t.toName+" "+m);if(t.status=="done")tradeFx([t.offer],t.counter)});f2=0;rr()},()=>{}))}
 /* colección */
@@ -1042,7 +1042,7 @@ const HM_TAB={cpk:"cpk",rank:"online",lobby:"home",story:"story",online:"online"
 const packsN=()=>Object.values(((U&&U.col)||{}).packs||{}).reduce((a,b)=>a+b,0),trdN=()=>TR.in.filter(t=>t.status=="open").length+TR.out.filter(t=>t.status=="countered").length,reqN=()=>REQ.filter(r=>r.status=="pending").length+NU.filter(u=>u.status=="pending").length;
 function shell(){const a=HM_TAB[VW]||"home",tab=(k,l,act,n,x="")=>`<button class="sh-tab ${x} ${a==k?"on":""}" data-act="${act}">${l}${n?`<i>${n}</i>`:""}</button>`;
 return`<header class="sh"><div class="sh-in"><div class="sh-logo" data-act="goback"><span>DUELO</span><b>DE MONSTRUOS</b></div>
-<nav class="sh-nav">${tab("home","Inicio","goback")}${tab("story","Historia","gstory")}${tab("online",onlineOK()?"En línea":"🔒 En línea","gonl")}${tab("col","Colección","gcol")}${tab("pk","Sobres","gpk",packsN())}${tab("prac","Práctica","gprac")}${tab("trio","Trío","gtrio")}${tab("shop","Tienda","gshop")}${tab("roul","Ruleta","groul",rlAvail()?"1":"")}${tab("auc","Subastas","gauc")}${tab("trd","Cambios","gtrd",trdN())}${tab("chat","💬 Chat","gchat",chUnN()||"")}${U.admin?tab("adm","Admin cartas","goadm","","ad")+tab("req","Solicitudes","greq",reqN(),"ad")+tab("sadm","Admin historia","gsadm","","ad")+tab("intro","Admin intro","gintro","","ad")+tab("radm","Admin ruleta","gradm","","ad")+tab("cpk","Sobres especiales","gcpk","","ad")+tab("gift","🎁 Regalos","ggift","","ad"):""}</nav>
+<nav class="sh-nav">${tab("home","Inicio","goback")}${tab("ms","🎯 Misiones","gms",msN()||"")}${tab("story","Historia","gstory")}${tab("online",onlineOK()?"En línea":"🔒 En línea","gonl")}${tab("col","Colección","gcol")}${tab("pk","Sobres","gpk",packsN())}${tab("prac","Práctica","gprac")}${tab("trio","Trío","gtrio")}${tab("shop","Tienda","gshop")}${tab("roul","Ruleta","groul",rlAvail()?"1":"")}${tab("auc","Subastas","gauc")}${tab("trd","Cambios","gtrd",trdN())}${tab("chat","💬 Chat","gchat",chUnN()||"")}${U.admin?tab("adm","Admin cartas","goadm","","ad")+tab("req","Solicitudes","greq",reqN(),"ad")+tab("sadm","Admin historia","gsadm","","ad")+tab("intro","Admin intro","gintro","","ad")+tab("radm","Admin ruleta","gradm","","ad")+tab("cpk","Sobres especiales","gcpk","","ad")+tab("gift","🎁 Regalos","ggift","","ad")+tab("ann","📢 Novedades","gann","","ad"):""}</nav>
 <div class="sh-r"><button class="sh-fs" data-act="fs" title="Pantalla completa">⛶</button><span class="sh-coin">${IC.coin}<b>${U.gold||0}</b></span><button class="sh-me" data-act="goprof"><span class="sh-lv">${lvlOf(U.xp)}</span>${U.ph?`<img class="sh-ph" src="${U.ph}" alt="">`:`<span class="sh-ph sh-ini">${esc((U.name||"?").trim().charAt(0).toUpperCase())}</span>`}<span class="sh-nm">${esc(U.name)}</span></button></div></div></header>`}
 const bestCards=n=>myCards().slice().sort((a,b)=>RAR(b)[2]-RAR(a)[2]||CB[b][2]-CB[a][2]).slice(0,n);
 const onTxt=()=>{if(!onlineOK())return"🔒 Bloqueado · gana 2 duelos de historia ("+onProg()+"/2)";const n=PR.filter(p=>U&&p.id!=U.uid&&isOn(p)).length;return n?`${n} jugador${n>1?"es":""} conectado${n>1?"s":""}`:"Reta a tus amigos"};
@@ -1057,7 +1057,7 @@ ${hmT("","gonl","#ff2d6f","#7b2cff","Multijugador","Jugar en línea",`<span id="
 ${hmT(dk<30?"warn":"","gcol","#6a3dff","#1d5bff","Colección","Mazo y colección",dk<30?`¡Completa tu mazo! ${dk}/30`:`Mazo listo ${dk}/30`,`<div class="hm-fan">${fan}</div>`,"")}
 ${hmT("","gpk","#ffb300","#ff5a00","Sobres","Abrir sobres",pk?`${pk} disponible${pk>1?"s":""}`:"No tienes sobres",`<img class="hm-pk" src="${PKIMG[pkShow]}" alt="">`,pk||"")}
 ${hmT("","gshop","#00e68a","#0099ff","Tienda","Tienda de sobres",`${IC.coin} ${U.gold||0} monedas`,`<img class="hm-pk" src="${PKIMG.p1}" alt="">`,"")}
-${hmT(rlAvail()?"warn":"","groul","#ff9d2e","#c2185b","Cada día","Ruleta diaria",rlAvail()?"¡Tu giro de hoy te espera!":"Ya giraste hoy · vuelve mañana",'<div class="rl-mini"></div>',rlAvail()?"1":"")}
+${hmT(rlAvail()?"warn":"","groul","#ff9d2e","#c2185b",(rlIsWE()?"🎉 Fin de semana":"Cada día"),"Ruleta diaria",rlAvail()?"¡Tu giro de hoy te espera!":"Ya giraste hoy · vuelve mañana",'<div class="rl-mini"></div>',rlAvail()?"1":"")}
 ${hmT("","gtrd","#00d0ff","#2a5cff","Intercambio","Cambios",tr?`${tr} pendiente${tr>1?"s":""}`:"Intercambia cartas con amigos",`<div class="hm-fan sm">${(top.length>1?top.slice(0,2):topAll.slice(0,2).map(c=>c[0])).map(i=>`<img src="${IMG[i][0]}" alt="">`).join("")}</div>`,tr||"")}
 ${hmT("","cpu","#8ea0c0","#34445f","Práctica","Duelo contra la CPU","Entrena sin riesgo",`<img class="hm-mon sm" src="${IMG[rnd0][1]}" alt="">`,"")}
 ${hmT("","gup","#ff5fa2","#ff6a3d","Comunidad","Subir carta","Propón una carta nueva",'<div class="hm-vs plus">+</div>',"")}
@@ -1364,7 +1364,8 @@ async function elimP(p){const q=P[p];if(!q||q.out)return;const nal=P.filter((_,i
 const l=$("#lp"+p);if(l)l.classList.add("out");flash("#ff5468aa");shake();snd(150,.7,"sawtooth",.12,40);msg(p==0?"¡Has sido eliminado! Ahora solo observas la partida":NAME(p)+" ha sido eliminado");log(NAME(p)+" fue eliminado");
 if(p==0){G.spec=1;G.specDone=1;if(!$("#spec"))st.insertAdjacentHTML("beforeend",'<div id="spec">👁 ERES ESPECTADOR</div>');try{reportResult(0)}catch(e){}notify("Eliminado","Sigues viendo la partida hasta que quede un ganador.")}
 await W(1200);fxRecalc()}
-async function chk3(){if(!G.n3){if(P[1].lp<=0)end(1);else if(P[0].lp<=0)end(0);return}
+async function chk3(){if(!G.n3){if(P[1].lp<=0||cardless(1))end(1);else if(P[0].lp<=0||cardless(0))end(0);return}
+for(const p of [0,1,2])if(cardless(p))await elimP(p);
 for(const p of P.map((_,i)=>i).filter(i=>alive(i)&&P[i].lp<=0).sort((a,b)=>P[a].lp-P[b].lp||a-b))await elimP(p);
 const al=P.map((_,i)=>i).filter(alive);if(al.length<=1&&!G.over)end(al[0]===0)}
 async function npc3(){await W(600);const s=G.t,me=P[s];let mv=2;
@@ -1504,7 +1505,7 @@ rlShort=p=>p.k=="gold"?"🪙 "+p.v:p.k=="xp"?"⭐ "+p.v+" XP":"🎴 "+(/^p\d+$/.
 rlCol=p=>p.k=="gold"?"#d99a12":p.k=="xp"?"#1f9ccf":(PKI[p.t]?PKI[p.t][1]:"#ff7ad9");
 /* premios del día: los marcados "siempre" salen todos los días; el resto rota con una semilla distinta cada día */
 function rlWheel(key,cfg){cfg=cfg||RLC;const n=cfg.size,pool=cfg.pool.filter(p=>p.w>0),r=rlSeed("ruleta|"+key),pin=pool.filter(p=>p.pin).slice(0,n),rest=rlShuf(pool.filter(p=>!p.pin),r);let pick=rlShuf(pin.concat(rest.slice(0,Math.max(0,n-pin.length))),r);const sum=pick.reduce((a,p)=>a+p.w,0)||1;return pick.map(p=>({...p,pct:p.w*100/sum,lab:rlLab(p)}))}
-function watchRoul(){UN.push(D("config","roulette").onSnapshot(s=>{RLC=rlNorm(s.exists?s.data():null);if(VW=="roul"&&!RL.busy)render()},()=>{}))}
+function watchRoul(){UN.push(D("config","roulette").onSnapshot(s=>{RLC=rlNorm2(s.exists?s.data():null);if(VW=="roul"&&!RL.busy)render()},()=>{}))}
 {const _sn=startNet;startNet=function(){_sn.apply(this,arguments);watchRoul()}}
 /* regalo de bienvenida: una carta al azar para el usuario nuevo */
 function rlGift(id){if(!U||!CB[id]||!IMG[id])return;const c=CB[id];fx(`<div class="stg"><h2>🎁 ¡Regalo de bienvenida!</h2><p class="mut">Esta carta al azar es tuya para empezar tu colección</p><img class="zimg fin" src="${IMG[id][0]}" alt="" style="box-shadow:0 0 44px #ffd86b"><h3 style="margin:0;font:800 24px Cinzel,serif;color:#fff">${esc(c[1])}</h3><p class="mut">${lvTxt(id)} · ATK ${c[2]} / DEF ${c[3]}</p><p class="mut">Tus sobres de bienvenida te esperan en «Sobres».</p><button onclick="fxClose()">¡A JUGAR!</button></div>`);try{snd(520,.25,"sine",.08,900)}catch(e){}}
@@ -1534,9 +1535,9 @@ wh.forEach((p,i)=>{const c=i*sg,a=pt(c-sg/2,R),b=pt(c+sg/2,R),f=i%2?"cc":"ff";h+
 for(let i=0;i<n;i++){const q=pt(i*sg+sg/2,R);h+=`<circle cx="${q[0]}" cy="${q[1]}" r="3.4" fill="#fff"/>`}
 return h+`</svg>`}
 function rRoul(){const key=rlKey(),wh=rlWheel(key),used=(U.roul||{}).d===key,L=wh.slice().sort((a,b)=>b.pct-a.pct);RL.key=key;
-return`<div class="ap" style="width:min(1060px,100%)"><h1>RULETA DIARIA</h1><div class="rl"><div><div class="rl-box ${RL.busy?"go":""} ${RL.res?"win":""}"><div class="rl-ptr"></div>${rlSvg(wh,RL.ang)}<button class="rl-hub" data-act="rspin" ${used||RL.busy?"disabled":""}>${used?"✓":"GIRAR"}</button></div></div>
+return`<div class="ap" style="width:min(1060px,100%)"><h1>RULETA DIARIA</h1>${rlIsWE(key)?`<div class="pn rl-we">🎉 <b>¡Ruleta de fin de semana!</b> Sábados y domingos hay premios más grandes y más probabilidad de premios raros.</div>`:""}<div class="rl"><div><div class="rl-box ${RL.busy?"go":""} ${RL.res?"win":""}"><div class="rl-ptr"></div>${rlSvg(wh,RL.ang)}<button class="rl-hub" data-act="rspin" ${used||RL.busy?"disabled":""}>${used?"✓":"GIRAR"}</button></div></div>
 <div><div class="pn"><div class="rl-st">${used?`Hoy ya giraste${U.roul.l?`: <b class="win">${esc(U.roul.l)}</b>`:""}.<br>La ruleta se reinicia con nuevos premios en:`:`🎡 <b>¡Tienes 1 giro disponible!</b><br>Si no lo usas antes de las 12 de la noche, lo pierdes. Tiempo restante:`}<span class="rl-cd" id="rlcd">${rlCd()}</span></div>${RL.res?`<div class="rl-res">🎉 ¡Ganaste ${esc(RL.res)}!</div>`:""}</div>
-<div class="pn"><h2>Premios de hoy</h2><p class="mut" style="margin:0 0 6px">Cada uno tiene distinta probabilidad: los premios pequeños salen más seguido.</p>${L.map(p=>`<div class="rl-pz">${rlIco(p)}<b>${esc(p.lab)}</b><div class="bar"><i style="width:${Math.max(3,p.pct*2.5)}%;background:${rlCol(p)};height:100%;border-radius:8px;box-shadow:none"></i></div><small>${p.pct<10?p.pct.toFixed(1):Math.round(p.pct)}%</small></div>`).join("")}</div></div></div></div>`}
+<div class="pn"><h2>Premios de hoy</h2><p class="mut" style="margin:0 0 6px">Cada uno tiene distinta probabilidad: los premios pequeños salen más seguido.</p>${L.map(p=>`<div class="rl-pz">${rlIco(p)}<b>${esc(p.lab)}${p.tn?` <em class="rl-tn" style="color:${p.tc}">${p.tn}</em>`:""}</b><div class="bar"><i style="width:${Math.max(3,p.pct*2.5)}%;background:${rlCol(p)};height:100%;border-radius:8px;box-shadow:none"></i></div><small>${p.pct<10?p.pct.toFixed(1):Math.round(p.pct)}%</small></div>`).join("")}</div></div></div></div>`}
 async function rlClaim(key,pz){const ref=D("users",U.uid);await db.runTransaction(async tx=>{const s=await tx.get(ref),d=s.data()||{};if((d.roul||{}).d===key)throw"USED";const u={roul:{d:key,l:pz.lab,k:pz.k,ts:Date.now()}};if(pz.k=="gold")u.gold=FV.increment(pz.v);else if(pz.k=="xp")u.xp=FV.increment(pz.v);else u["col.packs."+pz.t]=FV.increment(pz.n||1);tx.update(ref,u)});
 try{const s=await ref.get(),d=s.data()||{};U.gold=d.gold||0;U.xp=d.xp||0;if(d.col)U.col=d.col;U.roul=d.roul||{d:key,l:pz.lab}}catch(e){U.roul={d:key,l:pz.lab}}}
 function rlConfetti(){const b=$("#rlw");if(!b)return;const r=b.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,cols=["#ffd86b","#ff7ad9","#52e0ff","#7dff9c","#ff6b6b","#fff"];for(let i=0;i<46;i++){const e=document.createElement("div");e.className="ppt";const a=Math.random()*6.283,d=120+Math.random()*190;e.style.cssText=`left:${cx}px;top:${cy}px;--c:${cols[i%6]};--dx:${Math.cos(a)*d}px;--dy:${Math.sin(a)*d}px;z-index:950`;document.body.appendChild(e);setTimeout(()=>e.remove(),1100)}}
@@ -1722,11 +1723,12 @@ if(got&&U&&U.uid==uid){U.col.packs=U.col.packs||{};U.col.packs.pwu=(U.col.packs.
 
 /* ===== MUSICA: 3 canciones en bucle, mas bajita en combate, boton de configuracion ===== */
 (function(){
-const TR=["musica1.mp3","musica2.mp3","musica3.mp3"],VM=.35,VC=.12,K="duelo_music";
+const TR=["https://cdn1.suno.ai/c51e8973-0d97-43dc-98f7-67619d1bc5ec.mp3","https://cdn1.suno.ai/e4099465-e74b-4e02-938f-2cdaf1eef197.mp3","musica1.mp3","musica2.mp3","musica3.mp3"],TN=["Red on My Hands","We Were Speaking, But Never","","",""],VM=.35,VC=.12,K="duelo_music";
 let on=true,idx=0,gest=0;
 try{on=localStorage.getItem(K)!=="0"}catch(e){}
 const au=new Audio();au.preload="auto";au.volume=VM;
-const load=()=>{au.src=TR[idx]};
+const nowT=()=>{const e=document.getElementById("mnow");if(e)e.textContent=TN[idx]?"🎵 "+TN[idx]+" · IADOMination":""};
+const load=()=>{au.src=TR[idx];nowT()};
 au.onended=()=>{idx=(idx+1)%TR.length;load();au.play().catch(()=>{})};
 au.onerror=()=>{idx=(idx+1)%TR.length;setTimeout(()=>{load();if(on&&gest)au.play().catch(()=>{})},1500)};
 load();
@@ -1736,8 +1738,8 @@ st.textContent=`#mbtn{position:fixed;left:max(10px,env(safe-area-inset-left));bo
 document.head.appendChild(st);
 const b=document.createElement("button");b.id="mbtn";b.title="Configuración";b.textContent="⚙";
 const pn=document.createElement("div");pn.id="mpn";
-pn.innerHTML='<h4>Configuración</h4><button id="mtg"></button><small>Las canciones suenan en bucle.</small>';
-document.body.append(b,pn);
+pn.innerHTML='<h4>Configuración</h4><button id="mtg"></button><small id=\"mnow\" style=\"opacity:1;color:#ffd86b\"></small><small>Las canciones suenan en bucle.</small>';
+document.body.append(b,pn);nowT();
 const tg=pn.querySelector("#mtg"),lab=()=>{tg.textContent=on?"🔊 Música: ACTIVADA":"🔇 Música: DESACTIVADA"};lab();
 b.onclick=e=>{e.stopPropagation();pn.classList.toggle("show")};
 pn.onclick=e=>e.stopPropagation();
@@ -2058,4 +2060,166 @@ function rxCard(A,m){const q=P[A];let c=q.hand[m.h];if(c&&(m.id==null||c.id==m.i
  if(m.id!=null){c=q.hand.find(x=>x.id==m.id);if(c)return c;const k=q.deck.findIndex(x=>x.id==m.id);if(k>=0){c=q.deck.splice(k,1)[0];try{updDk(A)}catch(e){}}}
  if(!c){const b=CB[m.id]||[];c={id:m.id,n:b[1]||"?",a:b[2]||0,d:b[3]||0}}
  if(!c.he)c.he=document.createElement("img");q.hand.push(c);return c}
+
+/* ===== Mazo vacío: solo pierdes si no te queda NINGUNA carta ===== */
+const hasCards=p=>{const q=P[p];return !!q&&(q.hand.length>0||q.A.some(Boolean)||q.D.some(Boolean))};
+const cardless=p=>{const q=P[p];return !!q&&!q.out&&!q.deck.length&&!hasCards(p)};
+
+/* ===== Misiones diarias y semanales ===== */
+const MS_D=[
+ {id:"d_sum10",t:"sum",n:10,txt:"Invoca 10 monstruos",g:80},
+ {id:"d_sum20",t:"sum",n:20,txt:"Invoca 20 monstruos",g:140},
+ {id:"d_win1",t:"win",n:1,txt:"Gana 1 duelo",g:120},
+ {id:"d_play2",t:"play",n:2,txt:"Juega 2 duelos",g:70},
+ {id:"d_atk5",t:"atk",n:5,txt:"Ataca 5 veces",g:70},
+ {id:"d_trio1",t:"trio",n:1,txt:"Juega 1 duelo de Trío",g:110}];
+const MS_W=[
+ {id:"w_sum60",t:"sum",n:60,txt:"Invoca 60 monstruos",g:300,pk:"p1"},
+ {id:"w_win5",t:"win",n:5,txt:"Gana 5 duelos",g:350,pk:"p1"},
+ {id:"w_trio2",t:"triow",n:2,txt:"Gana 2 duelos de Trío",g:500,pk:"p2"},
+ {id:"w_onl5",t:"onl",n:5,txt:"Juega 5 duelos en línea",g:400,pk:"p1"},
+ {id:"w_atk40",t:"atk",n:40,txt:"Ataca 40 veces",g:250},
+ {id:"w_play10",t:"play",n:10,txt:"Juega 10 duelos",g:300,pk:"p1"}];
+const msPad=n=>String(n).padStart(2,"0");
+function msKeys(){const d=new Date(nowS()),dk=d.getFullYear()+"-"+msPad(d.getMonth()+1)+"-"+msPad(d.getDate());
+ const m=new Date(d.getFullYear(),d.getMonth(),d.getDate()-((d.getDay()+6)%7));
+ return{d:dk,w:m.getFullYear()+"-"+msPad(m.getMonth()+1)+"-"+msPad(m.getDate())}}
+function msEnsure(){if(!U)return null;const K=msKeys(),s=U.ms=U.ms||{};
+ if(s.d!==K.d){s.d=K.d;s.dp={};s.dc={}}if(s.w!==K.w){s.w=K.w;s.wp={};s.wc={}}
+ s.dp=s.dp||{};s.dc=s.dc||{};s.wp=s.wp||{};s.wc=s.wc||{};return s}
+function msList(k){const K=msKeys(),r=rlSeed("ms|"+k+"|"+K[k]+"|"+U.uid),pool=(k=="d"?MS_D:MS_W).slice();
+ for(let i=pool.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}return pool.slice(0,3)}
+let msT=null;
+function msFlush(){clearTimeout(msT);msT=setTimeout(()=>{if(!U||!db)return;U.ms.u=Date.now();D("users",U.uid).update({ms:U.ms}).catch(()=>{})},1500)}
+function mEv(t,n=1){try{if(!U)return;const s=msEnsure();if(!s)return;let ch=0;
+ [["d",s.dp,s.dc],["w",s.wp,s.wc]].forEach(([k,pr,cl])=>msList(k).forEach(m=>{if(m.t!==t||cl[m.id])return;const a=pr[m.id]||0;if(a>=m.n)return;pr[m.id]=Math.min(m.n,a+n);ch=1;
+  if(pr[m.id]>=m.n)toast("🎯 Misión completada: "+m.txt+" · reclámala en Misiones")}));
+ if(ch){msFlush();if(VW=="ms"&&app.style.display!="none")render()}}catch(e){console.error("mEv",e)}}
+function msN(){if(!U)return 0;const s=msEnsure();let c=0;[["d",s.dp,s.dc],["w",s.wp,s.wc]].forEach(([k,pr,cl])=>msList(k).forEach(m=>{if((pr[m.id]||0)>=m.n&&!cl[m.id])c++}));return c}
+function msLeft(k){const d=new Date(nowS());let e=k=="d"?new Date(d.getFullYear(),d.getMonth(),d.getDate()+1):new Date(d.getFullYear(),d.getMonth(),d.getDate()+(7-((d.getDay()+6)%7)));
+ const h=Math.max(1,Math.ceil((e-d)/36e5));return h>=48?Math.ceil(h/24)+" días":h+" h"}
+function msRw(m){return"🪙 "+m.g+(m.pk?" + 📦 "+(PKI[m.pk]?PKI[m.pk][0]:"Sobre"):"")}
+function rMs(){const s=msEnsure();
+ const row=(k,m)=>{const pr=k=="d"?s.dp:s.wp,cl=k=="d"?s.dc:s.wc,p=pr[m.id]||0,done=p>=m.n,c=!!cl[m.id];
+  return`<div class="msr ${done&&!c?"msdn":""} ${c?"mscl":""}"><div class="mst"><b>${m.txt}</b><div class="msbar"><i style="width:${Math.round(p/m.n*100)}%"></i></div><small class="mut">${p} / ${m.n}</small></div><div class="msrw">${msRw(m)}</div>${c?'<span style="color:#7dff9c">✔ Reclamada</span>':done?`<button data-act="msclaim" data-k="${k}" data-id="${m.id}">RECLAMAR</button>`:""}</div>`};
+ return`<div class="ap msb"><div class="hd"><button class="mini" data-act="goback">← Inicio</button></div><h1>MISIONES</h1>${[["d","Misiones diarias"],["w","Misiones semanales"]].map(([k,t])=>`<div class="pn"><h2>${t} <small class="mut" style="font-size:14px;font-weight:600">· se reinician en ${msLeft(k)}</small></h2>${msList(k).map(m=>row(k,m)).join("")}</div>`).join("")}${msN()>1?'<div class="row"><button data-act="msall">RECLAMAR TODAS</button></div>':""}</div>`}
+async function msClaim(list){if(!U||!db||MSB)return;MSB=1;const s=msEnsure(),up={};let g=0,pk={};
+ list.forEach(([k,id])=>{const m=(k=="d"?MS_D:MS_W).find(x=>x.id==id),pr=k=="d"?s.dp:s.wp,cl=k=="d"?s.dc:s.wc;if(!m||cl[id]||(pr[id]||0)<m.n)return;cl[id]=1;g+=m.g;if(m.pk)pk[m.pk]=(pk[m.pk]||0)+1});
+ if(!g){MSB=0;return}
+ up.gold=FV.increment(g);for(const t in pk)up["col.packs."+t]=FV.increment(pk[t]);s.u=Date.now();up.ms=s;
+ try{await D("users",U.uid).update(up);toast("🎁 Recompensa: 🪙 "+g+Object.keys(pk).map(t=>" + 📦 "+(PKI[t]?PKI[t][0]:t)+(pk[t]>1?" ×"+pk[t]:"")).join(""))}
+ catch(e){list.forEach(([k,id])=>{const cl=k=="d"?s.dc:s.wc;delete cl[id]});toast("No se pudo reclamar la misión")}
+ MSB=0;render()}
+let MSB=0;
+Object.assign(ACT,{gms(){showApp("ms")},msclaim(b){msClaim([[b.dataset.k,b.dataset.id]])},msall(){const L=[];["d","w"].forEach(k=>msList(k).forEach(m=>L.push([k,m.id])));msClaim(L)}});
+HM_TAB.ms="ms";
+{const _r=render;render=function(){if(U&&VW=="ms"){const y=app.scrollTop;app.innerHTML=shell()+rMs();app.scrollTop=y;return}_r()}}
+(()=>{const st=document.createElement("style");st.textContent=`.msb .msr{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;background:#ffffff0d;border:1px solid #ffffff22;margin:8px 0;flex-wrap:wrap}.msb .msr.msdn{border-color:#7dff9c;box-shadow:0 0 14px #7dff9c33}.msb .msr.mscl{opacity:.55}.msb .mst{flex:1;min-width:180px}.msb .mst b{display:block;font-size:18px}.msb .msbar{height:8px;border-radius:6px;background:#ffffff1f;overflow:hidden;margin:6px 0 3px}.msb .msbar i{display:block;height:100%;background:linear-gradient(90deg,#52e0ff,#7dff9c)}.msb .msrw{color:var(--gold,#ffd86b);font-weight:700}`;document.head.appendChild(st)})();
+/* ganchos de progreso */
+{const _s=summon;summon=async function(p,c,pos,i){const r=await _s.apply(this,arguments);if(p===0)mEv("sum");return r}}
+{const _a=pAttack;pAttack=async function(a,col,rx,tp){if(!rx&&a&&a.owner===0)mEv("atk");return _a.apply(this,arguments)}}
+{const _e=end;end=function(win){const was=G.over;const r=_e.apply(this,arguments);if(!was&&G.over){mEv(win?"win":"lose");if(win&&G.n3)mEv("triow");if(G.n>=6){mEv("play");if(G.n3)mEv("trio");if(ON.on)mEv("onl")}}return r}}
+
+/* ===== Ruleta por niveles (probabilidades preprogramadas) + fin de semana ===== */
+const RT_TIERS=[{id:"c",n:"Común",col:"#9aa7c7"},{id:"u",n:"Poco común",col:"#52e0ff"},{id:"r",n:"Raro",col:"#7dff9c"},{id:"e",n:"Épico",col:"#c77dff"},{id:"l",n:"Legendario",col:"#ffd86b"}];
+const RT_PCT={wd:{c:50,u:28,r:14,e:6,l:2},we:{c:30,u:30,r:22,e:12,l:6}};
+const RT_G=v=>({k:"gold",v}),RT_X=v=>({k:"xp",v}),RT_P=(t,n)=>({k:"pack",t,n:n||1});
+const RT_DEF={
+ wd:{c:[RT_G(25),RT_G(40),RT_G(60),RT_X(20),RT_X(35)],u:[RT_G(100),RT_G(150),RT_X(50),RT_X(80),RT_P("p1")],r:[RT_G(250),RT_X(120),RT_X(200),RT_P("p1",2)],e:[RT_G(400),RT_P("p2")],l:[RT_P("p3"),RT_P("p2",2)]},
+ we:{c:[RT_G(50),RT_G(80),RT_G(120),RT_X(40),RT_X(70)],u:[RT_G(200),RT_G(300),RT_X(100),RT_X(160),RT_P("p1")],r:[RT_G(500),RT_X(250),RT_P("p1",2),RT_P("p2")],e:[RT_G(800),RT_X(400),RT_P("p2",2)],l:[RT_P("p3"),RT_P("p3",2),RT_P("p2",3)]}};
+const rtDef=m=>JSON.parse(JSON.stringify(RT_DEF[m]));
+const rtPrize=p=>p&&p.k=="pack"?{k:"pack",t:PKI[p.t]?p.t:"p1",n:Math.max(1,Math.min(20,Math.floor(+p.n||1)))}:{k:p&&p.k=="xp"?"xp":"gold",v:Math.max(1,Math.floor(+(p&&p.v)||1))};
+function rtNorm(d){const o={};["wd","we"].forEach(m=>{o[m]={};RT_TIERS.forEach(t=>{const a=d&&d[m]&&d[m][t.id];o[m][t.id]=Array.isArray(a)?a.map(rtPrize):(d&&d[m]?[]:rtDef(m)[t.id])})});return o}
+const rlNorm2=d=>({...rlNorm(d),tiers:d&&d.tiers?rtNorm(d.tiers):null});
+const rlIsWE=key=>{const dt=new Date((key||rlKey())+"T12:00:00"),g=dt.getDay();return g==0||g==6};
+function rlWheel2(key,size,mt,pc){
+ const act=RT_TIERS.filter(t=>(mt[t.id]||[]).length&&pc[t.id]>0);if(!act.length)return[];
+ const tot=act.reduce((a,t)=>a+pc[t.id],0),eff={},cnt={};act.forEach(t=>{eff[t.id]=pc[t.id]*100/tot;cnt[t.id]=1});
+ const N=Math.max(act.length,Math.min(16,size||10));let left=N-act.length;
+ while(left>0){let best=null,bd=-1e9;act.forEach(t=>{if(cnt[t.id]>=mt[t.id].length)return;const d=eff[t.id]/100*N-cnt[t.id];if(d>bd){bd=d;best=t}});if(!best)break;cnt[best.id]++;left--}
+ const r=rlSeed("ruleta2|"+key);let out=[];
+ act.forEach(t=>rlShuf(mt[t.id],r).slice(0,cnt[t.id]).forEach((p,i,a)=>out.push({...p,w:eff[t.id]/a.length,pct:eff[t.id]/a.length,tn:t.n,tc:t.col,tid:t.id})));
+ return rlShuf(out,r).map(p=>({...p,lab:rlLab(p)}))}
+{const _rw=rlWheel;rlWheel=function(key,cfg){cfg=cfg||RLC;const we=rlIsWE(key),m=we?"we":"wd",T=cfg.tiers||(we?{we:rtDef("we")}:null);
+ if(T&&T[m]){const w=rlWheel2(key,cfg.size,T[m],RT_PCT[m]);if(w.length)return w}return _rw(key,cfg)}}
+
+/* editor del administrador */
+let RT=null;
+function rtInit(m){const T=(RLC.tiers)||{};RT={size:RLC.size||10,m:m||(RT&&RT.m)||(rlIsWE()?"we":"wd"),wd:JSON.parse(JSON.stringify(T.wd||rtDef("wd"))),we:JSON.parse(JSON.stringify(T.we||rtDef("we")))}}
+function rtRow(m,tid,p,i){const f=k=>`data-tf="${m}:${tid}:${i}:${k}"`;
+ return`<div class="rl-row"><select ${f("k")}><option value="gold" ${p.k=="gold"?"selected":""}>Monedas</option><option value="xp" ${p.k=="xp"?"selected":""}>Experiencia</option><option value="pack" ${p.k=="pack"?"selected":""}>Sobre</option></select>${p.k=="pack"?`<select ${f("t")}>${Object.keys(PKI).map(t=>`<option value="${t}" ${p.t==t?"selected":""}>${esc(PKI[t][0])}</option>`).join("")}</select><label>Cantidad<input type="number" min="1" max="20" ${f("n")} value="${p.n||1}"></label>`:`<label>${p.k=="xp"?"XP":"Monedas"}<input type="number" min="1" ${f("v")} value="${p.v}"></label>`}<button class="mini ghost" data-act="t2del" data-t="${tid}" data-i="${i}">✕</button></div>`}
+function rtPrev(){const e=$("#rl2prev");if(!e||!RT)return;const sz=$("#rl2sz");if(sz)RT.size=Math.max(4,Math.min(16,+sz.value||10));const m=RT.m,w=rlWheel2(rlKey(),RT.size,rtNorm(RT)[m],RT_PCT[m]);
+ e.innerHTML=w.length?`<div class="rl-chips">${w.slice().sort((a,b)=>b.pct-a.pct).map(p=>`<span style="border-color:${p.tc}">${esc(rlShort(p))}<em>${p.pct<10?p.pct.toFixed(1):Math.round(p.pct)}%</em></span>`).join("")}</div>`:'<p class="mut">Agrega premios para ver la ruleta.</p>'}
+rRAdm=function(){if(!RT)rtInit();const m=RT.m,mt=RT[m];
+ return`<div class="ap" style="width:min(1000px,100%)"><h1>ADMIN RULETA</h1>
+<div class="pn"><h2>Cómo funciona</h2><p>La ruleta tiene <b>niveles con porcentaje ya programado</b>. Tú eliges <b>qué premios hay dentro de cada nivel</b>: primero se sortea el nivel según su porcentaje y luego sale uno de sus premios. Hay una configuración para <b>entre semana</b> y otra para <b>sábado y domingo</b> (mejor). Cada día se muestran en la rueda varios premios de cada nivel.</p>
+<p class="mut" style="margin:6px 0">Entre semana: ${RT_TIERS.map(t=>`<span style="color:${t.col}">${t.n} ${RT_PCT.wd[t.id]}%</span>`).join(" · ")}<br>Fin de semana: ${RT_TIERS.map(t=>`<span style="color:${t.col}">${t.n} ${RT_PCT.we[t.id]}%</span>`).join(" · ")}</p>
+<div class="row"><button class="${m=="wd"?"":"ghost"}" data-act="t2mode" data-m="wd">ENTRE SEMANA</button><button class="${m=="we"?"":"ghost"}" data-act="t2mode" data-m="we">🎉 FIN DE SEMANA</button></div>
+<label style="margin-top:10px">Casillas de la rueda (4 a 16)</label><input id="rl2sz" type="number" min="4" max="16" value="${RT.size}" style="max-width:120px"></div>
+${RT_TIERS.map(t=>`<div class="pn" style="border-left:4px solid ${t.col}"><h2 style="color:${t.col}">${t.n} · ${RT_PCT[m][t.id]}%</h2>${(mt[t.id]||[]).map((p,i)=>rtRow(m,t.id,p,i)).join("")||'<p class="mut">Sin premios: su porcentaje se reparte entre los demás niveles.</p>'}<div class="row" style="margin-top:8px"><button class="mini" data-act="t2add" data-t="${t.id}">＋ AGREGAR PREMIO</button></div></div>`).join("")}
+<div class="pn"><h2>Vista previa (${m=="we"?"fin de semana":"entre semana"})</h2><div id="rl2prev"></div></div>
+<div class="pn"><div class="row"><button data-act="t2save">GUARDAR PARA TODOS</button><button class="ghost" data-act="t2def">RESTAURAR INICIALES</button><button class="ghost" data-act="rreset">REINICIAR MI RULETA DE HOY (PRUEBA)</button></div></div></div>`};
+Object.assign(ACT,{
+ gradm(){rtInit();showApp("radm")},
+ t2mode(b){rtPrev();RT.m=b.dataset.m;render()},
+ t2add(b){RT[RT.m][b.dataset.t].push({k:"gold",v:50});render()},
+ t2del(b){RT[RT.m][b.dataset.t].splice(+b.dataset.i,1);render()},
+ t2def(){if(!confirm("¿Restaurar los premios iniciales de este modo?"))return;RT[RT.m]=rtDef(RT.m);render()},
+ async t2save(){rtPrev();const T=rtNorm({wd:RT.wd,we:RT.we});
+  for(const m of ["wd","we"]){const n=RT_TIERS.reduce((a,t)=>a+T[m][t.id].length,0);if(n<4)return toast("Pon al menos 4 premios en "+(m=="we"?"fin de semana":"entre semana"))}
+  if(!db)return toast("Sin conexión");const size=Math.max(4,Math.min(16,RT.size||10));
+  try{await D("config","roulette").set({size,pool:RLC.pool,tiers:T,upd:Date.now()});RLC={size,pool:RLC.pool,tiers:T};toast("Ruleta guardada para todos los jugadores");rtInit();render()}catch(e){toast("No se pudo guardar la ruleta")}}});
+app.addEventListener("input",e=>{const t=e.target;if(t.id=="rl2sz"){rtPrev();return}const f=t.dataset&&t.dataset.tf;if(!f||!RT)return;const[m,tid,i,k]=f.split(":"),p=RT[m][tid][+i];if(!p||k=="k")return;p[k]=k=="t"?t.value:+t.value;rtPrev()});
+app.addEventListener("change",e=>{const t=e.target,f=t.dataset&&t.dataset.tf;if(!f||!RT)return;const[m,tid,i,k]=f.split(":");if(k=="k"){RT[m][tid][+i]=t.value=="pack"?{k:"pack",t:"p1",n:1}:{k:t.value,v:50};render()}else rtPrev()});
+new MutationObserver(()=>{if(VW=="radm")rtPrev()}).observe(app,{childList:true});
+(()=>{const st=document.createElement("style");st.textContent=`.rl-tn{font-style:normal;font-size:12px;padding:1px 8px;border-radius:10px;border:1px solid currentColor;margin-left:6px}.rl-we{border-left:4px solid #ffd86b;background:linear-gradient(90deg,#ffd86b26,transparent)}`;document.head.appendChild(st)})();
+
+/* ===== Novedades / notas de actualización (el admin decide cuándo enviarlas) ===== */
+let ANN=null,ANP=0;
+const annSeen=()=>{let l="";try{l=localStorage.getItem("duelo_ann_"+(U&&U.uid))||""}catch(e){}return(U&&U.ann)||l};
+function annMark(id){if(!U)return;U.ann=id;try{localStorage.setItem("duelo_ann_"+U.uid,id)}catch(e){}if(db)D("users",U.uid).update({ann:id}).catch(()=>{})}
+function annStyle(){if(document.getElementById("ancss"))return;const s=document.createElement("style");s.id="ancss";s.textContent=`
+#anp{position:fixed;inset:0;z-index:2147483200;display:flex;align-items:center;justify-content:center;background:#050816e6;backdrop-filter:blur(4px);font:600 17px Rajdhani,sans-serif;color:#fff;animation:gfin .35s ease}
+#anp .anb{width:min(520px,92vw);max-height:86vh;overflow:auto;text-align:left;background:linear-gradient(160deg,#1b2260,#0a0e2b);border:2.5px solid var(--gold,#ffd86b);border-radius:20px;padding:22px 24px;box-shadow:0 0 60px #ffd86b44,0 20px 70px #000c}
+#anp .ant{font-size:30px;font-weight:800;color:var(--gold,#ffd86b);letter-spacing:1px;text-align:center}
+#anp .and{text-align:center;color:#9fb0ff;margin:2px 0 12px;font-size:14px}
+#anp ul{margin:8px 0 18px;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+#anp li{background:#ffffff10;border-left:3px solid #52e0ff;border-radius:8px;padding:8px 12px;font-size:18px;line-height:1.25}
+#anp .go{display:block;margin:0 auto;background:linear-gradient(180deg,#ffe58a,#e0a82a);color:#241a00;border:0;border-radius:10px;padding:10px 28px;font:800 19px Rajdhani,sans-serif;cursor:pointer}
+.gfb textarea{background:#0b1035;border:1.5px solid #ffffff44;border-radius:9px;color:#fff;padding:8px 10px;font:600 16px Rajdhani,sans-serif;width:100%;box-sizing:border-box;min-height:150px;resize:vertical}
+.gfb .anh{display:flex;flex-direction:column;gap:4px;max-height:130px;overflow:auto;margin-top:6px}
+`;document.head.appendChild(s)}
+function annShow(a,preview){if(ANP||!a)return;annStyle();ANP=1;const o=document.createElement("div");o.id="anp";
+ const dt=a.ts?new Date(a.ts).toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"}):"";
+ o.innerHTML=`<div class="anb"><div class="ant">📢 ${esc(a.title||"¡Novedades!")}</div><div class="and">${preview?"VISTA PREVIA · ":""}${esc(dt)}</div><ul>${(a.items||[]).map(t=>`<li>${esc(t)}</li>`).join("")}</ul><button class="go">¡Entendido!</button></div>`;
+ o.querySelector("button").onclick=()=>{o.remove();ANP=0;if(!preview)annMark(a.id)};document.body.appendChild(o);try{snd(660,.25,"sine",.1,990)}catch(e){}}
+function annCheck(){if(!U||!ANN||!ANN.id||ANP||annSeen()===ANN.id)return;if(!app||app.style.display=="none"||document.getElementById("isp")||document.getElementById("ivd")||document.getElementById("gfp"))return;annShow(ANN,false)}
+function watchAnn(){UN.push(D("config","announce").onSnapshot(s=>{ANN=s.exists?s.data():null;annCheck()},()=>{}))}
+{const _sn=startNet;startNet=function(){_sn.apply(this,arguments);watchAnn()}}
+setInterval(annCheck,3000);
+function annItems(t){return String(t||"").split("\n").map(x=>x.replace(/^[\s\-•*·]+/,"").trim().slice(0,200)).filter(Boolean).slice(0,15)}
+function annOpen(){if(!U||!U.admin)return;gfStyle();annStyle();
+ const m=document.getElementById("anm")||document.body.appendChild(Object.assign(document.createElement("div"),{id:"anm",className:"gfm0"}));
+ m.style.cssText="position:fixed;inset:0;z-index:2147482000;display:flex;align-items:center;justify-content:center;background:#050816d9;backdrop-filter:blur(4px);font:600 16px Rajdhani,sans-serif;color:#fff";
+ const hist=((ANN&&ANN.hist)||[]).slice().reverse();
+ m.innerHTML=`<div class="gfb"><h2>📢 Novedades de la actualización</h2>
+ <p style="margin:0 0 6px;color:#cfd6ff">${ANN&&ANN.id?`Anuncio actual: <b>${esc(ANN.title)}</b> (${(ANN.items||[]).length} cambios, ${new Date(ANN.ts||0).toLocaleString("es-MX")}). Los jugadores que aún no lo han visto lo verán al entrar.`:"No hay ningún anuncio publicado ahora."}</p>
+ <h3>Título</h3><input id="ant" maxlength="60" value="¡Novedades de la actualización!">
+ <h3>Cambios (uno por línea)</h3><textarea id="ani" placeholder="Ej:&#10;Se corrigió el juego de tres&#10;Nuevas misiones diarias y semanales&#10;Ruleta mejorada en fin de semana"></textarea>
+ ${hist.length?`<h3>Anuncios anteriores</h3><div class="anh">${hist.map((h,i)=>`<button data-an="load" data-i="${i}">${esc(h.title)} · ${new Date(h.ts||0).toLocaleDateString("es-MX")} · ${(h.items||[]).length} cambios</button>`).join("")}</div>`:""}
+ <div class="gfa" style="flex-wrap:wrap"><button data-an="close">Cerrar</button>${ANN&&ANN.id?'<button data-an="off">Retirar anuncio actual</button>':""}<button data-an="prev">Vista previa</button><button class="go" data-an="send">Publicar para todos</button></div></div>`;
+ const read=()=>({title:(document.getElementById("ant").value||"").trim()||"¡Novedades!",items:annItems(document.getElementById("ani").value)});
+ m.onclick=async e=>{const b=e.target.closest("[data-an]");if(e.target===m){m.remove();return}if(!b)return;const a=b.dataset.an;
+  if(a=="close")m.remove();
+  else if(a=="load"){const h=hist[+b.dataset.i];if(h){document.getElementById("ant").value=h.title;document.getElementById("ani").value=(h.items||[]).join("\n")}}
+  else if(a=="prev"){const r=read();if(!r.items.length)return toast("Escribe al menos un cambio");annShow({...r,ts:nowS()},true)}
+  else if(a=="send")await annPublish(read(),m);
+  else if(a=="off"){if(!confirm("¿Retirar el anuncio actual? Quienes no lo hayan visto ya no lo verán."))return;await annSave({id:"",title:"",items:[],ts:nowS()},m,"Anuncio retirado")}}}
+async function annPublish(r,m){if(!r.items.length)return toast("Escribe al menos un cambio");
+ if(!confirm("¿Enviar esta actualización a TODOS los jugadores? La verán al entrar al juego."))return;
+ const id=String(nowS());await annSave({id,title:r.title,items:r.items,ts:nowS(),by:U.name},m,"📢 Novedades publicadas para todos");annMark(id)}
+async function annSave(a,m,okMsg){if(!db)return toast("Sin conexión");
+ const hist=((ANN&&ANN.hist)||[]).concat(ANN&&ANN.id?[{id:ANN.id,title:ANN.title,items:ANN.items,ts:ANN.ts}]:[]).slice(-10);
+ try{await D("config","announce").set({...a,hist});ANN={...a,hist};toast(okMsg);m.remove()}catch(e){toast("No se pudo publicar. Revisa tu conexión")}}
+Object.assign(ACT,{gann(){annOpen()}});
 </script></body></html>
