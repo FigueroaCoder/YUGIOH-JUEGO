@@ -757,7 +757,7 @@ const opts=()=>myCards().map(id=>`<option value="${id}">${esc(cnm(id))} (${CB[id
 const upd=o=>D("users",U.uid).update(o).catch(()=>toast("No se pudo guardar. Revisa tu conexión"));
 const rr=()=>{if(U&&app.style.display!="none"&&["col","pk","trd","lobby","online","up","req","story","shop"].includes(VW)&&!/^(tid|tfs|rid|rfs|fq|cq|cn|ca|cd)$/.test(document.activeElement.id))render()};
 function watchMine(){watchCustom();TR={in:[],out:[]};let f1=1,f2=1;
-UN.push(D("users",U.uid).onSnapshot(s=>{const d=s.data();if(d){U.friends=Array.isArray(d.friends)?d.friends:[];U.gold=d.gold||0;U.xp=d.xp||0;U.story=d.story||{};U.sp=d.sp||{};U.ph=d.ph||"";U.roul=d.roul||{};if(d.ms&&(d.ms.u||0)>=((U.ms&&U.ms.u)||0))U.ms=d.ms;if(d.ann)U.ann=d.ann;loadFN()}if(d&&d.col){U.col=d.col;rr()}renderList()}));
+UN.push(D("users",U.uid).onSnapshot(s=>{const d=s.data();if(d){U.friends=Array.isArray(d.friends)?d.friends:[];U.gold=d.gold||0;U.xp=d.xp||0;U.story=d.story||{};U.sp=d.sp||{};U.ph=d.ph||"";U.roul=d.roul||{};if(d.ms)msSync(d.ms);if(d.ann)U.ann=d.ann;loadFN()}if(d&&d.col){U.col=d.col;rr()}renderList()}));
 UN.push(Co("trades").where("to","==",U.uid).onSnapshot(s=>{TR.in=s.docs.map(d=>({id:d.id,...d.data()}));if(!f1)s.docChanges().forEach(c=>{if(c.type=="added"&&c.doc.data().status=="open")notify("🔄 Propuesta de cambio",c.doc.data().fromName+" te propone un cambio de cartas");if(c.type=="modified"&&c.doc.data().status=="done"){const t=c.doc.data();tradeFx(t.counter,[t.offer])}});f1=0;rr()},()=>{}));
 UN.push(Co("trades").where("from","==",U.uid).onSnapshot(s=>{TR.out=s.docs.map(d=>({id:d.id,...d.data()}));if(!f2)s.docChanges().forEach(c=>{if(c.type!="modified")return;const t=c.doc.data(),m={countered:"respondió a tu oferta",rejected:"rechazó el cambio"}[t.status];if(m)notify("🔄 Cambio de cartas",t.toName+" "+m);if(t.status=="done")tradeFx([t.offer],t.counter)});f2=0;rr()},()=>{}))}
 /* colección */
@@ -1133,7 +1133,7 @@ const HM_TAB={cpk:"cpk",rank:"online",lobby:"home",story:"story",online:"online"
 const packsN=()=>Object.values(((U&&U.col)||{}).packs||{}).reduce((a,b)=>a+b,0),trdN=()=>TR.in.filter(t=>t.status=="open").length+TR.out.filter(t=>t.status=="countered").length,reqN=()=>REQ.filter(r=>r.status=="pending").length+NU.filter(u=>u.status=="pending").length;
 function shell(){const a=HM_TAB[VW]||"home",tab=(k,l,act,n,x="")=>`<button class="sh-tab ${x} ${a==k?"on":""}" data-act="${act}">${l}${n?`<i>${n}</i>`:""}</button>`;
 return`<header class="sh"><div class="sh-in"><div class="sh-logo" data-act="goback"><span>DUELO</span><b>DE MONSTRUOS</b></div>
-<nav class="sh-nav">${tab("home","Inicio","goback")}${tab("ms","🎯 Misiones","gms",msN()||"")}${tab("story","Historia","gstory")}${tab("online",onlineOK()?"En línea":"🔒 En línea","gonl")}${tab("col","Colección","gcol")}${tab("pk","Sobres","gpk",packsN())}${tab("prac","Práctica","gprac")}${tab("trio","Trío","gtrio")}${tab("shop","Tienda","gshop")}${tab("roul","Ruleta","groul",rlAvail()?"1":"")}${tab("auc","Subastas","gauc")}${tab("trd","Cambios","gtrd",trdN())}${tab("chat","💬 Chat","gchat",chUnN()||"")}${U.admin?tab("adm","Admin cartas","goadm","","ad")+tab("req","Solicitudes","greq",reqN(),"ad")+tab("sadm","Admin historia","gsadm","","ad")+tab("intro","Admin intro","gintro","","ad")+tab("radm","Admin ruleta","gradm","","ad")+tab("cpk","Sobres especiales","gcpk","","ad")+tab("gift","🎁 Regalos","ggift","","ad")+tab("ann","📢 Novedades","gann","","ad")+tab("hl","🤪 Hora Loca","ghl","","ad")+tab("mig","🔁 Migrar base","gmig","","ad"):""}</nav>
+<nav class="sh-nav">${tab("home","Inicio","goback")}${tab("ms","🎯 Misiones","gms",msN()||"")}${tab("story","Historia","gstory")}${tab("online",onlineOK()?"En línea":"🔒 En línea","gonl")}${tab("col","Colección","gcol")}${tab("pk","Sobres","gpk",packsN())}${tab("prac","Práctica","gprac")}${tab("trio","Trío","gtrio")}${tab("shop","Tienda","gshop")}${tab("roul","Ruleta","groul",rlAvail()?"1":"")}${tab("auc","Subastas","gauc")}${tab("trd","Cambios","gtrd",trdN())}${tab("chat","💬 Chat","gchat",chUnN()||"")}${U.admin?tab("adm","Admin cartas","goadm","","ad")+tab("req","Solicitudes","greq",reqN(),"ad")+tab("sadm","Admin historia","gsadm","","ad")+tab("intro","Admin intro","gintro","","ad")+tab("radm","Admin ruleta","gradm","","ad")+tab("cpk","Sobres especiales","gcpk","","ad")+tab("gift","🎁 Regalos","ggift","","ad")+tab("ann","📢 Novedades","gann","","ad")+tab("hl","🤪 Hora Loca","ghl","","ad")+tab("mig","🔁 Migrar base","gmig","","ad")+tab("msa","✅ Palomear misiones","gmsa","","ad"):""}</nav>
 <div class="sh-r"><button class="sh-fs" data-act="fs" title="Pantalla completa">⛶</button><span class="sh-coin">${IC.coin}<b>${U.gold||0}</b></span><button class="sh-me" data-act="goprof"><span class="sh-lv">${lvlOf(U.xp)}</span>${U.ph?`<img class="sh-ph" src="${U.ph}" alt="">`:`<span class="sh-ph sh-ini">${esc((U.name||"?").trim().charAt(0).toUpperCase())}</span>`}<span class="sh-nm">${esc(U.name)}</span></button></div></div></header>`}
 const bestCards=n=>myCards().slice().sort((a,b)=>RAR(b)[2]-RAR(a)[2]||CB[b][2]-CB[a][2]).slice(0,n);
 const onTxt=()=>{if(!onlineOK())return"🔒 Bloqueado · gana 2 duelos de historia ("+onProg()+"/2)";const n=PR.filter(p=>U&&p.id!=U.uid&&isOn(p)).length;return n?`${n} jugador${n>1?"es":""} conectado${n>1?"s":""}`:"Reta a tus amigos"};
@@ -2182,12 +2182,32 @@ function msEnsure(){if(!U)return null;const K=msKeys(),s=U.ms=U.ms||{};
  s.dp=s.dp||{};s.dc=s.dc||{};s.wp=s.wp||{};s.wc=s.wc||{};return s}
 function msList(k){const K=msKeys(),r=rlSeed("ms|"+k+"|"+K[k]+"|"+U.uid),pool=(k=="d"?MS_D:MS_W).slice();
  for(let i=pool.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}return pool.slice(0,3)}
-let msT=null;
-function msFlush(){clearTimeout(msT);msT=setTimeout(()=>{if(!U||!db)return;U.ms.u=Date.now();D("users",U.uid).update({ms:U.ms}).catch(()=>{})},1500)}
-function mEv(t,n=1){try{if(!U||ON.spec)return;const s=msEnsure();if(!s)return;let ch=0;
+let msT=null,msDirty=0,msSaving=0,msErr=0;
+/* fusiona el progreso local con el del servidor: nunca se pierde nada (máximo de avance, unión de reclamadas) */
+function msMerge(a,b){a=a||{};b=b||{};const r={...b,...a};r.u=Math.max(a.u||0,b.u||0);
+ [["d","dp","dc"],["w","wp","wc"]].forEach(([k,p,c])=>{const ka=a[k]||"",kb=b[k]||"";
+  if(ka>kb){r[k]=ka;r[p]={...(a[p]||{})};r[c]={...(a[c]||{})}}
+  else if(kb>ka){r[k]=kb;r[p]={...(b[p]||{})};r[c]={...(b[c]||{})}}
+  else{r[k]=ka;const P={...(b[p]||{})};for(const id in (a[p]||{}))P[id]=Math.max(P[id]||0,a[p][id]);r[p]=P;r[c]={...(b[c]||{}),...(a[c]||{})}}});
+ if(a.xb||b.xb){const xa=a.xb||{},xb=b.xb||{},t={...(xb.t||{})};for(const id in (xa.t||{}))t[id]=t[id]!=null?Math.min(t[id],xa.t[id]):xa.t[id];
+  const x={...xb,...xa};if(Object.keys(t).length)x.t=t;if(xa.ok||xb.ok)x.ok=1;if(xa.c||xb.c)x.c=1;r.xb=x}
+ return r}
+/* aplica datos del servidor sobre U.ms SIN pisar el avance local aún no guardado */
+function msSync(sv){if(!U||!sv)return;const b=msN(),j0=JSON.stringify(U.ms||{});U.ms=U.ms||{};const m=msMerge(U.ms,sv);
+ Object.keys(U.ms).forEach(k=>delete U.ms[k]);Object.assign(U.ms,m);msEnsure();
+ const a=msN();if(a>b){try{toast("🎯 Tienes una misión lista para reclamar")}catch(e){}}
+ if(JSON.stringify(U.ms)!==j0&&VW=="ms"&&app.style.display!="none")render()}
+function msFlush(now){msDirty=1;clearTimeout(msT);msT=setTimeout(msSave,now?0:1500)}
+async function msSave(){if(!U||!db||!msDirty||msSaving)return;msSaving=1;msDirty=0;msErr=0;const uid=U.uid;
+ try{let out=null;await db.runTransaction(async tx=>{const r=D("users",uid),sn=await tx.get(r);out=msMerge(U.ms,sn.exists?sn.data().ms:null);out.u=Date.now();tx.update(r,{ms:out})});
+  if(U&&U.uid===uid)msSync(out)}catch(e){msDirty=1;msErr=1}
+ msSaving=0;if(msDirty){clearTimeout(msT);msT=setTimeout(msSave,msErr?8000:300)}}
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&msDirty)msSave()});
+window.addEventListener("pagehide",()=>{if(msDirty)msSave()});
+function mEv(t,n=1){try{if(!U||ON.spec)return;const s=msEnsure();if(!s)return;let ch=0,dn=0;
  [["d",s.dp,s.dc],["w",s.wp,s.wc]].forEach(([k,pr,cl])=>msList(k).forEach(m=>{if(m.t!==t||cl[m.id])return;const a=pr[m.id]||0;if(a>=m.n)return;pr[m.id]=Math.min(m.n,a+n);ch=1;
-  if(pr[m.id]>=m.n)toast("🎯 Misión completada: "+m.txt+" · reclámala en Misiones")}));
- if(ch){msFlush();if(VW=="ms"&&app.style.display!="none")render()}}catch(e){console.error("mEv",e)}}
+  if(pr[m.id]>=m.n){dn=1;toast("🎯 Misión completada: "+m.txt+" · reclámala en Misiones")}}));
+ if(ch){msFlush(dn);if(VW=="ms"&&app.style.display!="none")render()}}catch(e){console.error("mEv",e)}}
 function msN(){if(!U)return 0;const s=msEnsure();let c=0;[["d",s.dp,s.dc],["w",s.wp,s.wc]].forEach(([k,pr,cl])=>msList(k).forEach(m=>{if((pr[m.id]||0)>=m.n&&!cl[m.id])c++}));return c}
 function msLeft(k){const d=new Date(nowS());let e=k=="d"?new Date(d.getFullYear(),d.getMonth(),d.getDate()+1):new Date(d.getFullYear(),d.getMonth(),d.getDate()+(7-((d.getDay()+6)%7)));
  const h=Math.max(1,Math.ceil((e-d)/36e5));return h>=48?Math.ceil(h/24)+" días":h+" h"}
@@ -2489,6 +2509,42 @@ async function foOpen(){
  m.onclick=e=>{if(e.target===m&&!FO.BUSY){m.remove();return}const b=e.target.closest("[data-fo]");if(!b)return;const a=b.dataset.fo;
   if(a==="close"&&!FO.BUSY)m.remove();else if(a==="go")FO.migrate(draw,best);else if(a==="reload")FO.go(FO.NEXT)}}
 Object.assign(ACT,{gmig(){foOpen()}});
+/* ---- admin: palomear misiones de un usuario ---- */
+const MSA={sel:null,q:"",users:null};
+function msListFor(k,uid){const K=msKeys(),r=rlSeed("ms|"+k+"|"+K[k]+"|"+uid),pool=(k=="d"?MS_D:MS_W).slice();
+ for(let i=pool.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}return pool.slice(0,3)}
+function msaNorm(ms){const K=msKeys();ms=JSON.parse(JSON.stringify(ms||{}));
+ if(ms.d!==K.d){ms.d=K.d;ms.dp={};ms.dc={}}if(ms.w!==K.w){ms.w=K.w;ms.wp={};ms.wc={}}
+ ms.dp=ms.dp||{};ms.dc=ms.dc||{};ms.wp=ms.wp||{};ms.wc=ms.wc||{};return ms}
+async function msaSet(uid,items){
+ await db.runTransaction(async tx=>{const r=D("users",uid),sn=await tx.get(r);if(!sn.exists)throw new Error("NOUSER");
+  const ms=msaNorm(sn.data().ms);
+  items.forEach(([k,id])=>{const m=(k=="d"?MS_D:MS_W).find(x=>x.id==id);if(!m)return;const pr=k=="d"?ms.dp:ms.wp,cl=k=="d"?ms.dc:ms.wc;if(!cl[id])pr[id]=Math.max(pr[id]||0,m.n)});
+  ms.u=Date.now();tx.update(r,{ms})})}
+async function msaOpen(){
+ if(!U||!U.admin||!db)return;gfStyle();MSA.sel=null;MSA.q="";
+ const m=document.getElementById("msam")||document.body.appendChild(Object.assign(document.createElement("div"),{id:"msam",className:"gfm0"}));
+ m.style.cssText="position:fixed;inset:0;z-index:2147482400;display:flex;align-items:center;justify-content:center;background:#050816d9;backdrop-filter:blur(4px);font:600 16px Rajdhani,sans-serif;color:#fff";
+ m.innerHTML=`<div class="gfb"><h2>✅ Palomear misiones</h2><h3>Usuario</h3><input id="msaq" placeholder="Buscar usuario por nombre o ID…" autocomplete="off"><div class="gfu" id="msal">Cargando usuarios…</div><div id="msab"></div><div class="gfa"><button data-ma="close">Cerrar</button></div></div>`;
+ const list=()=>{const l=document.getElementById("msal");if(!l||!MSA.users)return;const q=MSA.q.trim().toLowerCase();
+  const r=MSA.users.filter(u=>!q||String(u.name).toLowerCase().includes(q)||u.uid.toLowerCase().includes(q)).slice(0,40);
+  l.innerHTML=r.length?r.map(u=>`<button data-ma="u" data-id="${esc(u.uid)}" class="${MSA.sel&&MSA.sel.uid==u.uid?"on":""}">${esc(u.name)} <small style="opacity:.6">${esc(u.uid)}</small></button>`).join(""):"Sin resultados"};
+ const show=async()=>{const b=document.getElementById("msab");if(!b||!MSA.sel)return;b.innerHTML="<p>Cargando misiones…</p>";
+  let ms;try{const sn=await D("users",MSA.sel.uid).get();ms=msaNorm(sn.exists?sn.data().ms:null)}catch(e){b.innerHTML="<p>No se pudieron cargar las misiones.</p>";return}
+  const row=(k,mm)=>{const pr=k=="d"?ms.dp:ms.wp,cl=k=="d"?ms.dc:ms.wc,p=pr[mm.id]||0,done=p>=mm.n,c=!!cl[mm.id];
+   return`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 10px;margin:6px 0;border-radius:10px;background:#ffffff0d;border:1px solid ${done?"#7dff9c":"#ffffff22"}"><div style="flex:1;min-width:180px"><b>${esc(mm.txt)}</b><br><small style="opacity:.7">${p} / ${mm.n} · ${c?"✔ Reclamada":done?"✅ Completa · por reclamar":"Pendiente"}</small></div>${done||c?"":`<button data-ma="ck" data-k="${k}" data-id="${mm.id}">✔ Palomear</button>`}</div>`};
+  const sec=(k,t)=>{const L=msListFor(k,MSA.sel.uid),pend=L.some(mm=>(((k=="d"?ms.dp:ms.wp)[mm.id]||0)<mm.n));return`<h3>${t}</h3>${L.map(mm=>row(k,mm)).join("")}${pend?`<div class="gfa" style="margin-top:4px"><button data-ma="all" data-k="${k}">✔ Palomear todas las ${k=="d"?"diarias":"semanales"}</button></div>`:""}`};
+  b.innerHTML=`<h3>Misiones de ${esc(MSA.sel.name)}</h3><p style="margin:0;opacity:.75;font-size:14px">Al palomear, la misión queda completa y el jugador solo tiene que pulsar RECLAMAR en Misiones.</p>${sec("d","Diarias de hoy")}${sec("w","Semanales")}`};
+ m.onclick=async e=>{if(e.target===m){m.remove();return}const b=e.target.closest("[data-ma]");if(!b)return;const a=b.dataset.ma;
+  if(a=="close")m.remove();
+  else if(a=="u"){MSA.sel=MSA.users.find(u=>u.uid==b.dataset.id)||null;list();show()}
+  else if(a=="ck"||a=="all"){if(!MSA.sel)return;const k=b.dataset.k;const items=a=="ck"?[[k,b.dataset.id]]:msListFor(k,MSA.sel.uid).map(mm=>[k,mm.id]);
+   try{await msaSet(MSA.sel.uid,items);toast("✔ Misión palomeada para "+MSA.sel.name)}catch(er){toast("No se pudo palomear. Revisa tu conexión")}show()}};
+ document.getElementById("msaq").oninput=e=>{MSA.q=e.target.value;list()};
+ if(!MSA.users){try{const s=await Co("users").get();MSA.users=s.docs.map(d=>({uid:d.id,...d.data()})).filter(u=>u.name&&(!u.status||u.status=="approved"||u.nk===ADMIN_NK)).sort((a,b)=>String(a.name).localeCompare(String(b.name)))}catch(e){MSA.users=[];toast("No se pudo cargar la lista de usuarios")}}
+ list()}
+Object.assign(ACT,{gmsa(){msaOpen()}});
+
 
 
 
