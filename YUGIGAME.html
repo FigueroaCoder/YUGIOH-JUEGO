@@ -1723,7 +1723,7 @@ if(got&&U&&U.uid==uid){U.col.packs=U.col.packs||{};U.col.packs.pwu=(U.col.packs.
 
 /* ===== MUSICA: 3 canciones en bucle, mas bajita en combate, boton de configuracion ===== */
 (function(){
-const TR=["https://cdn1.suno.ai/c51e8973-0d97-43dc-98f7-67619d1bc5ec.mp3","https://cdn1.suno.ai/e4099465-e74b-4e02-938f-2cdaf1eef197.mp3","musica1.mp3","musica2.mp3","musica3.mp3"],TN=["Red on My Hands","We Were Speaking, But Never","","",""],VM=.35,VC=.12,K="duelo_music";
+const TR=["Red_on_My_Hands.mp3","We_Were_Speaking_But_Never.mp3","musica1.mp3","musica2.mp3","musica3.mp3"],TN=["Red on My Hands","We Were Speaking, But Never","","",""],VM=.35,VC=.12,K="duelo_music";
 let on=true,idx=0,gest=0,started=0,rt=0;
 try{on=localStorage.getItem(K)!=="0"}catch(e){}
 const au=new Audio();au.preload="auto";au.volume=VM;
