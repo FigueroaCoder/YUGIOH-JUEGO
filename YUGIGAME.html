@@ -521,8 +521,91 @@ const BC=[...Array(10)].map((_,i)=>["n"+(i+1),"Nivel "+(i+1)]).concat([["c0","Co
 let db=null,FV=null,U=null,SO=0,CARDS={},CATS={},PR=[],INC=[],OUT=null,VW="auth",AU={tab:"login",err:"",busy:0},ADM={cat:"n1",q:""},PF={err:""},UN=[],UT=[],NU=[],CH={list:[],cur:null,msgs:[],mk:null,add:null,adm:null,first:1,ms:null},WANT={d:null,loading:0,tops:[]};
 const ON={on:0,role:null,mid:null,q:[],seq:0,pumping:0,subs:[],bt:null,opp:"",oppId:"",lastSeen:0,oppBeat:null};
 const CB={};C.forEach(c=>CB[c[0]]=c);
-try{firebase.initializeApp(FBC);db=firebase.firestore();try{db.settings({experimentalAutoDetectLongPolling:true,merge:true})}catch(e){}FV=firebase.firestore.FieldValue}catch(e){db=null}
+const FBC2={apiKey:"AIzaSyC_jVNvjG6O6dPvy_jDc9zm41zgAYtHZmU",authDomain:"ct-search-fbcea.firebaseapp.com",projectId:"ct-search-fbcea",storageBucket:"ct-search-fbcea.firebasestorage.app",messagingSenderId:"277197131221",appId:"1:277197131221:web:02c8526db0f4a4a018415c",measurementId:"G-76KW2R8MM1"};
+const DBS={1:null,2:null};let ADB=1;
+try{firebase.initializeApp(FBC);DBS[1]=firebase.firestore()}catch(e){}
+try{DBS[2]=firebase.initializeApp(FBC2,"db2").firestore()}catch(e){}
+try{FV=firebase.firestore.FieldValue}catch(e){}
+[1,2].forEach(n=>{try{DBS[n]&&DBS[n].settings({experimentalAutoDetectLongPolling:true,merge:true})}catch(e){}});
+try{if(localStorage.getItem("duelo_activedb")==="2"&&DBS[2])ADB=2}catch(e){}
+db=DBS[ADB]||DBS[1]||DBS[2]||null;
 const K=n=>"duelo_"+n,Co=n=>db.collection(K(n)),D=(n,id)=>Co(n).doc(String(id)),nowS=()=>Date.now()+SO;
+/* ========= DOS BASES DE DATOS · CAMBIO AUTOMÁTICO (1 ⇄ 2) =========
+   - Un documento "duelo_config/active" (puntero) vive en ambas bases: {db, seq, day, state}.
+   - El puntero con mayor "seq" manda; todos los jugadores lo leen al abrir y lo escuchan en vivo.
+   - Se dispara solo cuando un jugador falla 2 veces seguidas al retar a otro.
+   - Máximo 1 cambio por día (día de California, que es cuando Firebase reinicia sus cuotas).      */
+const FO={
+ FAILS:0,BUSY:0,seq:0,blk:"",cool:0,
+ cid:Math.random().toString(36).slice(2,10),
+ LOCK_MS:10*60*1000,
+ TOPS:["config","users","names","creds","presence","categories","cards","custom_cards","card_requests","avatars","cpacks","trades","auctions","chats","rooms","notifs","challenges","matches"],
+ SUBS:{matches:["moves","chat","viewers"],chats:["msgs"]},
+ SKIP:{config:["active","ping"]},
+ day(){try{return new Date().toLocaleDateString("en-CA",{timeZone:"America/Los_Angeles"})}catch(e){return new Date().toISOString().slice(0,10)}},
+ tmo(p,ms){let t;return Promise.race([p,new Promise((_,rej)=>{t=setTimeout(()=>rej(new Error("timeout")),ms||3500)})]).finally(()=>clearTimeout(t))},
+ ref(n){return DBS[n].collection(K("config")).doc("active")},
+ async ptr(n){if(!DBS[n])return null;try{const s=await FO.tmo(FO.ref(n).get({source:"server"}));return s.exists?s.data():{db:0,seq:0}}catch(e){return null}},
+ async pick(){const r=await Promise.all([FO.ptr(1),FO.ptr(2)]);let b=null;r.forEach(p=>{if(p&&(p.db===1||p.db===2)&&(!b||(p.seq||0)>(b.seq||0)))b=p});return b},
+ use(n){ADB=n;db=DBS[n];try{localStorage.setItem("duelo_activedb",String(n))}catch(e){}},
+ go(n){FO.use(n);try{sessionStorage.setItem("duelo_dbsw",String(n))}catch(e){}location.reload()},
+ async boot(){const p=await FO.pick();if(p){FO.seq=p.seq||0;if(DBS[p.db]&&p.db!==ADB)FO.use(p.db)}FO.watch()},
+ watch(){[1,2].forEach(n=>{if(!DBS[n])return;try{FO.ref(n).onSnapshot(s=>{if(!s.exists||s.metadata.hasPendingWrites)return;const p=s.data();if(!p||(p.db!==1&&p.db!==2)||(p.seq||0)<=FO.seq)return;FO.seq=p.seq;if(p.db!==ADB&&!FO.BUSY){try{toast("🔄 El juego cambió de servidor. Recargando…",4000)}catch(e){}setTimeout(()=>FO.go(p.db),1500)}},()=>{})}catch(e){}})},
+ ok(){FO.FAILS=0},
+ fail(){if(++FO.FAILS>=2){FO.FAILS=0;FO.run()}},
+ ov(t){let e=document.getElementById("fo_ov");if(t===null){if(e)e.remove();return}if(!e){e=document.createElement("div");e.id="fo_ov";e.style.cssText="position:fixed;inset:0;z-index:99999;background:rgba(5,8,20,.93);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;white-space:pre-line;font:600 16px/1.5 system-ui,sans-serif;padding:24px";document.body.appendChild(e)}e.textContent=t},
+ async run(){
+  if(FO.BUSY||!DBS[1]||!DBS[2])return;
+  const day=FO.day();
+  if(FO.blk===day||Date.now()<FO.cool)return;
+  FO.BUSY=1;const from=ADB,to=from===1?2:1;let locked=0;
+  try{
+   const best=await FO.pick();
+   if(best&&best.db!==from&&DBS[best.db])return FO.go(best.db);
+   if(best&&best.day===day){FO.blk=day;toast("⚠️ Hoy ya se cambió de base de datos. Se podrá volver a cambiar mañana.",6000);return}
+   /* ¿la base actual de verdad está fallando? si aún deja escribir, el error fue otro */
+   let alive=0;try{await FO.tmo(DBS[from].collection(K("config")).doc("ping").set({t:Date.now(),by:FO.cid}),6000);alive=1}catch(e){}
+   if(alive){toast("La conexión ya funciona. Intenta retar de nuevo.",4000);return}
+   /* candado en la base destino para que solo un jugador migre */
+   try{await FO.tmo(DBS[to].runTransaction(async tx=>{const r=FO.ref(to),s=await tx.get(r),p=s.exists?s.data():{};if(p.state==="migrating"&&p.lock!==FO.cid&&Date.now()-(p.lockTs||0)<FO.LOCK_MS)throw"LOCKED";tx.set(r,{...p,state:"migrating",lock:FO.cid,lockTs:Date.now()})}),9000);locked=1}
+   catch(e){FO.cool=Date.now()+60000;toast(e==="LOCKED"?"🔄 Otro jugador ya está cambiando de servidor…":"No se pudo conectar con la base de respaldo",5000);return}
+   FO.ov("🔄 Cambiando de servidor…\nNo cierres esta pantalla");
+   await FO.copy(from,to,t=>FO.ov("🔄 Cambiando de servidor…\nNo cierres esta pantalla\n\n"+t));
+   const np={db:to,seq:(best?best.seq||0:0)+1,day,ts:Date.now(),state:"ok",by:FO.cid};
+   await FO.tmo(DBS[to].collection(K("config")).doc("active").set(np),9000);locked=0;
+   try{await FO.tmo(DBS[from].collection(K("config")).doc("active").set(np),4000)}catch(e){}
+   FO.go(to);
+  }catch(e){
+   console.error("[cambio de base]",e);FO.ov(null);FO.cool=Date.now()+10*60*1000;
+   toast("No se pudo cambiar de base de datos. Se reintentará más tarde.",6000);
+  }finally{
+   if(locked){try{await FO.tmo(DBS[to].runTransaction(async tx=>{const r=FO.ref(to),s=await tx.get(r),p=s.exists?s.data():{};if(p.lock===FO.cid)tx.set(r,{...p,state:"ok",lock:null})}),6000)}catch(e){}}
+   FO.BUSY=0}
+ },
+ /* copia idéntica de todas las colecciones duelo_* (y sus subcolecciones) de una base a la otra */
+ async copy(from,to,prog){
+  const A=DBS[from],B=DBS[to],FP=firebase.firestore.FieldPath.documentId(),names=[...FO.TOPS],d=new Date();
+  for(let i=0;i<14;i++){const x=new Date(d.getFullYear(),d.getMonth()-i,1);names.push("rank_"+x.getFullYear()+"_"+String(x.getMonth()+1).padStart(2,"0"))}
+  let ops=[],bytes=0,total=0;
+  const flush=async()=>{if(!ops.length)return;const cur=ops;ops=[];bytes=0;for(let k=0;;k++){try{const b=B.batch();cur.forEach(o=>o.del?b.delete(o.r):b.set(o.r,o.d));await FO.tmo(b.commit(),30000);return}catch(e){if(k>=2)throw e;await new Promise(r=>setTimeout(r,1500*(k+1)))}}};
+  const put=async(r,data)=>{ops.push({r,d:data});bytes+=JSON.stringify(data).length+200;total++;if(ops.length>=250||bytes>5e6)await flush()};
+  const page=async(q,fn)=>{let last=null;for(;;){let qq=q.orderBy(FP).limit(300);if(last)qq=qq.startAfter(last);const s=await FO.tmo(qq.get(),30000);if(!s.docs.length)return;for(const x of s.docs)await fn(x);last=s.docs[s.docs.length-1];if(s.docs.length<300)return}};
+  const seen={};
+  for(let i=0;i<names.length;i++){
+   const n=names[i],skip=FO.SKIP[n]||[],subs=FO.SUBS[n]||[];seen[n]=new Set();
+   if(prog)prog("Copiando "+n+" ("+(i+1)+"/"+names.length+") · "+total+" documentos");
+   await page(A.collection(K(n)),async x=>{if(skip.includes(x.id))return;seen[n].add(x.id);await put(B.collection(K(n)).doc(x.id),x.data());
+    if(subs.length)await Promise.all(subs.map(sn=>page(x.ref.collection(sn),y=>put(B.collection(K(n)).doc(x.id).collection(sn).doc(y.id),y.data()))))})}
+  await flush();
+  /* dejar la base destino idéntica: borrar lo que sobra de copias anteriores */
+  for(const n of names){const skip=FO.SKIP[n]||[];if(prog)prog("Verificando "+n);
+   await page(B.collection(K(n)),async y=>{if(seen[n].has(y.id)||skip.includes(y.id))return;ops.push({r:y.ref,del:1});if(ops.length>=250)await flush()})}
+  await flush();
+ }
+};
+FO.ready=FO.boot().catch(()=>{});
+try{const w=sessionStorage.getItem("duelo_dbsw");if(w){sessionStorage.removeItem("duelo_dbsw");setTimeout(()=>{try{toast("🔄 Servidor actualizado automáticamente (base "+w+")",5000)}catch(e){}},3500)}}catch(e){}
+
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const nkey=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
 function sha256(ascii){function rr(v,a){return(v>>>a)|(v<<(32-a))}var mp=Math.pow,mw=mp(2,32),res="",i,j,words=[],bl=ascii.length*8,hash=sha256.h=sha256.h||[],k=sha256.k=sha256.k||[],pc=k.length,ic={};
@@ -611,8 +694,8 @@ if(dn(U.col)!=30){toast("Arma tu mazo de 30 cartas primero");return showApp("col
 try{await db.runTransaction(async tx=>{const r=await tx.get(D("challenges",c.id));if(!r.exists||r.data().status!="pending")throw"GONE";tx.set(D("matches",c.id),m);tx.update(D("challenges",c.id),{status:"accepted",matchId:c.id})});startOnline(c.id,"b",m)}catch(e){toast(e==="GONE"?"El reto ya no está disponible":"No se pudo aceptar el reto")}}
 async function challenge(id){if(!onlineOK())return toast("🔒 El modo en línea se desbloquea al completar el tutorial y el siguiente duelo de la historia",5000);if(dn(U.col)!=30){toast("Arma tu mazo de 30 cartas primero");return showApp("col")}id=(id||"").trim();if(!id)return toast("Escribe el ID o el nombre del rival");if(OUT)return toast("Ya tienes un reto pendiente");
 try{const u=await resolveUser(id);if(!u)return toast("No existe un jugador con ese ID o nombre");id=u.uid;if(id==U.uid)return toast("Ese eres tú");const inc=INC.find(c=>c.from==id);if(inc)return acceptCh(inc);
-const ref=Co("challenges").doc();await ref.set({from:U.uid,fromName:U.name,to:id,toName:u.name,status:"pending",createdAt:FV.serverTimestamp()});OUT={id:ref.id,to:id,name:u.name};showInc();
-setTimeout(()=>{if(OUT&&OUT.id==ref.id){D("challenges",ref.id).update({status:"expired"}).catch(()=>{});OUT=null;showInc();toast("El reto expiró sin respuesta")}},CHMS+1500)}catch(e){toast("No se pudo enviar el reto")}}
+const ref=Co("challenges").doc();await FO.tmo(ref.set({from:U.uid,fromName:U.name,to:id,toName:u.name,status:"pending",createdAt:FV.serverTimestamp()}),8000);FO.ok();OUT={id:ref.id,to:id,name:u.name};showInc();
+setTimeout(()=>{if(OUT&&OUT.id==ref.id){D("challenges",ref.id).update({status:"expired"}).catch(()=>{});OUT=null;showInc();toast("El reto expiró sin respuesta")}},CHMS+1500)}catch(e){toast("No se pudo enviar el reto");FO.fail(e)}}
 /* ---- catálogo de cartas en la base de datos ---- */
 async function syncCards(){try{const cs=await Co("categories").get(),have=new Set(cs.docs.map(d=>d.id)),cd=await Co("cards").get(),ex={};cd.docs.forEach(d=>ex[d.id]=d.data());
 const ops=[];BC.forEach(([k,nm],i)=>{if(!have.has(k))ops.push([D("categories",k),{n:nm,o:i,b:1}])});
@@ -1140,6 +1223,7 @@ const unm=ev=>{if(ev)ev.stopPropagation();try{autoFS()}catch(_){}v.muted=false;s
 v.src=INTRO_VID;v.muted=false;v.volume=1;const gate=()=>{clearTimeout(tm);ld.style.display="none";sn.style.display="block"};const p=v.play();if(p&&p.catch)p.catch(er=>{if(er&&er.name=="NotAllowedError")gate();else end()})})}
 function autoFS(){const d=document,el=d.documentElement,q=el.requestFullscreen||el.webkitRequestFullscreen;if(!q)return;const inFS=()=>d.fullscreenElement||d.webkitFullscreenElement,go=()=>{if(inFS())return;try{const r=q.call(el);if(r&&r.catch)r.catch(()=>{})}catch(e){}};go();if(!inFS())d.addEventListener("pointerup",go,{once:true,capture:true})}
 (async()=>{
+ await FO.ready;
  if(ses()){const sp=mkSplash(3000);autoFS();const cp=loadIntroCfg().then(()=>sp.paint());await Promise.all([loadSession(),W(3000),cp]);if(U){showApp("lobby");sp.close();return}sp.close()}
  else await loadSession();
  if(!U){const cp=loadIntroCfg();await playIntro();const sp=mkSplash(3000);autoFS();await Promise.all([W(3000),cp.then(()=>sp.paint())]);showApp("auth");sp.close()}
