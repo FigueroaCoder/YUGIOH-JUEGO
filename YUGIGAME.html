@@ -655,7 +655,7 @@ function rLobby(){return`<div class="ap"><div class="hd"><div><b class="nm">${es
 <div class="pn"><h2>Práctica</h2><button data-act="cpu">JUGAR CONTRA LA CPU</button>
 <details><summary>Reglas</summary><p>Cada jugador tiene 8000 puntos de vida y 2 movimientos por turno (robar, invocar, cambiar de posición o atacar; atacar termina el turno). Las cartas en defensa protegen a las de ataque que tienen detrás; el daño que sobra pasa a las siguientes cartas y a los puntos de vida. No se puede atacar en el primer turno. Una carta con 0 de DEF en modo defensa es un ESCUDO: se destruye al primer ataque, pero el ataque no pasa a nada más.</p></details></div></div>`}
 function renderList(){renderPlist();renderFriends()}
-function renderPlist(){const e=$("#plist");if(!e)return;const L=PR.filter(p=>p.id!=U.uid&&p.st!="off"&&p.ts&&nowS()-p.ts.toMillis()<70000).sort((a,b)=>a.name.localeCompare(b.name));
+function renderPlist(){const e=$("#plist");if(!e)return;const L=PR.filter(p=>p.id!=U.uid&&p.st!="off"&&p.ts&&nowS()-p.ts.toMillis()<150000).sort((a,b)=>a.name.localeCompare(b.name));
 e.innerHTML=L.length?L.map(p=>`<div class="pl"><span class="dot ${p.st=="duel"||p.st=="spec"?"bz":""}"></span>${avHtml(p.id,p.name,28)}<b>${esc(p.name)}</b><small>${p.st=="duel"?"En duelo":p.st=="spec"?"👁 Viendo un duelo":p.dnd?"🔕 No molestar":p.st=="cpu"?"Jugando contra la CPU":"Disponible"}</small><button class="mini" data-act="chu" data-id="${p.id}" ${p.st=="duel"||p.st=="spec"||p.dnd?"disabled":""}>Retar</button>${p.st=="duel"&&p.mid?`<button class="mini" data-act="specv" data-mid="${esc(p.mid)}">👁 Ver</button>`:""}<button class="mini ghost" data-act="trto" data-id="${p.id}">Cambio</button>${(U.friends||[]).includes(p.id)?'<button class="mini ghost" disabled>✓ Amigo</button>':`<button class="mini" data-act="fadd" data-id="${p.id}">＋ Amigo</button>`}</div>`).join(""):'<p class="mut">No hay otros jugadores activos ahora. Comparte tu ID para que te reten.</p>'}
 function rProf(){const s=U.stats||{},p=s.played||0,w=s.wins||0,l=s.losses||0;const H=[...(U.history||[])].sort((a,b)=>b.d-a.d).slice(0,15);
 return`<div class="ap"><div class="hd"><button class="mini" data-act="goback">← Volver</button></div><h1>MI PERFIL</h1>
@@ -678,11 +678,9 @@ function logout(){if(U)D("presence",U.uid).set({name:U.name,st:"off",ts:FV.serve
 /* ---- red: presencia, retos, cartas ---- */
 function stopNet(){UN.forEach(f=>{try{f()}catch(e){}});UN=[];UT.forEach(clearInterval);UT=[];INC=[];OUT=null;showInc()}
 function beat(st){if(!U||!db)return;if(st)U.st=st;D("presence",U.uid).set({name:U.name,st:U.st,ts:FV.serverTimestamp(),lc:Date.now(),dnd:dndOn(),mid:(ON.on&&!ON.spec&&ON.mid&&(ON.role=="a"||ON.role=="b"))?ON.mid:""}).catch(()=>{})}
-function startNet(){stopNet();beat("lobby");watchNotifs();UT.push(setInterval(()=>{beat();if((VW=="lobby"||VW=="online")&&app.style.display!="none")renderList()},20000));
-document.addEventListener("visibilitychange",()=>{if(!document.hidden)beat()});
-UN.push(Co("presence").onSnapshot(s=>{PR=s.docs.map(d=>({id:d.id,...d.data({serverTimestamps:"estimate"}),pend:d.metadata.hasPendingWrites}));const me=PR.find(p=>p.id==U.uid);if(me&&!me.pend&&me.ts&&me.lc)SO=me.ts.toMillis()-me.lc;if(VW=="lobby"||VW=="online")renderList();else if(VW=="chat")chUpd()},()=>{}));
-UN.push(Co("categories").onSnapshot(s=>{CATS={};s.docs.forEach(d=>CATS[d.id]=d.data());if(VW=="adm")renderAdm(1)},()=>{}));
-UN.push(Co("cards").onSnapshot(s=>{CARDS={};s.docs.forEach(d=>CARDS[d.id]=d.data());if(VW=="adm")renderAdm(1)},()=>{}));
+function startNet(){stopNet();beat("lobby");watchNotifs();UT.push(setInterval(()=>beat(),75000));UT.push(setInterval(()=>{if((VW=="lobby"||VW=="online")&&app.style.display!="none")renderList()},20000));UT.push(setInterval(()=>presSync(),15000));UT.push(setInterval(()=>soSync(),600000));setTimeout(()=>soSync(),1500);setTimeout(()=>presSync(),400);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)beat();presSync()});
+catListen();
 UN.push(Co("challenges").where("to","==",U.uid).onSnapshot(s=>s.docChanges().forEach(ch=>{if(ch.type=="removed")return;const c={id:ch.doc.id,...ch.doc.data({serverTimestamps:"estimate"})};
  if(c.status=="pending"&&c.createdAt&&nowS()-c.createdAt.toMillis()<CHMS){if(ON.on&&!G.over){D("challenges",c.id).update({status:"busy"}).catch(()=>{});return}if(dndOn()){D("challenges",c.id).update({status:"dnd"}).catch(()=>{});return}if(!onlineOK()){D("challenges",c.id).update({status:"declined"}).catch(()=>{});return}if(!INC.find(x=>x.id==c.id)){const rest=Math.max(800,CHMS-(nowS()-c.createdAt.toMillis()));c.exp=Date.now()+rest;INC.push(c);showInc();notify("⚔️ ¡Te retan a un duelo!",c.fromName+" te reta. Tienes 10 segundos para aceptar o rechazar.");setTimeout(()=>{const k=INC.find(x=>x.id==c.id);if(k)expireCh(k)},rest)}}
  else{const n=INC.length;INC=INC.filter(x=>x.id!=c.id);if(n!=INC.length)showInc()}}),()=>{}));
@@ -705,7 +703,8 @@ try{const u=await resolveUser(id);if(!u)return toast("No existe un jugador con e
 const ref=Co("challenges").doc();await ref.set({from:U.uid,fromName:U.name,to:id,toName:u.name,status:"pending",createdAt:FV.serverTimestamp()});OUT={id:ref.id,to:id,name:u.name};showInc();
 setTimeout(()=>{if(OUT&&OUT.id==ref.id){D("challenges",ref.id).update({status:"expired"}).catch(()=>{});OUT=null;showInc();toast("El reto expiró sin respuesta")}},CHMS+1500)}catch(e){toast("No se pudo enviar el reto")}}
 /* ---- catálogo de cartas en la base de datos ---- */
-async function syncCards(){try{const cs=await Co("categories").get(),have=new Set(cs.docs.map(d=>d.id)),cd=await Co("cards").get(),ex={};cd.docs.forEach(d=>ex[d.id]=d.data());
+function syncCards(){if(U&&U.admin)return syncCardsFull()}
+async function syncCardsFull(){try{const cs=await Co("categories").get(),have=new Set(cs.docs.map(d=>d.id)),cd=await Co("cards").get(),ex={};cd.docs.forEach(d=>ex[d.id]=d.data());
 const ops=[];BC.forEach(([k,nm],i)=>{if(!have.has(k))ops.push([D("categories",k),{n:nm,o:i,b:1}])});
 const valid=new Set([...have,...BC.map(b=>b[0])]);C.forEach(([id,nm,a,d])=>{const e=ex[id];if(!e||!valid.has(e.cat))ops.push([D("cards",id),{id,n:nm,a,d,cat:autoCat(id,a,d)}])});
 for(let i=0;i<ops.length;i+=400){const b=db.batch();ops.slice(i,i+400).forEach(([r,v])=>b.set(r,v,{merge:true}));await b.commit()}}catch(e){}}
@@ -805,7 +804,7 @@ async function resolveUser(txt){txt=(txt||"").trim();if(!txt)return null;
 const byId=async()=>{const id=txt.toUpperCase();if(!IDRE.test(id))return null;const u=await D("users",id).get();return u.exists?{uid:id,name:u.data().name}:null};
 const byName=async()=>{const nk=nkey(txt);if(!nk||nk.includes("/"))return null;const n=await D("names",nk).get();if(!n.exists)return null;const uid=n.data().uid,u=await D("users",uid).get();return u.exists?{uid,name:u.data().name}:null};
 return(await byId())||(await byName())}
-const isOn=p=>!!(p&&p.st!="off"&&p.ts&&nowS()-p.ts.toMillis()<70000);
+const isOn=p=>!!(p&&p.st!="off"&&p.ts&&nowS()-p.ts.toMillis()<150000);
 const fname=id=>{const p=PR.find(x=>x.id==id);return(p&&p.name)||FN[id]||id};
 async function loadFN(){const need=((U&&U.friends)||[]).filter(id=>!FN[id]&&!PR.some(p=>p.id==id&&p.name));if(!need.length)return;await Promise.all(need.map(async id=>{try{const u=await D("users",id).get();if(u.exists)FN[id]=u.data().name}catch(e){}}));renderList()}
 function friendOpts(sel){const F=((U&&U.friends)||[]).slice().sort((a,b)=>fname(a).localeCompare(fname(b)));return'<option value="">'+(F.length?"— Elegir amigo —":"(aún no tienes amigos)")+'</option>'+F.map(id=>`<option value="${id}" ${id==sel?"selected":""}>${isOn(PR.find(x=>x.id==id))?"● ":"○ "}${esc(fname(id))}</option>`).join("")}
@@ -852,7 +851,7 @@ return`<div class="ap"><div class="hd"><button class="mini" data-act="goback">�
 /* subir carta / solicitudes */
 function rUp(){const my=RQM.slice().sort((a,b)=>b.ts-a.ts);return`<div class="ap"><div class="hd"><button class="mini" data-act="goback">← Volver</button></div><h1>SUBIR CARTA</h1><div class="pn"><p class="mut">Sube la imagen de una carta. El administrador la revisa y, si la aprueba, se agrega al juego y recibes una copia.</p><input type="file" id="cfile" accept="image/*"><div class="row" style="align-items:flex-start;margin-top:10px"><img id="cprev" class="pvw" src="${UPV.img||""}" style="visibility:${UPV.img?"visible":"hidden"}"><div style="flex:1 1 220px"><label>Nombre de la carta</label><input id="cn" maxlength="40" value="${esc(UPV.n||"")}"><label>ATK</label><input id="ca" type="number" min="0" step="50" value="${UPV.a||""}"><label>DEF</label><input id="cd" type="number" min="0" step="50" value="${UPV.d||""}"></div></div><button data-act="csend" style="margin-top:12px">ENVIAR AL ADMINISTRADOR</button></div><div class="pn"><h2>Mis solicitudes</h2>${my.length?my.map(r=>`<div class="trd"><img src="${r.img}" style="width:70px"><div><b>${esc(r.cn)}</b> · ATK ${r.a} / DEF ${r.d}<br>${{pending:"⏳ Pendiente",approved:"✅ Aprobada",rejected:"❌ Rechazada"}[r.status]||""}</div></div>`).join(""):'<p class="mut">Aún no has enviado cartas.</p>'}</div></div>`}
 function rReq(){const pe=REQ.filter(r=>r.status=="pending").sort((a,b)=>a.ts-b.ts),dn2=REQ.filter(r=>r.status!="pending").sort((a,b)=>b.ts-a.ts).slice(0,8);return`<div class="ap"><div class="hd"><button class="mini" data-act="goback">← Volver</button></div><h1>SOLICITUDES</h1>${userReqHtml()}<div class="pn"><h2>Cartas pendientes (${pe.length})</h2>${pe.length?pe.map(r=>`<div class="trd"><img class="pvw" data-act="zoomsrc" src="${r.img}"><div style="flex:1"><p class="mut">De ${esc(r.uname)}</p><label>Nombre</label><input data-r="${r.id}" data-f="n" value="${esc(r.cn)}"><div class="row"><div style="flex:1"><label>ATK</label><input data-r="${r.id}" data-f="a" type="number" value="${r.a}"></div><div style="flex:1"><label>DEF</label><input data-r="${r.id}" data-f="d" type="number" value="${r.d}"></div></div><div class="row" style="margin-top:10px"><button data-act="apr" data-id="${r.id}">AGREGAR AL JUEGO</button><button class="ghost" data-act="rej" data-id="${r.id}">RECHAZAR</button></div></div></div>`).join(""):'<p class="mut">No hay solicitudes pendientes.</p>'}</div>${dn2.length?`<div class="pn"><h2>Recientes</h2>${dn2.map(r=>`<div class="trd"><img src="${r.img}" style="width:60px"><div><b>${esc(r.cn)}</b> · ${esc(r.uname)}<br>${r.status=="approved"?"✅ Agregada":"❌ Rechazada"}</div></div>`).join("")}</div>`:""}</div>`}
-function watchCustom(){let f=1;UN.push(Co("custom_cards").onSnapshot(s=>{s.docChanges().forEach(c=>{if(c.type=="removed")return;const d=c.doc.data();if(!d||CB[d.id])return;const w=[d.id,d.n,d.a,d.d];C.push(w);CB[d.id]=w;IMG[d.id]=[d.img,d.img]});rr()},()=>{}));
+function watchCustom(){let f=1,fc=1;if(U.admin)UN.push(Co("custom_cards").onSnapshot(s=>{s.docChanges().forEach(c=>{if(c.type=="removed")return;const d=c.doc.data();if(!d||CB[d.id])return;const w=[d.id,d.n,d.a,d.d];C.push(w);CB[d.id]=w;IMG[d.id]=[d.img,d.img]});if(fc)fc=0;else catBump();rr()},()=>{}));
 UN.push(Co("card_requests").where("uid","==",U.uid).onSnapshot(s=>{RQM=s.docs.map(d=>({id:d.id,...d.data()}));rr()},()=>{}));
 if(U.admin)UN.push(Co("card_requests").onSnapshot(s=>{REQ=s.docs.map(d=>({id:d.id,...d.data()}));if(!f)s.docChanges().forEach(c=>{if(c.type=="added"&&c.doc.data().status=="pending")toast("Nueva carta enviada por "+c.doc.data().uname)});f=0;rr()},()=>{}))}
 function readImg(f){if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,420/im.width),c=document.createElement("canvas");c.width=im.width*k;c.height=im.height*k;c.getContext("2d").drawImage(im,0,0,c.width,c.height);UPV.img=c.toDataURL("image/jpeg",.82);const p=$("#cprev");p.src=UPV.img;p.style.visibility="visible"};im.src=r.result};r.readAsDataURL(f)}
@@ -2389,7 +2388,7 @@ setInterval(()=>{try{if(!U)return;evCheck();if(evAvail()&&EVN!==U.uid){EVN=U.uid
 
 /* ---- salas: aviso al crearse + invitaciones ---- */
 const INV={sel:new Set()};
-const rnOnline=()=>PR.filter(p=>p.id!=U.uid&&p.st!="off"&&p.ts&&nowS()-p.ts.toMillis()<70000).map(p=>p.id);
+const rnOnline=()=>PR.filter(p=>p.id!=U.uid&&p.st!="off"&&p.ts&&nowS()-p.ts.toMillis()<150000).map(p=>p.id);
 function invCands(){const on=new Set(rnOnline());return[...new Set([...(U.friends||[]),...on])].filter(i=>i!=U.uid).sort((a,b)=>(on.has(b)-on.has(a))||fname(a).localeCompare(fname(b)))}
 function invPicker(){const L=invCands(),on=new Set(rnOnline()),fr=U.friends||[];
  if(!L.length)return'<p class="mut">No hay amigos ni jugadores en línea para invitar ahora.</p>';
@@ -2578,6 +2577,51 @@ Object.assign(ACT,{gsell(){showApp("sell")},
    SELL.sel={};toast("💰 Vendiste "+cnt+" carta"+(cnt==1?"":"s")+" por "+tot+" monedas",5000)}
   catch(e){toast(typeof e=="string"?e:"No se pudo vender. Intenta de nuevo")}
   SELL.busy=0;sellDraw()}});
+/* ===== Ahorro de lecturas: presencia bajo demanda + catálogo en caché ===== */
+/* 1) Presencia: la lista de conectados solo se escucha en pantallas que la usan; el aviso "sigo aquí" va cada 75 s */
+let PRS=null,PRT=0;
+const PRV=["lobby","online","chat","trio","trd"];
+function presOn(){if(PRS||!db||!U)return;PRS=Co("presence").onSnapshot(s=>{PR=s.docs.map(d=>({id:d.id,...d.data({serverTimestamps:"estimate"}),pend:d.metadata.hasPendingWrites}));if(VW=="lobby"||VW=="online")renderList();else if(VW=="chat")chUpd()},()=>{PRS=null})}
+function presOff(){if(PRS){try{PRS()}catch(e){}PRS=null}clearTimeout(PRT);PRT=0}
+function presNeed(){return !!U&&!document.hidden&&app.style.display!="none"&&PRV.includes(VW)}
+function presSync(){if(!U||!db)return;if(presNeed()){clearTimeout(PRT);PRT=0;presOn()}else if(PRS&&!PRT){PRT=setTimeout(()=>{PRT=0;if(!presNeed())presOff()},45000)}}
+async function soSync(n){n=+n||0;if(!U||!db)return;try{const s=await D("presence",U.uid).get({source:"server"}),d=s.data();if(d&&d.ts&&d.lc){SO=d.ts.toMillis()-d.lc;return}}catch(e){}if(n<3)setTimeout(()=>soSync(n+1),2500)}
+{const _s=stopNet;stopNet=function(){presOff();return _s.apply(this,arguments)}}
+{const _r=render;render=function(){const r=_r.apply(this,arguments);try{presSync()}catch(e){}return r}}
+/* 2) Catálogo (categorías + cartas + cartas personalizadas): se guarda en el dispositivo y solo se vuelve a leer si el admin lo cambió */
+const CATV={bt:0};
+const IDBK={
+ get:k=>new Promise(r=>{try{const q=indexedDB.open("duelo_cat",1);q.onupgradeneeded=()=>q.result.createObjectStore("kv");q.onerror=()=>r(null);q.onsuccess=()=>{try{const t=q.result.transaction("kv").objectStore("kv").get(k);t.onsuccess=()=>r(t.result||null);t.onerror=()=>r(null)}catch(e){r(null)}}}catch(e){r(null)}}),
+ set:(k,v)=>new Promise(r=>{try{const q=indexedDB.open("duelo_cat",1);q.onupgradeneeded=()=>q.result.createObjectStore("kv");q.onerror=()=>r(0);q.onsuccess=()=>{try{const tx=q.result.transaction("kv","readwrite");tx.objectStore("kv").put(v,k);tx.oncomplete=()=>r(1);tx.onerror=()=>r(0)}catch(e){r(0)}}}catch(e){r(0)}})};
+function catBump(){clearTimeout(CATV.bt);CATV.bt=setTimeout(()=>{try{D("config","catver").set({v:Date.now()}).catch(()=>{})}catch(e){}},45000)}
+async function catSync(){
+ try{const ops=[];BC.forEach(([k,nm],i)=>{if(!CATS[k])ops.push([D("categories",k),{n:nm,o:i,b:1}])});
+  const valid=new Set([...Object.keys(CATS),...BC.map(b=>b[0])]);
+  C.forEach(([id,nm,a,d])=>{const e=CARDS[id];if(!e||!valid.has(e.cat))ops.push([D("cards",id),{id,n:nm,a,d,cat:autoCat(id,a,d)}])});
+  if(!ops.length)return;
+  for(let i=0;i<ops.length;i+=400){const b=db.batch();ops.slice(i,i+400).forEach(([r,v])=>b.set(r,v,{merge:true}));await b.commit()}
+  D("config","catver").set({v:Date.now()}).catch(()=>{})}catch(e){}}
+function catListen(){
+ if(!U||!db)return;
+ if(U.admin){ /* el admin sí escucha en vivo y avisa a los demás cuando cambia algo */
+  let f1=1,f2=1;
+  UN.push(Co("categories").onSnapshot(s=>{CATS={};s.docs.forEach(d=>CATS[d.id]=d.data());if(VW=="adm")renderAdm(1);if(f1)f1=0;else catBump()},()=>{}));
+  UN.push(Co("cards").onSnapshot(s=>{CARDS={};s.docs.forEach(d=>CARDS[d.id]=d.data());if(VW=="adm")renderAdm(1);if(f2)f2=0;else catBump()},()=>{}));
+  return}
+ const key="cat_"+ADB;let cache=null;
+ const apply=c=>{CATS=c.cats||{};CARDS=c.cards||{};(c.custom||[]).forEach(d=>{if(!d||CB[d.id])return;const w=[d.id,d.n,d.a,d.d];C.push(w);CB[d.id]=w;IMG[d.id]=[d.img,d.img]});rr()};
+ const fetchAll=async v=>{const r=await Promise.all([Co("categories").get(),Co("cards").get(),Co("custom_cards").get()]);
+  const cats={},cards={},custom=[];r[0].docs.forEach(d=>cats[d.id]=d.data());r[1].docs.forEach(d=>cards[d.id]=d.data());r[2].docs.forEach(d=>custom.push(d.data()));
+  cache={v,cats,cards,custom};IDBK.set(key,cache);apply(cache)};
+ (async()=>{
+  cache=await IDBK.get(key);if(cache)apply(cache);
+  let first=1;
+  await new Promise(res=>{const fin=()=>{if(first){first=0;res()}};
+   UN.push(D("config","catver").onSnapshot(async s=>{const v=s.exists?(s.data().v||0):0;
+    try{if(!cache||cache.v!==v){if(!first)await new Promise(r=>setTimeout(r,Math.random()*8000));await fetchAll(v)}}catch(e){}fin()},()=>fin()));
+   setTimeout(fin,8000)});
+  catSync()})()}
+
 /* vista previa de una carta para subastar (sin venta a la tienda) */
 function aucPv(id){if(!id||!CB[id])return'<p class="mut">No tienes cartas disponibles para subastar.</p>';const ps=packsOf(id),ls=ps.map(t=>`<div>${PKI[t][0]} — ${packPrice(t)>0?packPrice(t)+" monedas":"regalo de bienvenida"}</div>`).join("")||"<div>Solo se obtiene como premio especial</div>";return`<div class="row" style="align-items:flex-start;gap:16px;flex-wrap:nowrap"><img src="${IMG[id][0]}" style="width:170px;border-radius:8px" data-act="zoom" data-id="${id}"><div><b style="font-size:20px">${esc(cnm(id))}</b><br>${lvTxt(id)} · ${RAR(id)[0]} · ATK ${CB[id][2]} / DEF ${CB[id][3]}<p class="mut" style="margin:8px 0 2px">Sale en:</p>${ls}</div></div>`}
 
