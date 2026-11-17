@@ -492,7 +492,7 @@ if(R.lp>0&&ev.length)pop({i:1,owner:e,pos:"a"},"¡SOBRANTE! -"+R.lp+" LP","#ff3b
 if(r.dmg>0){await lp(e,P[e].lp-r.dmg);msg(`${e?NAME(e)+" pierde":"Pierdes"} ${r.dmg} LP`)}else if(ev.some(x=>x.s))msg("¡El escudo absorbe el ataque! Nada más es dañado");else if(!ev.some(x=>x.k))msg("La defensa resiste el ataque");
 await chk3();G.busy=1}
 function end(win){if(G.over)return;G.over=1;G.busy=1;if(!G.specDone)reportResult(win);(async()=>{const ttl=win?"¡VICTORIA!":(G.n3?"PUESTO "+(G.place||3):"DERROTA");await bn(ttl);const o=$("#ov");o.querySelector("h1").textContent=ttl;o.querySelector("p").textContent=win?(G.n3?"¡Eres el último duelista en pie!":"Reduciste los puntos de vida del rival a cero."):(G.n3?"Fuiste eliminado del duelo. Terminaste en el puesto "+(G.place||3)+" de 3.":"El rival redujo tus puntos de vida a cero.");$("#go").textContent=ON.on?"VOLVER A LA SALA":STORY.cur?(win&&!STORY.cur.practice?"VOLVER AL MAPA":win?"REPETIR RIVAL":"REINTENTAR"):"NUEVO DUELO";$("#ovm").textContent=STORY.cur?"VOLVER AL MAPA":"MENÚ";$("#ovm").style.display=ON.on?"none":"";$("#oxit").style.display=(STORY.cur&&!win&&!ON.on)?"":"none";$("#orev").style.display=(ON.on&&!G.n3&&!G.specDone)?"":"none";if(G.rwHtml)o.querySelector("p").insertAdjacentHTML("beforeend",G.rwHtml);o.style.display="flex";if(STORY.cur&&win)storyEnd().then(()=>checkLevels())})()}
-async function startTurn(p){G.t=p;G.tg=NX(p);G.tst=Date.now();G.n++;G.mv=2;clr();G.busy=1;G.bw=1;hud();await bn(p?(G.n3?"TURNO DE "+NAME(p).toUpperCase():"TURNO DEL RIVAL"):"TU TURNO");G.bw=0;if(G.over)return;if(cardless(p)){if(G.n3){await elimP(p);await chk3();if(!G.over)await startTurn(NX(p))}else end(p==1);return}if(p){if(ON.on)rxPump();else await npc()}else{G.busy=0;hud()}}
+async function startTurn(p){G.t=p;G.tg=NX(p);G.tst=Date.now();G.n++;G.mv=2;clr();G.busy=1;G.bw=1;hud();await bn(p?(G.n3?"TURNO DE "+NAME(p).toUpperCase():"TURNO DEL RIVAL"):"TU TURNO");G.bw=0;if(G.over)return;if(cardless(p)){if(G.n3){await elimP(p);await chk3();if(!G.over)await startTurn(NX(p))}else end(p==1);return}if(p||G.sim3){if(ON.on)rxPump();else await npc()}else{G.busy=0;hud()}}
 async function npc2(){await W(600);const me=P[1],op=P[0];let mv=2;
 while(mv>0&&!G.over){const hs=me.hand;let best=null,bs=0;
 if(G.n>ATKN())for(const a of me.A.filter(c=>c&&fxCanAtk(c))){const cs=[0,1,2].filter(i=>op.A[i]||op.D[i]);for(const col of cs.length?cs:[null]){const r=calc(a,col),s=r.ev.reduce((t,x)=>t+(x.s?400:x.k?1500+x.c.a:x.x),0)+r.lp*1.5;if((r.lp>0||r.ev.some(x=>x.k))&&s>bs){bs=s;best={a,col}}}}
@@ -541,8 +541,8 @@ const FO={
  cid:Math.random().toString(36).slice(2,10),
  LOCK_MS:10*60*1000,
  PROJ:{1:"halloween-9c9c6",2:"ct-search-fbcea"},
- TOPS:["config","users","names","creds","presence","categories","cards","custom_cards","card_requests","avatars","cpacks","trades","auctions","chats","rooms","notifs","challenges","matches"],
- SUBS:{matches:["moves","chat","viewers"],chats:["msgs"]},
+ TOPS:["config","users","names","creds","presence","categories","cards","custom_cards","card_requests","avatars","cpacks","trades","auctions","chats","rooms","notifs","challenges","matches","torneo"],
+ SUBS:{matches:["moves","chat","viewers"],chats:["msgs"],torneo:["res","claims"]},
  SKIP:{config:["active","ping"]},
  day(){try{return new Date().toLocaleDateString("en-CA",{timeZone:"America/Los_Angeles"})}catch(e){return new Date().toISOString().slice(0,10)}},
  tmo(p,ms){let t;return Promise.race([p,new Promise((_,rej)=>{t=setTimeout(()=>rej(new Error("timeout")),ms||3500)})]).finally(()=>clearTimeout(t))},
@@ -1132,7 +1132,7 @@ const HM_TAB={cpk:"cpk",rank:"online",lobby:"home",story:"story",online:"online"
 const packsN=()=>Object.values(((U&&U.col)||{}).packs||{}).reduce((a,b)=>a+b,0),trdN=()=>TR.in.filter(t=>t.status=="open").length+TR.out.filter(t=>t.status=="countered").length,reqN=()=>REQ.filter(r=>r.status=="pending").length+NU.filter(u=>u.status=="pending").length;
 function shell(){const a=HM_TAB[VW]||"home",tab=(k,l,act,n,x="")=>`<button class="sh-tab ${x} ${a==k?"on":""}" data-act="${act}">${l}${n?`<i>${n}</i>`:""}</button>`;
 return`<header class="sh"><div class="sh-in"><div class="sh-logo" data-act="goback"><span>DUELO</span><b>DE MONSTRUOS</b></div>
-<nav class="sh-nav">${tab("home","Inicio","goback")}${tab("ms","🎯 Misiones","gms",msN()||"")}${tab("story","Historia","gstory")}${tab("online",onlineOK()?"En línea":"🔒 En línea","gonl")}${tab("col","Colección","gcol")}${tab("pk","Sobres","gpk",packsN())}${tab("prac","Práctica","gprac")}${tab("trio","Trío","gtrio")}${tab("shop","Tienda","gshop")}${tab("roul","Ruleta","groul",rlAvail()?"1":"")}${tab("auc","Subastas","gauc")}${tab("sell","💰 Vender Cartas","gsell")}${tab("trd","Cambios","gtrd",trdN())}${tab("chat","💬 Chat","gchat",chUnN()||"")}${U.admin?tab("adm","Admin cartas","goadm","","ad")+tab("req","Solicitudes","greq",reqN(),"ad")+tab("sadm","Admin historia","gsadm","","ad")+tab("intro","Admin intro","gintro","","ad")+tab("radm","Admin ruleta","gradm","","ad")+tab("cpk","Sobres especiales","gcpk","","ad")+tab("gift","🎁 Regalos","ggift","","ad")+tab("ann","📢 Novedades","gann","","ad")+tab("hl","🤪 Hora Loca","ghl","","ad")+tab("mig","🔁 Migrar base","gmig","","ad")+tab("msa","✅ Palomear misiones","gmsa","","ad"):""}</nav>
+<nav class="sh-nav">${tab("home","Inicio","goback")}${tab("ms","🎯 Misiones","gms",msN()||"")}${tab("story","Historia","gstory")}${tab("online",onlineOK()?"En línea":"🔒 En línea","gonl")}${tab("col","Colección","gcol")}${tab("pk","Sobres","gpk",packsN())}${tab("prac","Práctica","gprac")}${tab("trio","Trío","gtrio")}${tab("shop","Tienda","gshop")}${tab("roul","Ruleta","groul",rlAvail()?"1":"")}${tab("auc","Subastas","gauc")}${tab("sell","💰 Vender Cartas","gsell")}${tab("trn",trnVis()?"🏆 Torneo":"🔒 Torneo","gtrn")}${tab("trd","Cambios","gtrd",trdN())}${tab("chat","💬 Chat","gchat",chUnN()||"")}${U.admin?tab("adm","Admin cartas","goadm","","ad")+tab("req","Solicitudes","greq",reqN(),"ad")+tab("sadm","Admin historia","gsadm","","ad")+tab("intro","Admin intro","gintro","","ad")+tab("radm","Admin ruleta","gradm","","ad")+tab("cpk","Sobres especiales","gcpk","","ad")+tab("gift","🎁 Regalos","ggift","","ad")+tab("ann","📢 Novedades","gann","","ad")+tab("hl","🤪 Hora Loca","ghl","","ad")+tab("mig","🔁 Migrar base","gmig","","ad")+tab("msa","✅ Palomear misiones","gmsa","","ad"):""}</nav>
 <div class="sh-r"><button class="sh-fs" data-act="fs" title="Pantalla completa">⛶</button><span class="sh-coin">${IC.coin}<b>${U.gold||0}</b></span><button class="sh-me" data-act="goprof"><span class="sh-lv">${lvlOf(U.xp)}</span>${U.ph?`<img class="sh-ph" src="${U.ph}" alt="">`:`<span class="sh-ph sh-ini">${esc((U.name||"?").trim().charAt(0).toUpperCase())}</span>`}<span class="sh-nm">${esc(U.name)}</span></button></div></div></header>`}
 const bestCards=n=>myCards().slice().sort((a,b)=>RAR(b)[2]-RAR(a)[2]||CB[b][2]-CB[a][2]).slice(0,n);
 const onTxt=()=>{if(!onlineOK())return"🔒 Bloqueado · gana 2 duelos de historia ("+onProg()+"/2)";const n=PR.filter(p=>U&&p.id!=U.uid&&isOn(p)).length;return n?`${n} jugador${n>1?"es":""} conectado${n>1?"s":""}`:"Reta a tus amigos"};
@@ -2621,6 +2621,306 @@ function catListen(){
     try{if(!cache||cache.v!==v){if(!first)await new Promise(r=>setTimeout(r,Math.random()*8000));await fetchAll(v)}}catch(e){}fin()},()=>fin()));
    setTimeout(fin,8000)});
   catSync()})()}
+
+/* ===== MODO TORNEO · Temporada 1 (motor + datos) ===== */
+const TN={
+ N:[["jp","Japón","🇯🇵",9],["br","Brasil","🇧🇷",8],["de","Alemania","🇩🇪",8],["fr","Francia","🇫🇷",7],["ar","Argentina","🇦🇷",7],["es","España","🇪🇸",7],["en","Inglaterra","🇬🇧",6],["it","Italia","🇮🇹",6],["nl","Países Bajos","🇳🇱",6],["pt","Portugal","🇵🇹",6],["us","Estados Unidos","🇺🇸",6],["kr","Corea del Sur","🇰🇷",5],["hr","Croacia","🇭🇷",5],["be","Bélgica","🇧🇪",5],["uy","Uruguay","🇺🇾",5],["mx","México","🇲🇽",6],["co","Colombia","🇨🇴",4],["ma","Marruecos","🇲🇦",4],["sn","Senegal","🇸🇳",4],["ca","Canadá","🇨🇦",4]],
+ G:[["jp","es","us","co"],["br","en","kr","ma"],["de","nl","hr","sn"],["ar","it","be","ca"],["fr","pt","uy","mx"]],
+ JP:[["Seto Kaiba",10,"bl"],["Yugi Muto",10,"mg"],["Katsuya Jonouchi",8,"rd"],["Mai Kujaku",8,"an"],["Ryo Bakura",7,"zb"],["Hiroto Honda",6,"mq"]],
+ NM:{
+  br:["Rafael Duarte","Thiago Lima","Camila Rocha","Bruno Almeida","Gabriela Souza","Mateus Pires"],
+  de:["Lukas Brandt","Felix Wagner","Greta Hoffmann","Jonas Keller","Anja Richter","Moritz Vogel"],
+  fr:["Étienne Marchand","Léa Fontaine","Hugo Delacroix","Camille Roux","Julien Moreau","Manon Girard"],
+  ar:["Matías Beltrán","Lucía Ferreyra","Nicolás Paredes","Agustina Roldán","Facundo Sosa","Julián Ibarra"],
+  es:["Alejandro Navarro","Carmen Ortega","Pablo Serrano","Marta Quintero","Diego Cabrera","Irene Salazar"],
+  en:["Oliver Hastings","Charlotte Pembroke","Harry Whitmore","Emily Radcliffe","George Ashford","Amelia Thorne"],
+  it:["Lorenzo Bianchi","Giulia Moretti","Matteo Ferrara","Chiara Costa","Alessandro Greco","Sofia Marino"],
+  nl:["Daan de Vries","Sanne Jansen","Bram Visser","Lotte Bakker","Joris Mulder","Fleur Smit"],
+  pt:["João Carvalho","Inês Monteiro","Tiago Ferreira","Beatriz Nogueira","Rui Cardoso","Matilde Faria"],
+  us:["Jake Morrison","Emma Caldwell","Tyler Brooks","Olivia Hayes","Ryan Sullivan","Chloe Bennett"],
+  kr:["Min-jun Park","Seo-yeon Kim","Ji-ho Choi","Ha-eun Jung","Do-yun Kang","Yu-na Lim"],
+  hr:["Luka Horvat","Ana Kovač","Marko Babić","Petra Jurić","Ivan Matić","Nika Vuković"],
+  be:["Thomas Peeters","Emma Janssens","Lucas Maes","Julie Claes","Noah Wouters","Lore Hermans"],
+  uy:["Santiago Techera","Valentina Acosta","Joaquín Pereyra","Martina Olivera","Emiliano Ríos","Camila Barrios"],
+  mx:["Capitán (vacante)","Carlos Ramírez","Fernanda Torres","Luis Hernández","Sofía Morales","Diego Castillo"],
+  co:["Santiago Rojas","Valeria Cárdenas","Andrés Villamizar","Daniela Giraldo","Mateo Ospina","Laura Cifuentes"],
+  ma:["Youssef Benali","Salma Idrissi","Omar El Fassi","Hajar Tazi","Karim Alaoui","Imane Berrada"],
+  sn:["Mamadou Diop","Aïssatou Ndiaye","Cheikh Fall","Fatou Sarr","Ibrahima Gueye","Awa Mbaye"],
+  ca:["Liam Tremblay","Chloé Gagnon","Noah Bouchard","Zoé Lavoie","Ethan Pelletier","Mia Côté"],
+  es_:[]},
+ TH:{br:["sy","sy","dr","gu","bs","any"],de:["mq","mq","dr","nb","any","gu"],fr:["an","an","mg","he","any","dr"],ar:["dv","dv","dr","gu","mq","any"],es:["gu","gu","he","dr","any","bs"],en:["mg","mg","an","dr","any","zb"],it:["dr","dr","mg","gu","any","zb"],nl:["bs","dr","gu","any","mq","an"],pt:["zb","om","dr","any","he","gu"],us:["he","he","mq","any","gu","dr"],kr:["nb","nb","om","any","dr","mq"],hr:["dr","gu","any","bs","zb","an"],be:["mq","any","gu","dr","bs","an"],uy:["gu","bs","dr","any","he","zb"],mx:["any","gu","dr","he","bs","mg"],co:["any","bs","gu","dr","an","he"],ma:["any","gu","bs","zb","dr","an"],sn:["bs","any","gu","dr","zb","he"],ca:["any","he","gu","bs","dr","an"]},
+ RX:{bl:/blue-eyes|ojos azules/i,mg:/mago|magician|sorcerer|wizard|maga\b|hechic/i,rd:/red-eyes|ojos rojos/i,sy:/saiyajin|saiyan|sayajin|goku|vegeta|trunks|freezer/i,dr:/drag[oó]n/i,nb:/^number|número/i,om:/ojo maligno/i,dv:/obelisk|winged dragon of ra|helios|zeus|shiva|mahoraga|guaiwu/i,gu:/warrior|guerrero|soldier|knight|caballero|samurai|centur|huitzil/i,an:/angel|ángel|seraph|hada|fairy/i,mq:/machine|máquina|robot|gear|cyber|golem/i,zb:/zombie|skull|vampire|ghost|fantasma|demon|demonio/i,he:/hero|héroe/i,bs:/beast|bestia|lobo|wolf|tiger|tigre|lion|león|bird|halcón/i},
+ OFF:[1,0,0,-1,-1,-2],
+ ro(key,s){if(key=="jp")return{n:TN.JP[s][0],lv:TN.JP[s][1],th:TN.JP[s][2]};const t=TN.N.find(x=>x[0]==key)[3],g=TN.G.findIndex(x=>x.includes(key));return{n:TN.NM[key][s],lv:Math.max(4,Math.min(10,t+TN.OFF[s]+Math.floor(rlSeed("jit|"+key+s)()*3)-1-(g==4&&key!="mx"?2:0))),th:TN.TH[key][s]}}
+};
+const TNR=["","Fase 1 · Jornada 1","Fase 1 · Jornada 2","Fase 1 · Jornada 3","Fase 2 · Jornada 1","Fase 2 · Jornada 2","Fase 2 · Jornada 3","Eliminación · 36 jugadores","Eliminación · 18 jugadores","Partidas de 3 · 9 jugadores","Liga de 6 · Jornada 1","Liga de 6 · Jornada 2","Liga de 6 · Jornada 3","Liga de 6 · Jornada 4","Liga de 6 · Jornada 5","Semifinales","Final y tercer lugar"];
+const tnDif=L=>L<=5?"Débil":L<=7?"Medio":L<=9?"Fuerte":"Élite";
+const TNMAX=16,WKU=["c0","ce","cs","cp","cpe","cu"];
+/* reglas de la Temporada 1: 30 cartas, máximo 3 comodines (ultra especiales incluidos) y todas las demás de nivel 4 en adelante */
+function trnCheck(deck){const msgs=[],low=[],bad=[];let n=0,w=0;
+ for(const [id,q] of Object.entries(deck||{})){if(!CB[id]||!(q>0))continue;n+=q;const k=lv(+id);
+  if(WKU.includes(k))w+=q;else if(/^n\d+$/.test(k)){if(+k.slice(1)<4)low.push([id,q])}else bad.push(id)}
+ if(n!=30)msgs.push("Tu mazo tiene "+n+" cartas y debe tener exactamente 30.");
+ if(w>3)msgs.push("Tienes "+w+" comodines (los ultra especiales cuentan) y el máximo es 3.");
+ if(low.length)msgs.push("Hay cartas de nivel menor a 4: "+low.slice(0,6).map(([id,q])=>cnm(id)+(q>1?" ×"+q:"")).join(", ")+(low.length>6?" y "+(low.length-6)+" más":"")+".");
+ if(bad.length)msgs.push("Hay cartas sin nivel válido (magia/trampa): "+bad.slice(0,4).map(cnm).join(", ")+".");
+ return{ok:!msgs.length,msgs,w,n}}
+/* mazo de un jugador NPC (siempre cumple las reglas del torneo) */
+function trnDeckFor(p){
+ const L=Math.max(4,Math.min(10,p.lv||5)),R=rlSeed("trnd|"+p.k+"|"+p.name),shf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+ const WK=["c0","ce","cs","cp","cpe"],num=id=>{const k=lv(id);return/^n\d+$/.test(k)?+k.slice(1):0},ids=C.map(c=>c[0]),pw=id=>CB[id][2]+CB[id][3];
+ let hi=L,pool=ids.filter(id=>num(id)>=4&&num(id)<=hi);while(pool.length<30&&hi<10){hi++;pool=ids.filter(id=>num(id)>=4&&num(id)<=hi)}
+ const wild=ids.filter(id=>WK.includes(lv(id))),xn=L>=9?3:L>=7?2:L>=5?1:0,out=[],used=new Set();let w=0;
+ const add=id=>{if(out.length<30&&!used.has(id)){used.add(id);out.push(id)}};
+ const rx=TN.RX[p.th];
+ if(rx){let tm=shf(pool.filter(id=>rx.test(CB[id][1])));if(L>=8)tm.sort((a,b)=>pw(b)-pw(a));tm.slice(0,p.sig?18:12).forEach(add);
+  shf(wild.filter(id=>rx.test(CB[id][1]))).forEach(id=>{if(w<xn&&!used.has(id)){add(id);w++}})}
+ shf(wild.slice().sort((a,b)=>pw(b)-pw(a)).slice(0,Math.max(6,xn*3))).forEach(id=>{if(w<xn&&!used.has(id)){add(id);w++}});
+ shf(pool.filter(id=>num(id)>=Math.max(4,L-3))).forEach(add);shf(pool).forEach(add);
+ return out.map(id=>({id,n:CB[id][1],a:CB[id][2],d:CB[id][3]}))}
+/* motor determinista: con el estado (ronda, equipo real, resultados) calcula TODO el torneo */
+function trnEngine(st){
+ const rd=st.rd||0,real=st.real||{},res=st.res||{},cl=st.cl||{},N=TN.N,NI={};N.forEach((n,i)=>NI[n[0]]=i);
+ const hs=k=>rlSeed("trnh|"+k)(),P={};
+ N.forEach((n,ni)=>{for(let s=0;s<6;s++){const d=TN.ro(n[0],s),rl=n[0]=="mx"?real[s]:null;P[ni+":"+s]={k:ni+":"+s,ni,s,name:rl?rl.name:d.n,lv:rl?7:d.lv,th:d.th,uid:rl?rl.uid:null,dk:rl?rl.deck:null,sig:n[0]=="jp"&&s<2}}});
+ const M=[],BR={},MX=NI.mx;
+ const rep=(m,k)=>{const p=P[k];if(!p.uid)return;const e=res[m.id+"_"+p.uid];return e&&(cl[m.r]==null||e.ts<=cl[m.r])?e.w:undefined};
+ const sim=m=>{const a=P[m.a],b=P[m.b];return rlSeed("trnm|"+m.id)()<1/(1+Math.exp(-(a.lv-b.lv)*.5))?m.a:m.b};
+ const solve=m=>{const A=P[m.a],B=P[m.b],closed=rd>m.r;if(!A.uid&&!B.uid)return sim(m);const ra=rep(m,m.a),rb=rep(m,m.b);
+  if(A.uid&&B.uid){const sa=ra===true?1:ra===false?-1:0,sb=rb===true?1:rb===false?-1:0,sc=sa-sb;if(!(sa&&sb)&&!closed)return null;return sc>0?m.a:sc<0?m.b:sim(m)}
+  const re=A.uid?m.a:m.b,ot=A.uid?m.b:m.a,rr=A.uid?ra:rb;if(rr===true)return re;if(rr===false)return ot;return closed?ot:null};
+ const mk=(r,ph,a,b,tag)=>{const m={id:ph+"."+r+"."+a+"."+b,r,ph,a,b,tag:tag||""};m.w=solve(m);(BR[r]=BR[r]||[]).push(m);M.push(m);return m};
+ const SCH=[[[0,1],[2,3]],[[0,2],[1,3]],[[0,3],[1,2]]];
+ const groupRun=(nats,r0,ph)=>{const ms=[];for(let j=0;j<3;j++){const r=r0+j;if(r>rd)break;for(const [x,y] of SCH[j])for(let s=0;s<6;s++)ms.push(mk(r,ph,nats[x]+":"+s,nats[y]+":"+s,"G"))}return ms};
+ const table=(nats,ms,pp)=>{const t=nats.map(n=>({ni:n,pts:0,w:0,l:0})),f=n=>t.find(x=>x.ni==n);
+  ms.forEach(m=>{if(m.w==null)return;const lo=m.w==m.a?m.b:m.a;f(P[m.w].ni).pts+=3;f(P[m.w].ni).w++;f(P[lo].ni).l++;pp[m.w]=(pp[m.w]||0)+3});
+  return t.sort((a,b)=>b.pts-a.pts||hs("t"+b.ni)-hs("t"+a.ni))};
+ const E={rd,P,M,BR,real,MX,NI,pp1:{},pp2:{},q1:null,ph2:null,q2:null,s36:null,r7:null,r8:null,tri:null,fin:null,lg:null,sf:null,fi:null,champ:null};
+ const g1=TN.G.map(g=>g.map(c=>NI[c])),ms1=g1.map(n=>groupRun(n,1,1));
+ E.ph1=g1.map((n,i)=>({nats:n,t:table(n,ms1[i],E.pp1)}));
+ if(rd>3){const f=E.ph1.map(g=>g.t[0].ni),s=E.ph1.map(g=>g.t[1].ni),th=E.ph1.map(g=>g.t[2]).sort((a,b)=>b.pts-a.pts||hs("t"+b.ni)-hs("t"+a.ni));
+  E.q1={f,s,t:th.slice(0,2).map(x=>x.ni)};
+  const gs=[[f[0],f[1],s[2],s[3]],[f[2],f[3],s[0],s[1]],[f[4],s[4],E.q1.t[0],E.q1.t[1]]],ms2=gs.map(n=>groupRun(n,4,2));
+  E.ph2=gs.map((n,i)=>({nats:n,t:table(n,ms2[i],E.pp2)}));
+  if(rd>6){E.q2=E.ph2.flatMap(g=>[g.t[0].ni,g.t[1].ni]);
+   const sk=k=>[E.pp2[k]||0,E.pp1[k]||0,P[k].lv,hs("s"+k)],cmpS=(a,b)=>{const x=sk(a),y=sk(b);for(let i=0;i<4;i++)if(x[i]!=y[i])return y[i]-x[i];return 0};
+   const S=E.q2.flatMap(n=>[0,1,2,3,4,5].map(s=>n+":"+s)).sort(cmpS);E.s36=S;const ix={};S.forEach((k,i)=>ix[k]=i);const byS=(a,b)=>ix[a]-ix[b];E.ix=ix;
+   if(rd>=7){E.r7=[];for(let i=0;i<18;i++)E.r7.push(mk(7,3,S[i],S[35-i],"E36"));
+    if(rd>=8){const W=E.r7.map(m=>m.w).sort(byS);E.r8=[];for(let i=0;i<9;i++)E.r8.push(mk(8,3,W[i],W[17-i],"E18"));
+     if(rd>=9){const W9=E.r8.map(m=>m.w).sort(byS);E.tri=[[0,5,6],[1,4,7],[2,3,8]].map(x=>x.map(i=>W9[i]));
+      /* partida de 3: cada jugador real juega un duelo de 3 contra los otros dos; avanzan 2 de 3 */
+      const mk3=(r,mem,i)=>{const m={id:"3."+r+".tri"+i,r,ph:3,tag:"TRI",mem,a:mem[0],b:mem[1],c:mem[2]},closed=rd>r,sc={};let pend=false;
+       mem.forEach(k=>{const p=P[k];if(p.uid){const e=res[m.id+"_"+p.uid];if(e&&(cl[r]==null||e.ts<=cl[r]))sc[k]=4-(+e.p||(e.w?1:3));else if(closed)sc[k]=-1;else pend=true}else sc[k]=1.2+(p.lv-7)*.18+(rlSeed("tri|"+m.id+"|"+k)()-.5)*1.6});
+       m.sc=sc;m.rank=pend?null:mem.slice().sort((x,y)=>sc[y]-sc[x]||byS(x,y));m.adv=m.rank?m.rank.slice(0,2):null;(BR[r]=BR[r]||[]).push(m);M.push(m);return m};
+      E.triM=E.tri.map((x,i)=>mk3(9,x,i));
+      if(rd>9){E.fin=E.triM.flatMap(m=>m.adv).sort(byS);
+       let arr=E.fin.slice();const lm=[];for(let j=0;j<5;j++){const r=10+j;if(r>rd)break;[[0,5],[1,4],[2,3]].forEach(([x,y])=>lm.push(mk(r,4,arr[x],arr[y],"L")));arr=[arr[0],arr[5],arr[1],arr[2],arr[3],arr[4]]}
+       const lp={};E.fin.forEach(k=>lp[k]={k,pts:0,w:0});lm.forEach(m=>{if(m.w){lp[m.w].pts+=3;lp[m.w].w++}});
+       E.lg=E.fin.map(k=>lp[k]).sort((a,b)=>b.pts-a.pts||byS(a.k,b.k));
+       if(rd>14){const T=E.lg.map(x=>x.k);E.top4=T.slice(0,4);
+        if(rd>=15){E.sf=[mk(15,5,T[0],T[3],"S"),mk(15,5,T[1],T[2],"S")];
+         if(rd>=16){const lo=m=>m.w==m.a?m.b:m.a,w1=E.sf[0].w,w2=E.sf[1].w;E.fi={f:mk(16,5,w1,w2,"F"),t3:mk(16,5,lo(E.sf[0]),lo(E.sf[1]),"3")};
+          if(rd>16&&E.fi.f.w){E.champ=E.fi.f.w;E.second=lo(E.fi.f);E.third=E.fi.t3.w;E.fourth=lo(E.fi.t3)}}}}}}}}}}
+ return E}
+
+/* ===== MODO TORNEO · pantalla, inscripción, duelos y administración ===== */
+HM_TAB.trn="trn";
+const TRN={st:null,res:{},cl:{},E:null,tab:"res",rs:0,pf:"mx",u:[],open:false,cur:null,last:0,err:null,busy:0};
+const trnVis=()=>!!(U&&(U.admin||TRN.open));
+const tnP=k=>{const p=TRN.E.P[k];return TN.N[p.ni][2]+" "+esc(p.name)+(p.uid?" ⭐":"")};
+{const st=document.createElement("style");st.textContent=`.tt{width:100%;border-collapse:collapse;font-size:17px}.tt th{color:#ffd86b;text-align:left;font-weight:600;padding:4px 8px}.tt td{padding:6px 8px;border-top:1px solid #ffffff1c}.tt tr.mx td{background:#2bff8a1f}.tt tr.q td:first-child{box-shadow:inset 3px 0 #7dff9c}.tm{display:flex;align-items:center;gap:8px;padding:8px 10px;margin:5px 0;border-radius:10px;background:#ffffff0c;font-size:16px;flex-wrap:wrap}.tm.me{outline:1.5px solid #ffd86b;background:#ffd86b18}.tm>span{flex:1;min-width:130px}.tm>span:last-of-type{text-align:right}.tm b{min-width:78px;text-align:center;color:#cfd6ff}.tm .w{color:#7dff9c;font-weight:700}.ttabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.ttabs button{background:#ffffff12;border:1.5px solid #ffffff2a;color:#fff;border-radius:999px;padding:8px 16px;font:700 16px Rajdhani,sans-serif;cursor:pointer}.ttabs button.on{background:linear-gradient(#ffd86b,#e0a823);color:#1a1200;border-color:#ffd86b}.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}.tbox{background:#ffffff0a;border:1px solid #ffffff22;border-radius:12px;padding:10px 12px}.tbox h4{margin:0 0 6px;color:#ffd86b}.trule li{margin:4px 0}.terr{color:#ff9a9a;margin:8px 0}`;document.head.appendChild(st)}
+/* ---------- datos en vivo ---------- */
+function trnOn(){if(TRN.u.length||!db)return;
+ TRN.u.push(D("torneo","s1").onSnapshot(s=>{TRN.ld=1;TRN.st=s.exists?s.data():null;trnRe()},()=>{}));
+ TRN.u.push(D("torneo","s1").collection("res").onSnapshot(s=>{TRN.res={};s.docs.forEach(d=>TRN.res[d.id]=d.data());trnRe()},()=>{}));
+ TRN.u.push(D("torneo","s1").collection("claims").doc(U.uid).onSnapshot(s=>{TRN.cl=s.exists?s.data():{};if(VW=="trn"&&app.style.display!="none")render()},()=>{}))}
+function trnOff(){TRN.u.forEach(f=>{try{f()}catch(e){}});TRN.u=[]}
+function trnRe(){try{TRN.E=TRN.st?trnEngine({...TRN.st,res:TRN.res}):null}catch(e){console.error("[torneo]",e);TRN.E=null}if(VW=="trn"&&app.style.display!="none")render()}
+function trnMine(){const E=TRN.E;if(!E||!U)return{};const me=Object.values(E.P).find(p=>p.uid==U.uid);if(!me)return{};const ms=E.M.filter(m=>m.a==me.k||m.b==me.k||m.c==me.k);return{me,ms,cur:ms.find(m=>m.r==E.rd)}}
+/* ---------- piezas de pantalla ---------- */
+function tnRow(m){const E=TRN.E,A=E.P[m.a],B=E.P[m.b],mine=U&&(A.uid==U.uid||B.uid==U.uid),d=m.w!=null;
+ return`<div class="tm ${mine?"me":""}"><span class="${d&&m.w==m.a?"w":""}">${tnP(m.a)}</span><b>${d?(m.w==m.a?"1 – 0":"0 – 1"):"pendiente"}</b><span class="${d&&m.w==m.b?"w":""}">${tnP(m.b)}</span></div>`}
+function tnTri(m,i){const E=TRN.E,mine=U&&m.mem.some(k=>E.P[k].uid==U.uid),L=m.rank||m.mem;
+ return`<div class="tm ${mine?"me":""}" style="display:block"><b style="min-width:0;color:#ffd86b">Partida de 3${i!=null?" · Tríada "+(i+1):""}</b>${L.map((k,j)=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:2px 0;${m.rank&&j>=2?"opacity:.55":""}"><span class="${m.rank&&j<2?"w":""}">${m.rank?(j+1)+".º ":""}${tnP(k)}</span><span>${m.rank?(j<2?"avanza":"eliminado"):"pendiente"}</span></div>`).join("")}</div>`}
+const tnAny=m=>m.tag=="TRI"?tnTri(m):tnRow(m);
+function tnTbl(g,qn){const E=TRN.E;return`<table class="tt"><tr><th>#</th><th>Equipo</th><th>Pts</th><th>V</th></tr>${g.t.map((x,i)=>`<tr class="${x.ni==E.MX?"mx":""} ${qn&&qn(i,x)?"q":""}"><td>${i+1}</td><td>${TN.N[x.ni][2]} ${TN.N[x.ni][1]}</td><td>${x.pts}</td><td>${x.w}</td></tr>`).join("")}</table>`}
+function trnRes(){const st=TRN.st,E=TRN.E,mi=trnMine(),rd=st.rd||0,real=st.real||{},nre=Object.keys(real).length;
+ let h=`<section class="pn"><h2 style="margin-top:0">🌍 Torneo Mundial · Temporada 1</h2><p class="mut" style="margin-top:0">120 duelistas, 20 naciones. México compite con un equipo de 6 jugadores reales.</p><p class="tbig" style="font-size:21px;margin:6px 0"><b>${rd==0?"Inscripciones abiertas":rd>TNMAX?"Torneo terminado":"Ronda "+rd+" de "+TNMAX+" · "+TNR[rd]}</b></p>
+ <ul class="trule"><li>Mazo de <b>30 cartas</b>.</li><li>Máximo <b>3 comodines</b> (los ultra especiales cuentan como comodín).</li><li>Todas las demás cartas deben ser de <b>nivel 4 o superior</b>.</li><li>Cada victoria vale 3 puntos. En los grupos cada jugador enfrenta a un rival de cada otra nación: máximo 9 puntos por jugador y 54 por equipo.</li></ul></section>`;
+ if(E&&E.champ){const pod=[["🥇 Campeón",E.champ],["🥈 Segundo",E.second],["🥉 Tercero",E.third],["4.º",E.fourth]];h+=`<section class="pn"><h3 style="margin-top:0">🏆 Podio final</h3>${pod.map(([t,k])=>`<div class="tm ${E.P[k].uid==(U&&U.uid)?"me":""}"><span><b style="min-width:0">${t}</b></span><span style="text-align:right">${tnP(k)}</span></div>`).join("")}</section>`}
+ h+=`<section class="pn"><h3 style="margin-top:0">🇲🇽 Equipo México · ${nre}/6 jugadores</h3>`+[0,1,2,3,4,5].map(i=>real[i]?`<div class="tm ${U&&real[i].uid==U.uid?"me":""}"><span>#${i+1}${i==0?" · Capitán":""}</span><span><b style="min-width:0;color:#fff">${esc(real[i].name)}</b> ⭐</span></div>`:`<div class="tm"><span>#${i+1}</span><span style="opacity:.6">Vacante · lo juega un NPC provisional (${esc(TN.NM.mx[i])})</span></div>`).join("");
+ if(mi.me)h+=`<p style="color:#7dff9c;margin:8px 0 0">✅ Ya estás inscrito en el equipo de México.</p>`;
+ else if(rd>0)h+=`<p class="mut">Las inscripciones ya cerraron.</p>`;
+ else if(nre>=6)h+=`<p class="mut">No quedan vacantes.</p>`;
+ else h+=`<p class="mut" style="margin:8px 0">Quien cumpla las reglas primero se queda con la vacante. El sistema revisa tu mazo actual al instante.</p><button class="go" data-act="tjoin">POSTULARME</button>`;
+ if(TRN.err)h+=`<div class="terr">${TRN.err.map(x=>"✖ "+esc(x)).join("<br>")}<br><small class="mut">Arregla tu mazo en Colección y vuelve a postularte.</small></div>`;
+ h+=`</section>`;
+ if(mi.me){h+=`<section class="pn"><h3 style="margin-top:0">⚔️ Tu duelo</h3>`;
+  if(rd==0)h+=`<p class="mut">El torneo todavía no inicia. Cuando el administrador lo inicie, aquí aparecerá tu primer duelo.</p>`;
+  else if(rd>TNMAX)h+=`<p class="mut">El torneo terminó. ¡Gracias por representar a México!</p>`;
+  else if(mi.cur){const m=mi.cur,rp=TRN.res[m.id+"_"+U.uid];
+   if(m.tag=="TRI"){const ot=m.mem.filter(k=>k!=mi.me.k).map(k=>E.P[k]);
+    h+=`<div class="tm me" style="display:block"><b style="min-width:0;color:#ffd86b">Ronda ${m.r} · ${TNR[m.r]}</b><div style="margin-top:4px">Partida de 3 contra: ${ot.map(o=>`<b style="min-width:0;color:#fff">${TN.N[o.ni][2]} ${esc(o.name)}</b> <span class="mut">(${o.uid?"jugador real":"Nivel "+o.lv+" · "+tnDif(o.lv)})</span>`).join(" y ")}</div><div class="mut">Avanzan los 2 primeros lugares.</div></div>`;
+    if(rp)h+=`<p style="margin:8px 0 0">Resultado registrado: <b style="color:${(rp.p||(rp.w?1:3))<3?"#7dff9c":"#ff9a9a"}">${(rp.p||(rp.w?1:3))}.º lugar</b>. Espera a que el administrador abra la siguiente ronda.</p>`;
+    else h+=`<button class="go" data-act="tplay" data-id="${esc(m.id)}" style="margin-top:8px">⚔️ JUGAR PARTIDA DE 3</button><p class="mut" style="margin:6px 0 0">Solo tienes un intento. Si abandonas cuenta como último lugar.</p>`}
+   else{const o=E.P[m.a==mi.me.k?m.b:m.a],n=TN.N[o.ni],ramp=m.r<=3?2:m.r<=6?1:0,L=Math.max(4,Math.min(10,(o.uid?7:o.lv)-ramp));
+    h+=`<div class="tm me"><span>Ronda ${m.r} · ${TNR[m.r]}</span><span><b style="min-width:0;color:#fff">${n[2]} ${esc(o.name)}</b> · ${n[1]} · ${o.uid?"jugador real":"Nivel "+L+" ("+tnDif(L)+")"}</span></div>`;
+    if(rp)h+=`<p style="margin:8px 0 0">Resultado registrado: <b style="color:${rp.w?"#7dff9c":"#ff9a9a"}">${rp.w?"GANASTE":"PERDISTE"}</b>. Espera a que el administrador abra la siguiente ronda.</p>`;
+    else h+=`<button class="go" data-act="tplay" data-id="${esc(m.id)}" style="margin-top:8px">⚔️ JUGAR AHORA</button><p class="mut" style="margin:6px 0 0">Solo tienes un intento. Si abandonas el duelo cuenta como derrota.</p>`}}
+  else h+=`<p class="mut">En esta ronda no te toca duelo (descanso o ya no sigues en competencia).</p>`;
+  const past=mi.ms.filter(m=>m.r<rd||(m.r==rd&&TRN.res[m.id+"_"+U.uid]));if(past.length)h+=`<h4 style="color:#ffd86b;margin:12px 0 4px">Tus resultados</h4>`+past.slice().reverse().map(tnAny).join("");
+  h+=`</section>`}
+ if(U.admin)h+=trnAdm();
+ return h}
+function trnAdm(){const st=TRN.st,rd=st.rd||0;
+ return`<section class="pn" style="border-color:#ffd86b88"><h3 style="margin-top:0">🛠 Administrador</h3><div class="tb" style="margin:0">
+ <button class="${TRN.open?"":"go"}" data-act="tadm" data-a="open">${TRN.open?"🔒 Ocultar la pestaña a los demás":"👁 Permitir ver esta pestaña a los demás usuarios"}</button>
+ ${rd==0?`<button class="go" data-act="tadm" data-a="start">▶ Iniciar torneo (cierra inscripciones)</button>`:""}
+ ${rd>=1&&rd<=TNMAX?`<button class="go" data-act="tadm" data-a="next">⏭ Cerrar ronda ${rd} y avanzar</button>`:""}
+ <button data-act="tadm" data-a="reset">↺ Reiniciar torneo</button></div>
+ <p class="mut" style="margin:8px 0 0">La pestaña está <b>${TRN.open?"visible para todos":"bloqueada para los demás usuarios"}</b>. Los NPC juegan solos; al cerrar una ronda, quien no jugó su duelo cuenta como derrota.</p></section>`}
+function trnEq(){const E=TRN.E,mx=E.MX,real=TRN.st.real||{};
+ return`<section class="pn"><h3 style="margin-top:0">🇲🇽 Equipo México</h3><table class="tt"><tr><th>#</th><th>Jugador</th><th>Tipo</th><th>Pts F1</th><th>Pts F2</th></tr>${[0,1,2,3,4,5].map(s=>{const k=mx+":"+s,p=E.P[k];return`<tr class="${p.uid&&U&&p.uid==U.uid?"mx":""}"><td>${s+1}${s==0?" 🎖":""}</td><td>${esc(p.name)}</td><td>${p.uid?"Real ⭐":"NPC · nivel "+p.lv}</td><td>${E.pp1[k]||0}</td><td>${E.pp2[k]||0}</td></tr>`}).join("")}</table><p class="mut" style="margin-bottom:0">Máximo 9 puntos por jugador en cada fase de grupos.</p></section>`}
+function trnGr(){const E=TRN.E;let h=`<section class="pn"><h3 style="margin-top:0">Fase 1 · Grupos nacionales</h3><p class="mut" style="margin-top:0">Pasan los 2 primeros de cada grupo y los 2 mejores terceros (12 naciones).</p><div class="tgrid">${E.ph1.map((g,i)=>`<div class="tbox"><h4>Grupo ${"ABCDE"[i]}</h4>${tnTbl(g,(j,x)=>E.q1&&(j<2||E.q1.t.includes(x.ni)))}</div>`).join("")}</div></section>`;
+ if(E.ph2)h+=`<section class="pn"><h3 style="margin-top:0">Fase 2 · Reagrupación</h3><p class="mut" style="margin-top:0">Pasan los 2 mejores de cada grupo (6 naciones, 36 jugadores).</p><div class="tgrid">${E.ph2.map((g,i)=>`<div class="tbox"><h4>Grupo ${i+1}</h4>${tnTbl(g,(j)=>E.q2&&j<2)}</div>`).join("")}</div></section>`;
+ return h}
+function trnPa(){const E=TRN.E,rd=E.rd;if(!rd)return`<section class="pn"><p class="mut">Aún no hay partidos. Aparecerán cuando inicie el torneo.</p></section>`;
+ const r=Math.max(1,Math.min(Math.min(rd,TNMAX),TRN.rs||rd));let L=E.BR[r]||[];
+ const ks=m=>m.tag=="TRI"?m.mem:[m.a,m.b];if(TRN.pf=="mx")L=L.filter(m=>ks(m).some(k=>E.P[k].ni==E.MX));else if(TRN.pf=="me")L=L.filter(m=>U&&ks(m).some(k=>E.P[k].uid==U.uid));
+ const f=(k,t)=>`<button class="${TRN.pf==k?"on":""}" data-act="tpf" data-f="${k}">${t}</button>`;
+ return`<section class="pn"><div class="tb" style="margin:0 0 8px"><button class="mini" data-act="trs" data-r="${r-1}" ${r<=1?"disabled":""}>‹</button><b style="font-size:19px">Ronda ${r} · ${TNR[r]}</b><button class="mini" data-act="trs" data-r="${r+1}" ${r>=Math.min(rd,TNMAX)?"disabled":""}>›</button></div><div class="ttabs" style="margin-top:0">${f("mx","México")}${f("me","Solo yo")}${f("all","Todos")}</div>${L.length?L.map(tnAny).join(""):'<p class="mut">Sin partidos con este filtro.</p>'}</section>`}
+function trnEl(){const E=TRN.E;if(!E.s36)return`<section class="pn"><h3 style="margin-top:0">Fase 3 · Eliminación individual</h3><p class="mut">Se juega cuando terminen las fases de grupos. Los 36 jugadores de las 6 naciones clasificadas se enfrentan: 36 → 18 → 9 → 3 tríadas → 6 finalistas.</p></section>`;
+ const sec=(t,L)=>L&&L.length?`<section class="pn"><h3 style="margin-top:0">${t}</h3>${L.map(tnRow).join("")}</section>`:"";
+ let h=sec("Ronda de 36 jugadores (18 duelos)",E.r7)+sec("Ronda de 18 jugadores (9 duelos)",E.r8);
+ if(E.triM)h+=`<section class="pn"><h3 style="margin-top:0">Partidas de 3 · avanzan 2 de cada 3</h3><p class="mut" style="margin-top:0">Los 9 sobrevivientes juegan 3 partidas de 3 jugadores (modo Trío). Si hay jugadores reales en la tríada, cada uno juega su partida contra los otros dos; si es solo de NPC se simula.</p><div class="tgrid">${E.triM.map((m,i)=>tnTri(m,i)).join("")}</div></section>`;
+ if(E.lg)h+=`<section class="pn"><h3 style="margin-top:0">Liga de 6 · pasan los 4 mejores</h3><table class="tt"><tr><th>#</th><th>Jugador</th><th>Pts</th><th>V</th></tr>${E.lg.map((x,i)=>`<tr class="${E.P[x.k].uid&&U&&E.P[x.k].uid==U.uid?"mx":""} ${i<4&&E.rd>14?"q":""}"><td>${i+1}</td><td>${tnP(x.k)}</td><td>${x.pts}</td><td>${x.w}</td></tr>`).join("")}</table></section>`;
+ h+=sec("Semifinales (1.º vs 4.º · 2.º vs 3.º)",E.sf);
+ if(E.fi)h+=sec("Final",[E.fi.f])+sec("Tercer lugar",[E.fi.t3]);
+ return h}
+function trnNa(){const E=TRN.E;return`<section class="pn"><h3 style="margin-top:0">20 naciones · 120 duelistas</h3>${TN.N.map((n,ni)=>`<details style="margin:6px 0"><summary style="cursor:pointer;font-size:18px">${n[2]} ${n[1]} <span class="mut">· Grupo ${"ABCDE"[TN.G.findIndex(g=>g.includes(n[0]))]}</span></summary><table class="tt" style="margin:6px 0 10px"><tr><th>#</th><th>Jugador</th><th>Nivel</th><th>Dificultad</th><th>Mazo</th></tr>${[0,1,2,3,4,5].map(s=>{const p=E.P[ni+":"+s];return`<tr><td>${s+1}</td><td>${esc(p.name)}${p.uid?" ⭐":""}</td><td>${p.uid?"—":p.lv}</td><td>${p.uid?"Real":tnDif(p.lv)}</td><td><button class="mini" data-act="tdeck" data-k="${ni}:${s}">ver</button></td></tr>`}).join("")}</table></details>`).join("")}</section>`}
+function rTrn(){
+ const A='<div class="ap" style="width:min(1560px,100%)"><div class="hd"><button class="mini" data-act="goback">← Volver</button><b class="nm">🏆 Torneo</b></div>';
+ if(!trnVis())return A+'<section class="pn"><h2 style="margin-top:0">🔒 Torneo bloqueado</h2><p class="mut">El administrador abrirá esta sección muy pronto. ¡Prepara un mazo de 30 cartas con máximo 3 comodines y cartas de nivel 4 en adelante!</p></section></div>';
+ if(!TRN.st){return A+`<section class="pn"><h2 style="margin-top:0">🏆 Torneo Mundial · Temporada 1</h2><p class="mut">${!TRN.ld?"Cargando…":U.admin?"El torneo todavía no está creado.":"El torneo aún no está listo. Vuelve pronto."}</p>${U.admin&&TRN.ld?`<button class="go" data-act="tadm" data-a="create">Crear torneo (quedas como capitán de México)</button>`:""}${U.admin?trnAdmOnly():""}</section></div>`}
+ if(!TRN.E)return A+'<section class="pn"><p class="mut">Cargando torneo…</p></section></div>';
+ const T=[["res","Resumen"],["pr","🎁 Premios"],["eq","Mi equipo"],["gr","Grupos"],["pa","Partidos"],["el","Eliminatorias"],["na","Naciones"]];if(U.admin)T.push(["si","🧪 Simulación"]);
+ const body={res:trnRes,pr:trnPr,eq:trnEq,gr:trnGr,pa:trnPa,el:trnEl,na:trnNa,si:trnSi}[TRN.tab]||trnRes;
+ return A+`<div class="ttabs">${T.map(([k,t])=>`<button class="${TRN.tab==k?"on":""}" data-act="ttab" data-t="${k}">${t}</button>`).join("")}</div>${body()}</div>`}
+const trnAdmOnly=()=>`<div style="margin-top:10px"><button class="${TRN.open?"":"go"}" data-act="tadm" data-a="open">${TRN.open?"🔒 Ocultar la pestaña a los demás":"👁 Permitir ver esta pestaña a los demás usuarios"}</button></div>`;
+/* ---------- inscripción ---------- */
+async function trnJoin(){if(!U||!db)return;TRN.err=null;const ck=trnCheck(U.col&&U.col.deck);
+ if(!ck.ok){TRN.err=ck.msgs;return render()}
+ try{await db.runTransaction(async tx=>{const r=D("torneo","s1"),s=await tx.get(r);if(!s.exists)throw"El torneo aún no está creado.";const st=s.data(),real=st.real||{};
+   if((st.rd||0)>0)throw"Las inscripciones ya cerraron.";if(Object.values(real).some(x=>x.uid==U.uid))throw"Ya estás inscrito.";
+   let slot=-1;for(let i=1;i<6;i++)if(!real[i]){slot=i;break}if(slot<0)throw"Ya no quedan vacantes.";
+   tx.update(r,{["real."+slot]:{uid:U.uid,name:U.name,deck:U.col.deck||{},ts:Date.now()}})});
+  toast("✅ Tu mazo cumple las reglas. ¡Quedaste inscrito en el equipo de México!",5500)}
+ catch(e){TRN.err=[typeof e=="string"?e:"No se pudo inscribir. Intenta de nuevo."];render()}}
+/* ---------- duelo del torneo ---------- */
+async function trnReport(mid,win,place,n){n=n||0;try{const d={mid,uid:U.uid,w:!!win,ts:Date.now()};if(place)d.p=place;await D("torneo","s1").collection("res").doc(mid+"_"+U.uid).set(d);toast(place?"Tu lugar ("+place+".º) quedó registrado en el torneo":win?"🏆 Victoria registrada en el torneo":"Derrota registrada en el torneo",4500)}catch(e){if(n<6)setTimeout(()=>trnReport(mid,win,place,n+1),8000);else toast("No se pudo registrar el resultado del torneo. Avisa al administrador.",7000)}}
+function trnPlay(mid){const E=TRN.E,st=TRN.st;if(!E||!U||!st)return;const m=E.M.find(x=>x.id==mid);if(!m)return toast("No se encontró el partido");
+ if(m.r!=st.rd)return toast("Ese partido ya no está abierto");
+ const mem=m.tag=="TRI"?m.mem:[m.a,m.b];if(!mem.some(k=>E.P[k].uid==U.uid))return;
+ if(TRN.res[mid+"_"+U.uid])return toast("Ya registraste el resultado de este partido");
+ const ck=trnCheck(U.col.deck);if(!ck.ok){toast("Tu mazo ya no cumple las reglas: "+ck.msgs[0],7000);return showApp("col")}
+ const gh=(o,L)=>{let d=null;if(o.uid&&o.dk&&Object.keys(o.dk).length){try{d=deckOf({deck:o.dk})}catch(e){}}return d&&d.length==30?d:trnDeckFor({...o,lv:L})};
+ if(m.tag=="TRI"){const ot=m.mem.filter(k=>E.P[k].uid!=U.uid).map(k=>E.P[k]),Ls=ot.map(o=>o.uid?7:o.lv);
+  cleanupOnline();$("#ov").style.display="none";ON.my=0;STORY.cur={id:"_t",name:"Partida de 3",err:Math.round(Ls.reduce((a,L)=>a+(10-L)*5.5,0)/Ls.length),tourn:1,trio:1};TRN.cur={mid};
+  app.style.display="none";beat("cpu");G.n3p=1;start([deckOf(U.col),...ot.map((o,i)=>gh(o,Ls[i]))],0);G.names=["Tú",...ot.map(o=>TN.N[o.ni][2]+" "+o.name)];setNames();return}
+ const A=E.P[m.a],B=E.P[m.b],o=A.uid==U.uid?B:A,ramp=m.r<=3?2:m.r<=6?1:0,L=Math.max(4,Math.min(10,(o.uid?7:o.lv)-ramp)),nat=TN.N[o.ni];
+ cleanupOnline();STORY.cur={id:"_t",name:o.name+" · "+nat[1],err:Math.round((10-L)*5.5),tourn:1};TRN.cur={mid};
+ app.style.display="none";beat("cpu");start([deckOf(U.col),gh(o,L)],0);log(`${o.name} (${nat[1]}): «¡Que gane el mejor!»`)}
+/* ---------- acciones ---------- */
+Object.assign(ACT,{gtrn(){showApp("trn")},ttab(b){TRN.tab=b.dataset.t;TRN.rs=0;render()},tpf(b){TRN.pf=b.dataset.f;render()},trs(b){TRN.rs=+b.dataset.r;render()},tjoin(){trnJoin()},tplay(b){trnPlay(b.dataset.id)},
+ async tadm(b){if(!U||!U.admin||!db)return;const a=b.dataset.a,st=TRN.st||{},rd=st.rd||0,ref=D("torneo","s1");
+  try{
+   if(a=="create"){await ref.set({rd:0,created:Date.now(),real:{0:{uid:U.uid,name:U.name,deck:U.col.deck||{},ts:Date.now()}},cl:{}});toast("Torneo creado · quedaste como capitán de México")}
+   else if(a=="open"){await D("config","torneo").set({open:!TRN.open},{merge:true});toast(!TRN.open?"✅ Ya todos pueden ver el torneo":"Torneo oculto de nuevo para los demás")}
+   else if(a=="start"){if(!confirm("¿Iniciar el torneo?\nSe cierran las inscripciones y empieza la Ronda 1."))return;await ref.update({rd:1})}
+   else if(a=="next"){if(!confirm("¿Cerrar la ronda "+rd+" y pasar a la siguiente?\n\nQuien no haya jugado su duelo contará como derrota."))return;await ref.update({rd:rd+1,["cl."+rd]:Date.now()})}
+   else if(a=="reset"){if(!confirm("¿Reiniciar el torneo?\nSe borran todos los resultados y vuelve a la etapa de inscripciones (se conservan los inscritos)."))return;if(!confirm("Última confirmación: ¿seguro?"))return;
+    const s=await ref.collection("res").get(),bt=db.batch();s.docs.forEach(d=>bt.delete(d.ref));await bt.commit();await ref.update({rd:0,cl:{}});toast("Torneo reiniciado")}
+  }catch(e){console.error(e);toast("No se pudo completar la acción")}}});
+/* ---------- integración con el juego ---------- */
+{const _r=render;render=function(){if(U&&VW=="trn"){TRN.last=Date.now();trnOn();const y=app.scrollTop;app.innerHTML=shell()+rTrn();app.scrollTop=y;return}return _r.apply(this,arguments)}}
+{const _s=stopNet;stopNet=function(){trnOff();return _s.apply(this,arguments)}}
+{const _n=startNet;startNet=function(){const r=_n.apply(this,arguments);try{UN.push(D("config","torneo").onSnapshot(s=>{const o=!!(s.exists&&s.data().open);if(o!==TRN.open){TRN.open=o;if((VW=="lobby"||VW=="trn")&&app.style.display!="none")render()}},()=>{}))}catch(e){}return r}}
+setInterval(()=>{if(VW!="trn"&&TRN.u.length&&Date.now()-TRN.last>45000)trnOff()},15000);
+{const _e=end;end=function(win){const was=G.over,r=_e.apply(this,arguments);if(!was&&G.over&&TRN.cur&&STORY.cur&&STORY.cur.tourn&&!STORY.cur.sim){const c=TRN.cur;TRN.cur=null;trnReport(c.mid,win,G.n3?(win?1:(G.place||3)):0)}return r}}
+{const _ab=abn.onclick;abn.onclick=function(){if(STORY.cur&&STORY.cur.tourn&&!G.over){if(!confirm("¿Abandonar el duelo?\nContará como DERROTA en el torneo."))return;G.over=1;G.busy=1;const c=TRN.cur;TRN.cur=null;if(c)trnReport(c.mid,false,G.n3?3:0);STORY.cur=null;$("#ov").style.display="none";beat("lobby");showApp("trn");return}return _ab&&_ab.apply(this,arguments)}}
+{const g=$("#go"),o=$("#ovm"),x=$("#oxit"),_g=g.onclick,_o=o.onclick,back=()=>{STORY.cur=null;TRN.cur=null;$("#ov").style.display="none";beat("lobby");showApp("trn")};
+ g.onclick=function(){if(STORY.cur&&STORY.cur.tourn)return back();return _g&&_g.apply(this,arguments)};
+ o.onclick=function(){if(STORY.cur&&STORY.cur.tourn)return back();return _o&&_o.apply(this,arguments)};
+ setInterval(()=>{if(STORY.cur&&STORY.cur.tourn&&$("#ov").style.display=="flex"){g.textContent="VOLVER AL TORNEO";o.textContent="VOLVER AL TORNEO";if(x)x.style.display="none"}},300)}
+/* ---------- premios por llegar lejos ---------- */
+const TRP=[
+ {id:"reg",t:"Inscripción en el torneo",g:300,x:100,pk:{p3:1}},
+ {id:"w1",t:"Tu primera victoria en el torneo",g:200,x:50},
+ {id:"w3",t:"3 victorias",g:500,x:150,pk:{p4:1}},
+ {id:"w5",t:"5 victorias",g:900,x:250,pk:{p5:1}},
+ {id:"w8",t:"8 victorias",g:1500,x:400,pk:{p6:1}},
+ {id:"q1",t:"México clasifica a la Fase 2",g:800,x:300,pk:{p4:2}},
+ {id:"q2",t:"México llega a la eliminación individual (6 naciones)",g:1500,x:500,pk:{p6:1,p4:1}},
+ {id:"r8",t:"Superas la ronda de 36 (top 18)",g:3000,x:800,pk:{p7:1},cd:{n:1,l:8}},
+ {id:"r9",t:"Superas la ronda de 18 (top 9)",g:5000,x:1200,pk:{p8:1,pu:1}},
+ {id:"fin",t:"Finalista: pasas tu partida de 3 (top 6)",g:8000,x:2000,pk:{p9:1,pu:1},cd:{n:1,l:9}},
+ {id:"top4",t:"Top 4 de la liga",g:12000,x:3000,pk:{p10:1,pu:2},cd:{n:1,l:10}},
+ {id:"sf",t:"Llegas a la gran final",g:18000,x:4000,pk:{p10:1,pu:3},cd:{n:2,l:10}},
+ {id:"p3",t:"🥉 Tercer lugar",g:22000,x:5000,pk:{p10:2,pu:3},cd:{n:2,l:10}},
+ {id:"p2",t:"🥈 Subcampeón",g:35000,x:7000,pk:{p10:3,pu:4},cd:{n:3,l:10}},
+ {id:"p1",t:"🏆 CAMPEÓN DEL TORNEO",g:60000,x:12000,pk:{p10:5,pu:6},cd:{n:5,l:10}}];
+const trnRw=r=>[r.g?"💰 "+r.g.toLocaleString("es")+" monedas":"",r.x?"⭐ "+r.x.toLocaleString("es")+" XP":"",...Object.entries(r.pk||{}).map(([t,n])=>"📦 "+n+"× "+((typeof PKI!="undefined"&&PKI[t])?PKI[t][0]:"Sobre nivel "+t.slice(1))),r.cd?"🃏 "+r.cd.n+" carta"+(r.cd.n>1?"s":"")+" de nivel "+r.cd.l+(r.cd.l<10?" o más":""):""].filter(Boolean).join(" · ");
+function trnAch(){const E=TRN.E,mi=trnMine(),A=new Set();if(!E||!mi.me)return A;const k=mi.me.k;
+ if((TRN.st.rd||0)>=1)A.add("reg");
+ let w=0;E.M.forEach(m=>{if(m.tag=="TRI"){if(m.adv&&m.adv.includes(k))w++}else if(m.w==k)w++});
+ [[1,"w1"],[3,"w3"],[5,"w5"],[8,"w8"]].forEach(([n,id])=>{if(w>=n)A.add(id)});
+ if(E.q1&&[...E.q1.f,...E.q1.s,...E.q1.t].includes(E.MX))A.add("q1");if(E.q2&&E.q2.includes(E.MX))A.add("q2");
+ if(E.r8&&E.r8.some(m=>m.a==k||m.b==k))A.add("r8");if(E.tri&&E.tri.flat().includes(k))A.add("r9");if(E.fin&&E.fin.includes(k))A.add("fin");
+ if(E.top4&&E.top4.includes(k))A.add("top4");if(E.fi&&(E.fi.f.a==k||E.fi.f.b==k))A.add("sf");
+ if(E.third==k)A.add("p3");if(E.second==k)A.add("p2");if(E.champ==k)A.add("p1");return A}
+async function trnClaim(id){const r=TRP.find(x=>x.id==id);if(!r||!U||!db||TRN.busy)return;
+ if(!trnAch().has(id))return toast("Todavía no alcanzas este premio");if(TRN.cl[id])return toast("Ya reclamaste este premio");
+ TRN.busy=1;
+ try{const cc={};if(r.cd){const pool=C.filter(c=>{const m=/^n(\d+)$/.exec(lv(c[0]));return m&&+m[1]>=r.cd.l}).map(c=>c[0]);for(let i=0;i<r.cd.n&&pool.length;i++){const c=pool[Math.floor(Math.random()*pool.length)];cc[c]=(cc[c]||0)+1}}
+  await db.runTransaction(async tx=>{const cr=D("torneo","s1").collection("claims").doc(U.uid),s=await tx.get(cr);if(s.exists&&s.data()[id])throw"Ya reclamaste este premio";
+   const u={gold:FV.increment(r.g||0),xp:FV.increment(r.x||0)};Object.entries(r.pk||{}).forEach(([t,n])=>u["col.packs."+t]=FV.increment(n));Object.entries(cc).forEach(([c,n])=>u["col.inv."+c]=FV.increment(n));
+   tx.set(cr,{[id]:Date.now()},{merge:true});tx.update(D("users",U.uid),u)});
+  const got=Object.keys(cc).map(c=>cnm(c));toast("🎁 ¡Premio reclamado! "+trnRw(r)+(got.length?" · Cartas: "+got.join(", "):""),9000)}
+ catch(e){toast(typeof e=="string"?e:"No se pudo reclamar el premio. Intenta de nuevo")}
+ TRN.busy=0;render()}
+function trnPr(){const A=trnAch(),mi=trnMine(),n=TRP.filter(r=>TRN.cl[r.id]).length;
+ return`<section class="pn"><h3 style="margin-top:0">🎁 Premios del torneo</h3><p class="mut" style="margin-top:0">Entre más lejos llegues, mejores premios. ${mi.me?`Llevas <b>${n}</b> de ${TRP.length} reclamados.`:"Inscríbete en el equipo de México para empezar a ganarlos."} Cada premio se reclama una sola vez.</p>${TRP.map(r=>{const c=!!TRN.cl[r.id],a=A.has(r.id);return`<div class="tm ${a&&!c?"me":""}" style="opacity:${c?.6:a?1:.78}"><span style="flex:2"><b style="min-width:0;color:${c?"#7dff9c":a?"#ffd86b":"#cfd6ff"};text-align:left">${c?"✔ ":a?"🎁 ":"🔒 "}${r.t}</b><br><small class="mut">${trnRw(r)}</small></span><span style="flex:0 0 auto;min-width:0">${c?"Reclamado":a?`<button class="go" data-act="tclaim" data-id="${r.id}">RECLAMAR</button>`:"Bloqueado"}</span></div>`}).join("")}</section>`}
+/* ---------- ver el mazo de un participante ---------- */
+function trnDeckView(k){const p=TRN.E.P[k];let dk=[];try{dk=p.uid&&p.dk&&Object.keys(p.dk).length?deckOf({deck:p.dk}):trnDeckFor(p)}catch(e){}
+ let o=document.getElementById("tdk");if(!o){o=document.createElement("div");o.id="tdk";o.style.cssText="position:fixed;inset:0;z-index:2147482600;background:#050816f2;overflow:auto;padding:18px;color:#fff;font:600 16px Rajdhani,sans-serif";document.body.appendChild(o)}
+ o.innerHTML=`<div style="max-width:1100px;margin:0 auto"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">${TN.N[p.ni][2]} ${esc(p.name)} · ${p.uid?"jugador real":"Nivel "+p.lv+" ("+tnDif(p.lv)+")"}</h2><button data-tdk="x" style="font:700 16px Rajdhani,sans-serif;padding:8px 16px;border-radius:10px;cursor:pointer">✕ Cerrar</button></div><p class="mut" style="margin:6px 0">Mazo base de 30 cartas. En las primeras fases juega una versión un poco más suave (dificultad progresiva).</p><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-top:10px">${dk.map(c=>`<div style="text-align:center;font-size:13px"><img src="${IMG[c.id]?IMG[c.id][0]:""}" style="width:100%;border-radius:6px"><div>${esc(c.n)}</div><div style="opacity:.7">${c.a} / ${c.d}</div></div>`).join("")}</div></div>`;
+ o.onclick=e=>{if(e.target===o||e.target.dataset.tdk)o.remove()}}
+/* ---------- simulación de una partida de 3 (solo administrador, no afecta el torneo) ---------- */
+const TSM={s:["me","n:0:1","n:6:2"]};
+function trnSeatOpts(sel){const E=TRN.E,real=TRN.st.real||{};let o=`<option value="me">🎮 Yo (administrador, con mi mazo)</option><option value="usim">👤 Usuario simulado (mi mazo, lo juega la IA)</option>`;
+ Object.values(real).filter(r=>r.uid!=U.uid).forEach(r=>o+=`<option value="u:${r.uid}">👤 ${esc(r.name)} (usuario inscrito, su mazo)</option>`);
+ TN.N.forEach((n,ni)=>{o+=`<optgroup label="${n[2]} ${n[1]}">${[0,1,2,3,4,5].filter(s=>!(n[0]=="mx"&&E.P[ni+":"+s].uid)).map(s=>{const p=E.P[ni+":"+s];return`<option value="n:${ni}:${s}">NPC · ${esc(p.name)} · Nivel ${p.lv} (${tnDif(p.lv)})</option>`}).join("")}</optgroup>`});
+ return o.replace(`value="${sel}"`,`value="${sel}" selected`)}
+function trnSi(){return`<section class="pn"><h3 style="margin-top:0">🧪 Simulación de partida de 3</h3><p class="mut" style="margin-top:0">Prueba cómo se ve una partida de 3 sin afectar el torneo ni tus estadísticas. Elige quién ocupa cada asiento.</p>
+ <div class="ttabs" style="margin-top:0"><button data-act="tsp" data-p="1">1 usuario + 2 NPC</button><button data-act="tsp" data-p="2">2 usuarios + 1 NPC</button><button data-act="tsp" data-p="3">3 NPC (solo mirar)</button></div>
+ ${[0,1,2].map(i=>`<label>Asiento ${i+1}</label><select id="sm${i}" style="max-width:100%">${trnSeatOpts(TSM.s[i])}</select>`).join("")}
+ <p class="mut" style="margin:10px 0">Si eliges "Yo", tú juegas ese asiento y los demás los juega la computadora. Si no eliges "Yo", los 3 asientos los juega la computadora y tú miras; esa simulación termina cuando el primer asiento queda eliminado. Los usuarios inscritos juegan con el mazo con el que se inscribieron.</p>
+ <button class="go" data-act="tsim">▶ INICIAR SIMULACIÓN</button></section>`}
+function trnSimStart(){if(!U||!U.admin||!TRN.E)return;const E=TRN.E,real=TRN.st.real||{},hi=TSM.s.findIndex(v=>v=="me");
+ const mkSeat=(v,i)=>{if(v=="me"&&i==hi)return{n:"Tú",d:deckOf(U.col),L:7};if(v=="me"||v=="usim")return{n:"👤 Usuario simulado",d:deckOf(U.col),L:7};
+  if(v.startsWith("u:")){const r=Object.values(real).find(x=>x.uid==v.slice(2));return{n:"👤 "+(r?r.name:"Usuario"),d:deckOf({deck:r&&r.deck||{}}),L:7}}
+  const sp=v.split(":"),p=E.P[sp[1]+":"+sp[2]];return{n:TN.N[p.ni][2]+" "+p.name,d:trnDeckFor(p),L:p.lv}};
+ const arr=TSM.s.map(mkSeat);if(hi>0)arr.unshift(arr.splice(hi,1)[0]);
+ if(arr.some(a=>a.d.length!=30))return toast("Un mazo no tiene 30 cartas (revisa tu mazo en Colección)",5500);
+ cleanupOnline();$("#ov").style.display="none";ON.my=0;STORY.cur={id:"_t",name:"Simulación de 3",err:Math.round(arr.reduce((t,a)=>t+(10-a.L)*5.5,0)/3),tourn:1,sim:1,trio:1};TRN.cur=null;
+ app.style.display="none";beat("cpu");G.n3p=1;start(arr.map(a=>a.d),0);G.names=arr.map(a=>a.n);setNames();G.sim3=hi<0?1:0;if(hi<0)$("#lp0 b").textContent=arr[0].n.toUpperCase()}
+app.addEventListener("change",e=>{const m=/^sm(\d)$/.exec(e.target.id||"");if(m)TSM.s[+m[1]]=e.target.value});
+Object.assign(ACT,{tdeck(b){if(TRN.E)trnDeckView(b.dataset.k)},tclaim(b){trnClaim(b.dataset.id)},tsim(){trnSimStart()},
+ tsp(b){TSM.s={1:["me","n:0:1","n:6:2"],2:["me","usim","n:1:0"],3:["n:0:0","n:1:2","n:16:1"]}[b.dataset.p];render()}});
+/* la simulación no toca estadísticas ni misiones; en "3 NPC" la IA juega también el asiento 1 */
+{const _rr=reportResult;reportResult=function(){if(STORY.cur&&STORY.cur.sim)return;return _rr.apply(this,arguments)}}
+{const _m=mEv;mEv=function(){if(STORY.cur&&STORY.cur.sim)return;return _m.apply(this,arguments)}}
+{const _s=start;start=function(){G.sim3=0;return _s.apply(this,arguments)}}
 
 /* vista previa de una carta para subastar (sin venta a la tienda) */
 function aucPv(id){if(!id||!CB[id])return'<p class="mut">No tienes cartas disponibles para subastar.</p>';const ps=packsOf(id),ls=ps.map(t=>`<div>${PKI[t][0]} — ${packPrice(t)>0?packPrice(t)+" monedas":"regalo de bienvenida"}</div>`).join("")||"<div>Solo se obtiene como premio especial</div>";return`<div class="row" style="align-items:flex-start;gap:16px;flex-wrap:nowrap"><img src="${IMG[id][0]}" style="width:170px;border-radius:8px" data-act="zoom" data-id="${id}"><div><b style="font-size:20px">${esc(cnm(id))}</b><br>${lvTxt(id)} · ${RAR(id)[0]} · ATK ${CB[id][2]} / DEF ${CB[id][3]}<p class="mut" style="margin:8px 0 2px">Sale en:</p>${ls}</div></div>`}
