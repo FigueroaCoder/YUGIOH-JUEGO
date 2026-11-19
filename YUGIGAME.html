@@ -2653,10 +2653,10 @@ const TN={
  TH:{br:["sy","sy","dr","gu","bs","any"],de:["mq","mq","dr","nb","any","gu"],fr:["an","an","mg","he","any","dr"],ar:["dv","dv","dr","gu","mq","any"],es:["gu","gu","he","dr","any","bs"],en:["mg","mg","an","dr","any","zb"],it:["dr","dr","mg","gu","any","zb"],nl:["bs","dr","gu","any","mq","an"],pt:["zb","om","dr","any","he","gu"],us:["he","he","mq","any","gu","dr"],kr:["nb","nb","om","any","dr","mq"],hr:["dr","gu","any","bs","zb","an"],be:["mq","any","gu","dr","bs","an"],uy:["gu","bs","dr","any","he","zb"],mx:["any","gu","dr","he","bs","mg"],co:["any","bs","gu","dr","an","he"],ma:["any","gu","bs","zb","dr","an"],sn:["bs","any","gu","dr","zb","he"],ca:["any","he","gu","bs","dr","an"]},
  RX:{bl:/blue-eyes|ojos azules/i,mg:/mago|magician|sorcerer|wizard|maga\b|hechic/i,rd:/red-eyes|ojos rojos/i,sy:/saiyajin|saiyan|sayajin|goku|vegeta|trunks|freezer/i,dr:/drag[oó]n/i,nb:/^number|número/i,om:/ojo maligno/i,dv:/obelisk|winged dragon of ra|helios|zeus|shiva|mahoraga|guaiwu/i,gu:/warrior|guerrero|soldier|knight|caballero|samurai|centur|huitzil/i,an:/angel|ángel|seraph|hada|fairy/i,mq:/machine|máquina|robot|gear|cyber|golem/i,zb:/zombie|skull|vampire|ghost|fantasma|demon|demonio/i,he:/hero|héroe/i,bs:/beast|bestia|lobo|wolf|tiger|tigre|lion|león|bird|halcón/i},
  OFF:[1,0,0,-1,-1,-2],
- ro(key,s){if(key=="jp")return{n:TN.JP[s][0],lv:TN.JP[s][1],th:TN.JP[s][2]};const t=TN.N.find(x=>x[0]==key)[3],g=TN.G.findIndex(x=>x.includes(key));return{n:TN.NM[key][s],lv:Math.max(4,Math.min(10,t+TN.OFF[s]+Math.floor(rlSeed("jit|"+key+s)()*3)-1-(g==4&&key!="mx"?2:0))),th:TN.TH[key][s]}}
+ ro(key,s){if(key=="jp")return{n:TN.JP[s][0],lv:TN.JP[s][1],th:TN.JP[s][2]};const t=TN.N.find(x=>x[0]==key)[3],g=TN.G.findIndex(x=>x.includes(key));return{n:TN.NM[key][s],lv:Math.max(1,Math.min(10,t+TN.OFF[s]+Math.floor(rlSeed("jit|"+key+s)()*3)-1-(g==4&&key!="mx"?2:0))),th:TN.TH[key][s]}}
 };
 const TNR=["","Fase 1 · Jornada 1","Fase 1 · Jornada 2","Fase 1 · Jornada 3","Fase 2 · Jornada 1","Fase 2 · Jornada 2","Fase 2 · Jornada 3","Eliminación · 36 jugadores","Eliminación · 18 jugadores","Partidas de 3 · 9 jugadores","Liga de 6 · Jornada 1","Liga de 6 · Jornada 2","Liga de 6 · Jornada 3","Liga de 6 · Jornada 4","Liga de 6 · Jornada 5","Semifinales","Final y tercer lugar"];
-const tnDif=L=>L<=5?"Débil":L<=7?"Medio":L<=9?"Fuerte":"Élite";
+const tnDif=L=>L<=3?"Muy débil":L<=5?"Débil":L<=7?"Medio":L<=9?"Fuerte":"Élite";
 const TNMAX=16,WKU=["c0","ce","cs","cp","cpe","cu"];
 /* reglas de la Temporada 1: 30 cartas, máximo 3 comodines (ultra especiales incluidos) y todas las demás de nivel 4 en adelante */
 function trnCheck(deck){const msgs=[],low=[],bad=[];let n=0,w=0;
@@ -2669,16 +2669,17 @@ function trnCheck(deck){const msgs=[],low=[],bad=[];let n=0,w=0;
  return{ok:!msgs.length,msgs,w,n}}
 /* mazo de un jugador NPC (siempre cumple las reglas del torneo) */
 function trnDeckFor(p){
- const L=Math.max(4,Math.min(10,p.lv||5)),R=rlSeed("trnd|"+p.k+"|"+p.name),shf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+ const L=Math.max(1,Math.min(10,p.lv||5)),lo=L<4?1:4,R=rlSeed("trnd|"+p.k+"|"+p.name),shf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
  const WK=["c0","ce","cs","cp","cpe"],num=id=>{const k=lv(id);return/^n\d+$/.test(k)?+k.slice(1):0},ids=C.map(c=>c[0]),pw=id=>CB[id][2]+CB[id][3];
- let hi=L,pool=ids.filter(id=>num(id)>=4&&num(id)<=hi);while(pool.length<30&&hi<10){hi++;pool=ids.filter(id=>num(id)>=4&&num(id)<=hi)}
+ let hi=L,pool=ids.filter(id=>num(id)>=lo&&num(id)<=hi);while(pool.length<30&&hi<10){hi++;pool=ids.filter(id=>num(id)>=lo&&num(id)<=hi)}
  const wild=ids.filter(id=>WK.includes(lv(id))),xn=L>=9?3:L>=7?2:L>=5?1:0,out=[],used=new Set();let w=0;
  const add=id=>{if(out.length<30&&!used.has(id)){used.add(id);out.push(id)}};
  const rx=TN.RX[p.th];
  if(rx){let tm=shf(pool.filter(id=>rx.test(CB[id][1])));if(L>=8)tm.sort((a,b)=>pw(b)-pw(a));tm.slice(0,p.sig?18:12).forEach(add);
   shf(wild.filter(id=>rx.test(CB[id][1]))).forEach(id=>{if(w<xn&&!used.has(id)){add(id);w++}})}
  shf(wild.slice().sort((a,b)=>pw(b)-pw(a)).slice(0,Math.max(6,xn*3))).forEach(id=>{if(w<xn&&!used.has(id)){add(id);w++}});
- shf(pool.filter(id=>num(id)>=Math.max(4,L-3))).forEach(add);shf(pool).forEach(add);
+ shf(pool.filter(id=>num(id)>=Math.max(lo,L-3))).forEach(add);shf(pool).forEach(add);
+ if(p.sig){const ul=/Yugi/i.test(p.name)?[9001,9003,9011,9024,9001]:[9012,9014,9022,9014,9022],uu=ul.filter(i=>CB[i]);if(uu.length){const base=out.filter(i=>!(i>=9000&&i<9100)).slice(0,30-uu.length);out.length=0;base.concat(uu).forEach(i=>out.push(i))}}
  return out.map(id=>({id,n:CB[id][1],a:CB[id][2],d:CB[id][3]}))}
 /* motor determinista: con el estado (ronda, equipo real, resultados) calcula TODO el torneo */
 function trnEngine(st){
