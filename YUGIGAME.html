@@ -471,7 +471,7 @@ e.innerHTML=`<img class="ci" src="${IMG[c.id][0]}"><div class="sw"></div><img cl
 snd(260,.4,"triangle",.09,760);await W(350);burst(SX(i,p)+40,SY(p,pos)+30,p?"#ff8a98":"#8ceeff",22);flash(p?"#ff546833":"#52e0ff33");beam(SX(i,p),SY(p,pos),p?"#ff5468":"#52e0ff");msg(`${p?"El rival invoca":"Invocas"} a ${c.n} en ${pos=="a"?"ATAQUE":"DEFENSA"}`);pv(c);await W(500)}
 function fclick(c){if(G.over||G.busy)return;if(G.sel&&c.owner>0)return pAttack(G.sel,c.i,0,c.owner);if(c.owner||G.t)return;clr();if(G.mv<1)return;const it=[];if(c.pos=="a"){if(G.n>ATKN())fxAtkItems(c,it);else msg("No se puede atacar en el primer turno")}it.push([c.pos=="a"?"Pasar a DEFENSA":"Pasar a ATAQUE",()=>flip(c)]);{const ar=AR(0,c.pos);[0,1,2].forEach(j=>{if(j!=c.i&&!ar[j])it.push([(j<c.i?"◀":"▶")+"|mv|Mover al espacio "+(j+1)+" (gasta el turno)",()=>lat(c,j)])})}menu(SX(c.i,c.owner)+90,SY(0,c.pos)+10,it)}
 function begin(c){return begin3(c)}
-async function pAttack(a,col,rx,tp){G.busy=1;if(G.n3)G.tg=(tp!=null&&alive(tp))?tp:NX(a.owner);if(ON.on&&!rx)tx(a.gy?{t:"gyatk",c:col,tp:ABS(G.tg)}:{t:"atk",i:a.i,c:col,m:a.mode||null,tp:ABS(G.tg)});await attack(a,col);if(!G.over){G.mv=0;await done()}}
+async function pAttack(a,col,rx,tp){G.busy=1;if(G.n3)G.tg=(tp!=null&&alive(tp))?tp:NX(a.owner);if((ON.on||TLV.on)&&!rx)tx(a.gy?{t:"gyatk",c:col,tp:ABS(G.tg)}:{t:"atk",i:a.i,c:col,m:a.mode||null,tp:ABS(G.tg)});await attack(a,col);if(!G.over){G.mv=0;await done()}}
 async function flip(c,rx){G.busy=1;const p=c.owner,to=c.pos=="a"?"d":"a",from=AR(p,c.pos),ar=AR(p,to),j=ar[c.i]==null?c.i:ar.indexOf(null);if(j<0){G.busy=0;return msg("No hay espacio libre en esa línea")}if(!rx)tx({t:"flip",p:c.pos,i:c.i});from[c.i]=null;ar[j]=c;c.pos=to;c.i=j;c.el.style.left=SX(j,p)+"px";c.el.style.top=SY(p,to)+"px";setPos(c);snd(400,.2,"sine",.06,700);msg(`${c.n} pasa a ${to=="a"?"ATAQUE":"DEFENSA"}`);await W(650);await spend()}
 async function lat(c,j,rx){G.busy=1;const p=c.owner,ar=AR(p,c.pos),i0=c.i;if(j<0||j>2||ar[j]!=null||ar[i0]!==c){G.busy=0;return msg("Ese espacio no está libre")}if(!rx)tx({t:"lat",p:c.pos,i:i0,j});ar[i0]=null;ar[j]=c;c.i=j;c.el.style.left=SX(j,p)+"px";setPos(c);snd(400,.2,"sine",.06,700);msg(`${c.n} se mueve de lado al espacio ${j+1}. ¡Gasta el turno!`);await W(650);if(!G.over){G.mv=0;await done()}}
 async function cine(a,t,r){const ci=$("#cin"),ca=a.owner?"#ff5468":"#52e0ff",cd=a.owner?"#52e0ff":"#ff5468";
@@ -493,19 +493,19 @@ if(r.dmg>0){await lp(e,P[e].lp-r.dmg);msg(`${e?NAME(e)+" pierde":"Pierdes"} ${r.
 await chk3();G.busy=1}
 function end(win){if(G.over)return;G.over=1;G.busy=1;if(!G.specDone)reportResult(win);(async()=>{const ttl=win?"¡VICTORIA!":(G.n3?"PUESTO "+(G.place||3):"DERROTA");await bn(ttl);const o=$("#ov");o.querySelector("h1").textContent=ttl;o.querySelector("p").textContent=win?(G.n3?"¡Eres el último duelista en pie!":"Reduciste los puntos de vida del rival a cero."):(G.n3?"Fuiste eliminado del duelo. Terminaste en el puesto "+(G.place||3)+" de 3.":"El rival redujo tus puntos de vida a cero.");$("#go").textContent=ON.on?"VOLVER A LA SALA":STORY.cur?(win&&!STORY.cur.practice?"VOLVER AL MAPA":win?"REPETIR RIVAL":"REINTENTAR"):"NUEVO DUELO";$("#ovm").textContent=STORY.cur?"VOLVER AL MAPA":"MENÚ";$("#ovm").style.display=ON.on?"none":"";$("#oxit").style.display=(STORY.cur&&!win&&!ON.on)?"":"none";$("#orev").style.display=(ON.on&&!G.n3&&!G.specDone)?"":"none";if(G.rwHtml)o.querySelector("p").insertAdjacentHTML("beforeend",G.rwHtml);o.style.display="flex";if(STORY.cur&&win)storyEnd().then(()=>checkLevels())})()}
 async function startTurn(p){G.t=p;G.tg=NX(p);G.tst=Date.now();G.n++;G.mv=2;clr();G.busy=1;G.bw=1;hud();await bn(p?(G.n3?"TURNO DE "+NAME(p).toUpperCase():"TURNO DEL RIVAL"):"TU TURNO");G.bw=0;if(G.over)return;if(cardless(p)){if(G.n3){await elimP(p);await chk3();if(!G.over)await startTurn(NX(p))}else end(p==1);return}if(p||G.sim3){if(ON.on)rxPump();else await npc()}else{G.busy=0;hud()}}
-async function npc2(){await W(600);const me=P[1],op=P[0];let mv=2;
+async function npc2(){await W(600);const me=P[1],op=P[0];let mv=2,NPE=0;
 while(mv>0&&!G.over){const hs=me.hand;let best=null,bs=0;
 if(G.n>ATKN())for(const a of me.A.filter(c=>c&&fxCanAtk(c))){const cs=[0,1,2].filter(i=>op.A[i]||op.D[i]);for(const col of cs.length?cs:[null]){const r=calc(a,col),s=r.ev.reduce((t,x)=>t+(x.s?400:x.k?1500+x.c.a:x.x),0)+r.lp*1.5;if((r.lp>0||r.ev.some(x=>x.k))&&s>bs){bs=s;best={a,col}}}}
-if(best&&!(STORY.cur&&STORY.cur.err&&Math.random()*100<STORY.cur.err)){await attack(best.a,best.col);break}
+if(best&&!(STORY.cur&&STORY.cur.err&&Math.random()*100<STORY.cur.err)){TLV.on&&txl({t:"atk",i:best.a.i,c:best.col,m:best.a.mode||null});await attack(best.a,best.col);NPE=1;break}
 let did=0;
-if(hs.length<=2&&me.deck.length){await takeCards(1);did=1}
+if(hs.length<=2&&me.deck.length){TLV.on&&txl({t:"draw"});await takeCards(1);did=1}
 else if(hs.length){const nd=me.A.findIndex((c,i)=>c&&!me.D[i]);
-if(nd>=0){const bd=hs.slice().sort((x,y)=>y.d-x.d)[0],sc=hs.filter(c=>c.d==0).sort((x,y)=>x.a-y.a)[0];await summon(1,sc&&bd.d<3000?sc:bd,"d",nd);did=1}
-else if(me.A.includes(null)){await summon(1,hs.slice().sort((x,y)=>y.a-x.a)[0],"a");did=1}
-else if(me.D.includes(null)){await summon(1,hs.slice().sort((x,y)=>y.d-x.d)[0],"d");did=1}}
-if(!did&&hs.length<5&&me.deck.length){await takeCards(1);did=1}
+if(nd>=0){const bd=hs.slice().sort((x,y)=>y.d-x.d)[0],sc=hs.filter(c=>c.d==0).sort((x,y)=>x.a-y.a)[0];await NS1(sc&&bd.d<3000?sc:bd,"d",nd);did=1}
+else if(me.A.includes(null)){await NS1(hs.slice().sort((x,y)=>y.a-x.a)[0],"a");did=1}
+else if(me.D.includes(null)){await NS1(hs.slice().sort((x,y)=>y.d-x.d)[0],"d");did=1}}
+if(!did&&hs.length<5&&me.deck.length){TLV.on&&txl({t:"draw"});await takeCards(1);did=1}
 if(!did)break;mv--;await W(400)}
-if(G.over)return;await startTurn(0)}
+if(G.over)return;if(TLV.on&&!NPE&&mv>0)txl({t:"end"});await startTurn(0)}
 $("#end").onclick=()=>{if(G.t||G.busy||G.over)return;$("#mn").style.display="none";clr();G.busy=1;tx({t:"end"});startTurn(NX(0))};
 function start(decks,first){ly.innerHTML="";$("#ov").style.display="none";Object.assign(G,{t:0,n:0,busy:1,mv:2,sel:null,pick:null,over:0,bw:0,rw:0,rwHtml:"",place:0,godNerf:0,n3:G.n3p||0,tg:1,spec:0,specDone:0});G.n3p=0;applyMode();P=(G.n3?[0,1,2]:[0,1]).map((_,k)=>({lp:8000,deck:decks?decks[k].map(x=>({...x})):(k==0&&U&&deckOf(U.col))||sh(C.slice()).slice(0,30).map(([id,n,a,d])=>({id,n,a,d})),hand:[],gy:[],A:[null,null,null],D:[null,null,null]}));
 P.forEach((_,p)=>{$(`#lp${p} .n`).textContent=8000;$(`#lp${p} i`).style.width="100%";$(`#lp${p}`).classList.remove("low");updDk(p);updGY(p)});$("#lg").innerHTML="";$("#pi").textContent="";$("#lp0 b").textContent=ON.on?U.name.toUpperCase():"TÚ";$("#lp1 b").textContent=ON.on?ON.opp.toUpperCase():(STORY.cur?STORY.cur.name.toUpperCase():"RIVAL");$("#pv").removeAttribute("src");
@@ -542,7 +542,7 @@ const FO={
  LOCK_MS:10*60*1000,
  PROJ:{1:"halloween-9c9c6",2:"ct-search-fbcea"},
  TOPS:["config","users","names","creds","presence","categories","cards","custom_cards","card_requests","avatars","cpacks","trades","auctions","chats","rooms","notifs","challenges","matches","torneo"],
- SUBS:{matches:["moves","chat","viewers"],chats:["msgs"],torneo:["res","claims"]},
+ SUBS:{matches:["moves","chat","viewers"],chats:["msgs"],torneo:["res","claims","badges","bets"]},
  SKIP:{config:["active","ping"]},
  day(){try{return new Date().toLocaleDateString("en-CA",{timeZone:"America/Los_Angeles"})}catch(e){return new Date().toISOString().slice(0,10)}},
  tmo(p,ms){let t;return Promise.race([p,new Promise((_,rej)=>{t=setTimeout(()=>rej(new Error("timeout")),ms||3500)})]).finally(()=>clearTimeout(t))},
@@ -1132,7 +1132,7 @@ const HM_TAB={cpk:"cpk",rank:"online",lobby:"home",story:"story",online:"online"
 const packsN=()=>Object.values(((U&&U.col)||{}).packs||{}).reduce((a,b)=>a+b,0),trdN=()=>TR.in.filter(t=>t.status=="open").length+TR.out.filter(t=>t.status=="countered").length,reqN=()=>REQ.filter(r=>r.status=="pending").length+NU.filter(u=>u.status=="pending").length;
 function shell(){const a=HM_TAB[VW]||"home",tab=(k,l,act,n,x="")=>`<button class="sh-tab ${x} ${a==k?"on":""}" data-act="${act}">${l}${n?`<i>${n}</i>`:""}</button>`;
 return`<header class="sh"><div class="sh-in"><div class="sh-logo" data-act="goback"><span>DUELO</span><b>DE MONSTRUOS</b></div>
-<nav class="sh-nav">${tab("home","Inicio","goback")}${tab("ms","🎯 Misiones","gms",msN()||"")}${tab("story","Historia","gstory")}${tab("online",onlineOK()?"En línea":"🔒 En línea","gonl")}${tab("col","Colección","gcol")}${tab("pk","Sobres","gpk",packsN())}${tab("prac","Práctica","gprac")}${tab("trio","Trío","gtrio")}${tab("shop","Tienda","gshop")}${tab("roul","Ruleta","groul",rlAvail()?"1":"")}${tab("auc","Subastas","gauc")}${tab("sell","💰 Vender Cartas","gsell")}${tab("trn",trnVis()?"🏆 Torneo":"🔒 Torneo","gtrn")}${tab("trd","Cambios","gtrd",trdN())}${tab("chat","💬 Chat","gchat",chUnN()||"")}${U.admin?tab("adm","Admin cartas","goadm","","ad")+tab("req","Solicitudes","greq",reqN(),"ad")+tab("sadm","Admin historia","gsadm","","ad")+tab("intro","Admin intro","gintro","","ad")+tab("radm","Admin ruleta","gradm","","ad")+tab("cpk","Sobres especiales","gcpk","","ad")+tab("gift","🎁 Regalos","ggift","","ad")+tab("ann","📢 Novedades","gann","","ad")+tab("hl","🤪 Hora Loca","ghl","","ad")+tab("mig","🔁 Migrar base","gmig","","ad")+tab("msa","✅ Palomear misiones","gmsa","","ad"):""}</nav>
+<nav class="sh-nav">${tab("home","Inicio","goback")}${tab("ms","Misiones","gms",msN()||"")}${tab("story","Historia","gstory")}${tab("online",onlineOK()?"En línea":"En línea","gonl")}${tab("col","Colección","gcol")}${tab("pk","Sobres","gpk",packsN())}${tab("prac","Práctica","gprac")}${tab("trio","Trío","gtrio")}${tab("shop","Tienda","gshop")}${tab("roul","Ruleta","groul",rlAvail()?"1":"")}${tab("auc","Subastas","gauc")}${tab("sell","Vender cartas","gsell")}${tab("trn",trnVis()?"Torneo":"Torneo","gtrn")}${tab("trd","Cambios","gtrd",trdN())}${tab("chat","Chat","gchat",chUnN()||"")}${U.admin?tab("adm","Admin cartas","goadm","","ad")+tab("req","Solicitudes","greq",reqN(),"ad")+tab("sadm","Admin historia","gsadm","","ad")+tab("intro","Admin intro","gintro","","ad")+tab("radm","Admin ruleta","gradm","","ad")+tab("cpk","Sobres especiales","gcpk","","ad")+tab("gift","Regalos","ggift","","ad")+tab("ann","Novedades","gann","","ad")+tab("hl","Hora Loca","ghl","","ad")+tab("mig","Migrar base","gmig","","ad")+tab("msa","Palomear misiones","gmsa","","ad"):""}</nav>
 <div class="sh-r"><button class="sh-fs" data-act="fs" title="Pantalla completa">⛶</button><span class="sh-coin">${IC.coin}<b>${U.gold||0}</b></span><button class="sh-me" data-act="goprof"><span class="sh-lv">${lvlOf(U.xp)}</span>${U.ph?`<img class="sh-ph" src="${U.ph}" alt="">`:`<span class="sh-ph sh-ini">${esc((U.name||"?").trim().charAt(0).toUpperCase())}</span>`}<span class="sh-nm">${esc(U.name)}</span></button></div></div></header>`}
 const bestCards=n=>myCards().slice().sort((a,b)=>RAR(b)[2]-RAR(a)[2]||CB[b][2]-CB[a][2]).slice(0,n);
 const onTxt=()=>{if(!onlineOK())return"🔒 Bloqueado · gana 2 duelos de historia ("+onProg()+"/2)";const n=PR.filter(p=>U&&p.id!=U.uid&&isOn(p)).length;return n?`${n} jugador${n>1?"es":""} conectado${n>1?"s":""}`:"Reta a tus amigos"};
@@ -1994,7 +1994,7 @@ function vipWatch(){UN.push(D("config","vip").onSnapshot(s=>{VP=s.exists?s.data(
 try{HM_TAB.vip="vip"}catch(e){}
 let VT="s";
 function vipInit(){VD=VP?vipClone(VP):vipDef();VD.packs=VD.packs||{};VD.story=VD.story||{}}
-{const _sh=shell;shell=function(){let h=_sh.apply(this,arguments);if(U&&U.admin)h=h.replace("</nav>",`<button class="sh-tab ad ${VW=="vip"?"on":""}" data-act="gvip">👑 ${esc(((VP&&VP.name)||"Arely").split(" ")[0])}</button></nav>`);return h}}
+{const _sh=shell;shell=function(){let h=_sh.apply(this,arguments);if(U&&U.admin)h=h.replace("</nav>",`<button class="sh-tab ad ${VW=="vip"?"on":""}" data-act="gvip">${esc(((VP&&VP.name)||"Arely").split(" ")[0])}</button></nav>`);return h}}
 {const _rd=render;render=function(){if(U&&U.admin&&VW=="vip"){const y=app.scrollTop;if(!VD)vipInit();app.innerHTML=shell()+rVip();app.scrollTop=y;return}_rd.apply(this,arguments)}}
 {const st=document.createElement("style");st.textContent=`.vp3 .tabs{margin-bottom:14px}.vp3 h3{margin:14px 0 6px;font:800 16px Rajdhani,sans-serif;color:#ffd86b}
 .vp3 .vr{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}.vp3 .vr label{display:inline-flex;gap:6px;align-items:center;margin:0}
@@ -2656,7 +2656,7 @@ const TN={
  ro(key,s){if(key=="jp")return{n:TN.JP[s][0],lv:TN.JP[s][1],th:TN.JP[s][2]};const t=TN.N.find(x=>x[0]==key)[3],g=TN.G.findIndex(x=>x.includes(key));return{n:TN.NM[key][s],lv:Math.max(1,Math.min(10,t+TN.OFF[s]+Math.floor(rlSeed("jit|"+key+s)()*3)-1-(g==4&&key!="mx"?2:0))),th:TN.TH[key][s]}}
 };
 const TNR=["","Fase 1 · Jornada 1","Fase 1 · Jornada 2","Fase 1 · Jornada 3","Fase 2 · Jornada 1","Fase 2 · Jornada 2","Fase 2 · Jornada 3","Eliminación · 36 jugadores","Eliminación · 18 jugadores","Partidas de 3 · 9 jugadores","Liga de 6 · Jornada 1","Liga de 6 · Jornada 2","Liga de 6 · Jornada 3","Liga de 6 · Jornada 4","Liga de 6 · Jornada 5","Semifinales","Final y tercer lugar"];
-const tnDif=L=>L<=3?"Muy débil":L<=5?"Débil":L<=7?"Medio":L<=9?"Fuerte":"Élite";
+const tnDif=L=>L<=3?"Muy débil":L<=5?"Débil":L<=7?"Fuerte":L==8?"Muy fuerte":L==9?"Élite":"Legendario";
 const TNMAX=16,WKU=["c0","ce","cs","cp","cpe","cu"];
 /* reglas de la Temporada 1: 30 cartas, máximo 3 comodines (ultra especiales incluidos) y todas las demás de nivel 4 en adelante */
 function trnCheck(deck){const msgs=[],low=[],bad=[];let n=0,w=0;
@@ -2688,8 +2688,8 @@ function trnEngine(st){
  N.forEach((n,ni)=>{for(let s=0;s<6;s++){const d=TN.ro(n[0],s),rl=n[0]=="mx"?real[s]:null;P[ni+":"+s]={k:ni+":"+s,ni,s,name:rl?rl.name:d.n,lv:rl?7:d.lv,th:d.th,uid:rl?rl.uid:null,dk:rl?rl.deck:null,sig:n[0]=="jp"&&s<2}}});
  const M=[],BR={},MX=NI.mx;
  const rep=(m,k)=>{const p=P[k];if(!p.uid)return;const e=res[m.id+"_"+p.uid];return e&&(cl[m.r]==null||e.ts<=cl[m.r])?e.w:undefined};
- const sim=m=>{const a=P[m.a],b=P[m.b];return rlSeed("trnm|"+m.id)()<1/(1+Math.exp(-(a.lv-b.lv)*.5))?m.a:m.b};
- const solve=m=>{const A=P[m.a],B=P[m.b],closed=rd>m.r;if(!A.uid&&!B.uid)return sim(m);const ra=rep(m,m.a),rb=rep(m,m.b);
+ const sim=m=>{const a=P[m.a],b=P[m.b];return rlSeed(SIMSALT+"trnm|"+m.id)()<1/(1+Math.exp(-(a.lv-b.lv)*.5))?m.a:m.b};
+ const solve=m=>{const A=P[m.a],B=P[m.b],closed=rd>m.r;const ow=(st.ov||{})[m.id];if(ow&&(ow==m.a||ow==m.b))return ow;if(!A.uid&&!B.uid)return sim(m);const ra=rep(m,m.a),rb=rep(m,m.b);
   if(A.uid&&B.uid){const sa=ra===true?1:ra===false?-1:0,sb=rb===true?1:rb===false?-1:0,sc=sa-sb;if(!(sa&&sb)&&!closed)return null;return sc>0?m.a:sc<0?m.b:sim(m)}
   const re=A.uid?m.a:m.b,ot=A.uid?m.b:m.a,rr=A.uid?ra:rb;if(rr===true)return re;if(rr===false)return ot;return closed?ot:null};
  const mk=(r,ph,a,b,tag)=>{const m={id:ph+"."+r+"."+a+"."+b,r,ph,a,b,tag:tag||""};m.w=solve(m);(BR[r]=BR[r]||[]).push(m);M.push(m);return m};
@@ -2713,8 +2713,8 @@ function trnEngine(st){
      if(rd>=9){const W9=E.r8.map(m=>m.w).sort(byS);E.tri=[[0,5,6],[1,4,7],[2,3,8]].map(x=>x.map(i=>W9[i]));
       /* partida de 3: cada jugador real juega un duelo de 3 contra los otros dos; avanzan 2 de 3 */
       const mk3=(r,mem,i)=>{const m={id:"3."+r+".tri"+i,r,ph:3,tag:"TRI",mem,a:mem[0],b:mem[1],c:mem[2]},closed=rd>r,sc={};let pend=false;
-       mem.forEach(k=>{const p=P[k];if(p.uid){const e=res[m.id+"_"+p.uid];if(e&&(cl[r]==null||e.ts<=cl[r]))sc[k]=4-(+e.p||(e.w?1:3));else if(closed)sc[k]=-1;else pend=true}else sc[k]=1.2+(p.lv-7)*.18+(rlSeed("tri|"+m.id+"|"+k)()-.5)*1.6});
-       m.sc=sc;m.rank=pend?null:mem.slice().sort((x,y)=>sc[y]-sc[x]||byS(x,y));m.adv=m.rank?m.rank.slice(0,2):null;(BR[r]=BR[r]||[]).push(m);M.push(m);return m};
+       mem.forEach(k=>{const p=P[k];if(p.uid){const e=res[m.id+"_"+p.uid];if(e&&(cl[r]==null||e.ts<=cl[r]))sc[k]=4-(+e.p||(e.w?1:3));else if(closed)sc[k]=-1;else pend=true}else sc[k]=1.2+(p.lv-7)*.18+(rlSeed(SIMSALT+"tri|"+m.id+"|"+k)()-.5)*1.6});
+       m.sc=sc;m.rank=(st.ov&&st.ov[m.id]&&st.ov[m.id].length==3)?st.ov[m.id]:pend?null:mem.slice().sort((x,y)=>sc[y]-sc[x]||byS(x,y));m.adv=m.rank?m.rank.slice(0,2):null;(BR[r]=BR[r]||[]).push(m);M.push(m);return m};
       E.triM=E.tri.map((x,i)=>mk3(9,x,i));
       if(rd>9){E.fin=E.triM.flatMap(m=>m.adv).sort(byS);
        let arr=E.fin.slice();const lm=[];for(let j=0;j<5;j++){const r=10+j;if(r>rd)break;[[0,5],[1,4],[2,3]].forEach(([x,y])=>lm.push(mk(r,4,arr[x],arr[y],"L")));arr=[arr[0],arr[5],arr[1],arr[2],arr[3],arr[4]]}
@@ -2755,7 +2755,7 @@ function trnRes(){const st=TRN.st,E=TRN.E,mi=trnMine(),rd=st.rd||0,real=st.real|
  if(mi.me)h+=`<p style="color:#7dff9c;margin:8px 0 0">✅ Ya estás inscrito en el equipo de México.</p>`;
  else if(rd>0)h+=`<p class="mut">Las inscripciones ya cerraron.</p>`;
  else if(nre>=6)h+=`<p class="mut">No quedan vacantes.</p>`;
- else h+=`<p class="mut" style="margin:8px 0">Quien cumpla las reglas primero se queda con la vacante. El sistema revisa tu mazo actual al instante.</p><button class="go" data-act="tjoin">POSTULARME</button>`;
+ else h+=`<p class="mut" style="margin:8px 0">Quien cumpla las reglas primero se queda con la vacante. El sistema revisa tu mazo actual al instante.</p><button class="go" data-act="ttjoin">POSTULARME</button>`;
  if(TRN.err)h+=`<div class="terr">${TRN.err.map(x=>"✖ "+esc(x)).join("<br>")}<br><small class="mut">Arregla tu mazo en Colección y vuelve a postularte.</small></div>`;
  h+=`</section>`;
  if(mi.me){h+=`<section class="pn"><h3 style="margin-top:0">⚔️ Tu duelo</h3>`;
@@ -2806,9 +2806,9 @@ function rTrn(){
  if(!trnVis())return A+'<section class="pn"><h2 style="margin-top:0">🔒 Torneo bloqueado</h2><p class="mut">El administrador abrirá esta sección muy pronto. ¡Prepara un mazo de 30 cartas con máximo 3 comodines y cartas de nivel 4 en adelante!</p></section></div>';
  if(!TRN.st){return A+`<section class="pn"><h2 style="margin-top:0">🏆 Torneo Mundial · Temporada 1</h2><p class="mut">${!TRN.ld?"Cargando…":U.admin?"El torneo todavía no está creado.":"El torneo aún no está listo. Vuelve pronto."}</p>${U.admin&&TRN.ld?`<button class="go" data-act="tadm" data-a="create">Crear torneo (quedas como capitán de México)</button>`:""}${U.admin?trnAdmOnly():""}</section></div>`}
  if(!TRN.E)return A+'<section class="pn"><p class="mut">Cargando torneo…</p></section></div>';
- const T=[["res","Resumen"],["pr","🎁 Premios"],["eq","Mi equipo"],["gr","Grupos"],["pa","Partidos"],["el","Eliminatorias"],["na","Naciones"]];if(U.admin)T.push(["si","🧪 Simulación"]);
- const body={res:trnRes,pr:trnPr,eq:trnEq,gr:trnGr,pa:trnPa,el:trnEl,na:trnNa,si:trnSi}[TRN.tab]||trnRes;
- return A+`<div class="ttabs">${T.map(([k,t])=>`<button class="${TRN.tab==k?"on":""}" data-act="ttab" data-t="${k}">${t}</button>`).join("")}</div>${body()}</div>`}
+ const T=[["res","Resumen"],["pr","🎁 Premios"],["eq","Mi equipo"],["gr","Grupos"],["pa","Partidos"],["el","Eliminatorias"],["na","Naciones"]];if(U.admin){T.push(["si","🧪 Simulación"]);T.push(["tt","🧪 Modo de prueba"])}
+ const body={res:trnRes,pr:trnPr,eq:trnEq,gr:trnGr,pa:trnPa,el:trnEl,na:trnNa,si:trnSi,tt:trnTT}[TRN.tab]||trnRes;
+ return A+`${trnBanner()}<div class="ttabs">${T.map(([k,t])=>`<button class="${TRN.tab==k?"on":""}" data-act="ttab" data-t="${k}">${t}</button>`).join("")}</div>${body()}</div>`}
 const trnAdmOnly=()=>`<div style="margin-top:10px"><button class="${TRN.open?"":"go"}" data-act="tadm" data-a="open">${TRN.open?"🔒 Ocultar la pestaña a los demás":"👁 Permitir ver esta pestaña a los demás usuarios"}</button></div>`;
 /* ---------- inscripción ---------- */
 async function trnJoin(){if(!U||!db)return;TRN.err=null;const ck=trnCheck(U.col&&U.col.deck);
@@ -2834,7 +2834,7 @@ function trnPlay(mid){const E=TRN.E,st=TRN.st;if(!E||!U||!st)return;const m=E.M.
  cleanupOnline();STORY.cur={id:"_t",name:o.name+" · "+nat[1],err:Math.round((10-L)*5.5),tourn:1};TRN.cur={mid};
  app.style.display="none";beat("cpu");start([deckOf(U.col),gh(o,L)],0);log(`${o.name} (${nat[1]}): «¡Que gane el mejor!»`)}
 /* ---------- acciones ---------- */
-Object.assign(ACT,{gtrn(){showApp("trn")},ttab(b){TRN.tab=b.dataset.t;TRN.rs=0;render()},tpf(b){TRN.pf=b.dataset.f;render()},trs(b){TRN.rs=+b.dataset.r;render()},tjoin(){trnJoin()},tplay(b){trnPlay(b.dataset.id)},
+Object.assign(ACT,{gtrn(){showApp("trn")},ttab(b){TRN.tab=b.dataset.t;TRN.rs=0;render()},tpf(b){TRN.pf=b.dataset.f;render()},trs(b){TRN.rs=+b.dataset.r;render()},ttjoin(){trnJoin()},tplay(b){trnPlay(b.dataset.id)},
  async tadm(b){if(!U||!U.admin||!db)return;const a=b.dataset.a,st=TRN.st||{},rd=st.rd||0,ref=D("torneo","s1");
   try{
    if(a=="create"){await ref.set({rd:0,created:Date.now(),real:{0:{uid:U.uid,name:U.name,deck:U.col.deck||{},ts:Date.now()}},cl:{}});toast("Torneo creado · quedaste como capitán de México")}
@@ -2931,6 +2931,80 @@ tdeck(b){if(TRN.E)trnDeckView(b.dataset.k)},tclaim(b){trnClaim(b.dataset.id)},ts
 {const _m=mEv;mEv=function(){if(STORY.cur&&STORY.cur.sim)return;return _m.apply(this,arguments)}}
 {const _s=start;start=function(){G.sim3=0;return _s.apply(this,arguments)}}
 
+/* ===== ADMIN DEL TORNEO v2: NPC editables · corregir resultados · insignias únicas · modo de prueba (solo administrador) ===== */
+const TTH={any:"Mixto",bl:"Dragones Blancos",mg:"Magos",rd:"Ojos Rojos",sy:"Saiyajin",dr:"Dragones",nb:"Números",om:"Ojo Maligno",dv:"Divinidades",gu:"Guerreros",an:"Ángeles",mq:"Máquinas",zb:"No-muertos",he:"Héroes",bs:"Bestias"};
+TRN.bg={};TRN.test=null;TRN.live=null;TRN.liveRes=null;
+function tModal(h){let o=document.getElementById("tmod");if(!o){o=document.createElement("div");o.id="tmod";o.style.cssText="position:fixed;inset:0;z-index:2147482700;background:#050816ee;overflow:auto;padding:18px;color:#fff;font:600 17px Rajdhani,sans-serif";document.body.appendChild(o)}
+ o.innerHTML='<div style="max-width:560px;margin:6vh auto;background:#12163a;border:1px solid #ffd86b88;border-radius:14px;padding:16px">'+h+'</div>';o.onclick=e=>{if(e.target===o)tClose()};return o}
+function tClose(){const o=document.getElementById("tmod");if(o)o.remove()}
+const tNm=k=>{const p=TRN.E.P[k];return TN.N[p.ni][2]+" "+esc(p.name)+(p.uid?" ⭐":"")};
+/* --- 1. NPC editables --- */
+TN.ro0=TN.ro;
+TN.ro=function(key,s){const d=TN.ro0.apply(this,arguments),o=TRN.st&&TRN.st.npc&&TRN.st.npc[key+"_"+s];
+ return o?{n:o.n||d.n,lv:o.lv?Math.max(1,Math.min(10,+o.lv)):d.lv,th:(o.th=="any"||TN.RX[o.th])?o.th:d.th}:d};
+function trnNpcEd(k){const E=TRN.E,p=E.P[k];if(!p||p.uid)return;const nk=TN.N[p.ni][0],key=nk+"_"+p.s,d0=TN.ro0(nk,p.s);
+ const o=tModal('<h3 style="margin:0 0 8px;color:#ffd86b">✏️ Editar NPC · '+TN.N[p.ni][2]+' '+esc(p.name)+'</h3><label>Nombre</label><input id="tn_n" value="'+esc(p.name)+'" style="width:100%"><label>Nivel (1-10)</label><input id="tn_l" type="number" min="1" max="10" value="'+p.lv+'" style="width:100%"><label>Estilo de mazo</label><select id="tn_t" style="width:100%">'+Object.entries(TTH).map(([v,t])=>'<option value="'+v+'" '+(v==p.th?"selected":"")+'>'+t+'</option>').join("")+'</select><p class="mut">Cambiar nombre o estilo cambia también su mazo. Si no cambias nada, queda como estaba.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="go" id="tn_s">💾 Guardar</button><button id="tn_r">↺ Restaurar original</button><button id="tn_x">Cancelar</button></div>');
+ const ref=D("torneo","s1");o.querySelector("#tn_x").onclick=tClose;
+ o.querySelector("#tn_s").onclick=async()=>{const n=o.querySelector("#tn_n").value.trim()||d0.n,lv=Math.max(1,Math.min(10,Math.floor(+o.querySelector("#tn_l").value||d0.lv))),th=o.querySelector("#tn_t").value;
+  try{await ref.update({["npc."+key]:(n==d0.n&&lv==d0.lv&&th==d0.th)?FV.delete():{n,lv,th}});toast("✅ NPC actualizado");tClose()}catch(e){toast("No se pudo guardar")}};
+ o.querySelector("#tn_r").onclick=async()=>{try{await ref.update({["npc."+key]:FV.delete()});toast("NPC restaurado");tClose()}catch(e){toast("No se pudo restaurar")}}}
+{const _n=trnNa;trnNa=function(){const h=_n.apply(this,arguments);if(!(U&&U.admin))return h;const E=TRN.E,no=(TRN.st&&TRN.st.npc)||{};
+ return h.replace(/<button class="mini" data-act="tdeck" data-k="(\d+):(\d+)">ver<\/button>/g,(m,ni,s)=>{const p=E.P[ni+":"+s];if(!p||p.uid)return m;return m+' <button class="mini" data-act="tnpc" data-k="'+ni+':'+s+'">'+(no[TN.N[ni][0]+"_"+s]?"✏️*":"✏️")+'</button>'})}}
+/* --- 2. Corregir resultados --- */
+{const fx=(h,m)=>U&&U.admin?h.replace(/<\/div>$/,'<button class="mini" data-act="tfix" data-id="'+esc(m.id)+'" title="Corregir resultado">✏️</button></div>'):h,_a=tnRow,_b=tnTri;
+ tnRow=function(m){return fx(_a.apply(this,arguments),m)};tnTri=function(m){return fx(_b.apply(this,arguments),m)}}
+function trnFix(id){const E=TRN.E,m=E.M.find(x=>x.id==id);if(!m)return;const ovs=TRN.test?TRN.test.ov:(TRN.st.ov||{});let body;
+ const apply=async v=>{const ov={...ovs};if(v==null)delete ov[id];else ov[id]=v;try{if(TRN.test){TRN.test.ov=ov;trnRe()}else await D("torneo","s1").update({ov});toast(v==null?"Corrección quitada (vuelve al resultado normal)":"✅ Resultado corregido");tClose()}catch(e){toast("No se pudo guardar la corrección")}};
+ if(m.tag=="TRI"){const cur=m.rank||m.mem;body=[0,1,2].map(i=>'<label>'+(i+1)+'.º lugar'+(i<2?" (avanza)":" (eliminado)")+'</label><select id="tf'+i+'" style="width:100%">'+m.mem.map(k=>'<option value="'+k+'" '+(cur[i]==k?"selected":"")+'>'+tNm(k)+'</option>').join("")+'</select>').join("")+'<button class="go" id="tfs" style="margin-top:10px">💾 Aplicar posiciones</button>'}
+ else body='<p style="margin:4px 0">Ahora: '+(m.w!=null?'gana <b>'+tNm(m.w)+'</b>':'pendiente')+'</p><button class="go" id="tfa" style="width:100%;margin:4px 0">Gana '+tNm(m.a)+'</button><button class="go" id="tfb" style="width:100%;margin:4px 0">Gana '+tNm(m.b)+'</button>';
+ const o=tModal('<h3 style="margin:0 0 6px;color:#ffd86b">✏️ Corregir resultado</h3><p class="mut" style="margin:0 0 8px">'+(TNR[m.r]||"")+(ovs[id]!=null?" · ya tiene una corrección":"")+'. Esto puede mover a otros jugadores en las rondas siguientes. Los premios ya reclamados no se quitan.</p>'+body+'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">'+(ovs[id]!=null?'<button id="tfr">↺ Quitar corrección</button>':'')+'<button id="tfx">Cancelar</button></div>');
+ o.querySelector("#tfx").onclick=tClose;const q=s=>o.querySelector(s);
+ if(q("#tfr"))q("#tfr").onclick=()=>apply(null);
+ if(m.tag=="TRI")q("#tfs").onclick=()=>{const v=[0,1,2].map(i=>q("#tf"+i).value);if(new Set(v).size<3)return toast("Cada jugador debe quedar en un lugar distinto");apply(v)};
+ else{q("#tfa").onclick=()=>apply(m.a);q("#tfb").onclick=()=>apply(m.b)}}
+/* --- 3. Insignias únicas (se la queda el primero que la consigue) --- */
+const TBG=[["b1","🩸","Primera Sangre","Primero en ganar un duelo"],["b2","🔥","Racha de Fuego","Primero en ganar 3 duelos seguidos"],["b3","💎","Grupo Perfecto","Primero en ganar sus 3 duelos de la Fase 1"],["b4","🎖️","Veterano","Primero en llegar a 5 victorias"],["b5","⚔️","Sobreviviente","Primero en pasar la ronda de 36 (top 18)"],["b6","🛡️","Élite de 9","Primero en llegar a las partidas de 3 (top 9)"],["b7","⭐","Finalista","Primero en entrar a la liga de 6"],["b8","🏅","Top 4","Primero en clasificar a semifinales"],["b9","🎯","Gran Final","Primero en llegar a la final"],["b10","🥉","Podio","Primero en subir al podio (top 3)"],["b11","🥈","Subcampeón","Perder la final: solo uno la tiene"],["b12","👑","Campeón","Ganar el torneo: solo uno la tiene"]];
+function trnBgEval(E,st,k){const cl=st.cl||{},res=TRN.res||{},uid=E.P[k].uid,t=(m)=>{const e=res[m.id+"_"+uid];return e&&e.ts||cl[m.r]||Date.now()},tc=r=>cl[r]||Date.now(),o={};
+ const ms=E.M.filter(m=>m.tag!="TRI"&&(m.a==k||m.b==k)&&m.w!=null).sort((a,b)=>a.r-b.r);let w=0,s=0;
+ for(const m of ms){if(m.w==k){w++;s++;if(w==1)o.b1=t(m);if(w==5)o.b4=t(m);if(s==3&&!o.b2)o.b2=t(m)}else s=0}
+ if(E.rd>3&&(E.pp1[k]||0)==9)o.b3=tc(3);
+ if(E.r8&&E.r8.some(m=>m.a==k||m.b==k))o.b5=tc(7);if(E.tri&&E.tri.flat().includes(k))o.b6=tc(8);if(E.fin&&E.fin.includes(k))o.b7=tc(9);
+ if(E.top4&&E.top4.includes(k))o.b8=tc(14);if(E.fi&&(E.fi.f.a==k||E.fi.f.b==k))o.b9=tc(15);
+ if(E.third==k||E.second==k||E.champ==k)o.b10=tc(16);if(E.second==k)o.b11=tc(16);if(E.champ==k)o.b12=tc(16);return o}
+function trnBgCand(){const E=TRN.E,st=TRN.st,c={};if(!E||!st)return c;Object.values(E.P).filter(p=>p.uid).forEach(p=>{const o=trnBgEval(E,st,p.k);for(const id in o)if(!c[id]||o[id]<c[id].ts)c[id]={ts:o[id],uid:p.uid,name:p.name}});return c}
+let BGB=0;
+async function trnBgScan(){if(BGB||TRN.test||!U||!U.admin||!db||!TRN.E||!TRN.st||!TRN.bgLd)return;BGB=1;
+ try{const c=trnBgCand();for(const id in c){if(TRN.bg[id])continue;const ref=D("torneo","s1").collection("badges").doc(id);
+  await db.runTransaction(async tx=>{const s=await tx.get(ref);if(s.exists)return;tx.set(ref,{uid:c[id].uid,name:c[id].name,ts:c[id].ts,at:Date.now()})})}}
+ catch(e){console.error("[insignias]",e)}BGB=0}
+function trnBgView(){if(!(U&&U.admin))return"";const t=!!TRN.test,own=t?trnBgCand():(TRN.bg||{});
+ return'<section class="pn"><h3 style="margin-top:0">🏅 Insignias del torneo'+(t?" · 🧪 prueba":"")+'</h3><p class="mut" style="margin-top:0">12 insignias únicas: se la queda el primer jugador inscrito que la consigue. Por ahora solo tú las ves.</p><div class="tgrid">'+TBG.map(([id,e,n,d])=>{const o=own[id];return'<div class="tbox" style="'+(o?"border-color:#ffd86b":"opacity:.75")+'"><div style="font-size:38px;line-height:1">'+e+'</div><h4 style="margin:4px 0 2px">'+n+'</h4><small class="mut">'+d+'</small><div style="margin-top:6px">'+(o?'<b style="color:#7dff9c">⭐ '+esc(o.name)+'</b><br><small class="mut">'+new Date(o.ts||0).toLocaleDateString("es")+'</small>'+(t?"":' <button class="mini" data-act="tbfree" data-id="'+id+'">liberar</button>'):'<span class="mut">Disponible</span>')+'</div></div>'}).join("")+'</div></section>'}
+{const _p=trnPr;trnPr=function(){const pe=TRN.pe;if(!TRN.test)return _p.apply(this,arguments)+(pe?"":trnBgView());const real=TRN.cl;TRN.cl=TRN.test.claims;try{return _p.apply(this,arguments)+(pe?"":trnBgView())}finally{TRN.cl=real}}}
+{const _on=trnOn;trnOn=function(){const f=!TRN.u.length&&db;_on.apply(this,arguments);
+ if(f&&TRN.u.length)TRN.u.push(D("torneo","s1").collection("badges").onSnapshot(s=>{TRN.bg={};s.docs.forEach(d=>TRN.bg[d.id]=d.data());TRN.bgLd=1;if(VW=="trn"&&app.style.display!="none")render();setTimeout(trnBgScan,900)},()=>{}))}}
+/* --- 4. Modo de prueba: copia local del torneo, no escribe nada ni entrega premios --- */
+{const _re=trnRe;trnRe=function(){const T=TRN.test;
+ if(T&&TRN.st){if(!TRN.st.__t)TRN.live=TRN.st;TRN.st={...TRN.live,rd:T.rd,cl:T.cl,ov:T.ov,__t:1};if(TRN.res!==T.res){TRN.liveRes=TRN.res;TRN.res=T.res}}
+ _re.apply(this,arguments);if(!T&&U&&U.admin)setTimeout(trnBgScan,900)}}
+function trnTestOn(){if(!U||!U.admin||!TRN.st||!TRN.E)return toast("Primero crea el torneo");TRN.test={rd:1,cl:{},res:{},ov:{},claims:{}};trnRe();toast("🧪 Modo de prueba activado: nada se guarda")}
+function trnTestOff(){if(!TRN.test)return;TRN.test=null;if(TRN.live){TRN.st=TRN.live;TRN.res=TRN.liveRes||{}}TRN.live=null;trnRe();toast("Saliste de la prueba · el torneo real sigue igual")}
+function trnTestRound(mode){const T=TRN.test;if(!T||!TRN.E)return;const E=TRN.E,rd=T.rd;if(rd>TNMAX)return toast("La prueba ya terminó");
+ E.M.filter(m=>m.r==rd).forEach(m=>(m.tag=="TRI"?m.mem:[m.a,m.b]).forEach(k=>{const p=E.P[k];if(!p.uid)return;const id=m.id+"_"+p.uid;if(T.res[id])return;
+  const w=mode=="w"?1:mode=="l"?0:Math.random()<.6?1:0,d={mid:m.id,uid:p.uid,w:!!w,ts:Date.now()+Math.floor(Math.random()*1000)};if(m.tag=="TRI")d.p=w?1+Math.floor(Math.random()*2):3;T.res[id]=d}));
+ T.cl[rd]=Date.now()+5000;T.rd=rd+1;trnRe()}
+function trnBanner(){const T=TRN.test;if(!T||!(U&&U.admin))return"";return'<section class="pn" style="border-color:#ff9a3d;background:#ff9a3d1a;padding:10px 14px"><b style="color:#ffb35c">🧪 MODO DE PRUEBA</b> · '+(T.rd>TNMAX?"prueba terminada":"ronda "+T.rd+" de "+TNMAX)+' · nada se guarda ni se entrega <button class="mini" data-act="ttx" style="margin-left:8px">Salir</button></section>'}
+function trnTT(){const T=TRN.test;
+ if(!T)return'<section class="pn"><h3 style="margin-top:0">🧪 Modo de prueba</h3><p class="mut" style="margin-top:0">Simula el torneo con una copia local: no se guarda nada en la base de datos, no cuenta para los jugadores reales y no se entregan premios ni insignias. Sirve para revisar rondas, premios, insignias y mazos antes de abrir.</p><ul class="trule"><li>Empieza en la Ronda 1 con los jugadores ya inscritos (las vacantes las juega un NPC).</li><li>Los resultados de los jugadores reales se generan solos: al azar, todos ganan o todos pierden.</li><li>Al salir, el torneo real queda exactamente como estaba.</li></ul><button class="go" data-act="ttst">▶ Entrar al modo de prueba</button></section>';
+ const fin=T.rd>TNMAX;
+ return'<section class="pn"><h3 style="margin-top:0">🧪 Prueba en curso</h3><p class="tbig" style="font-size:21px;margin:6px 0"><b>'+(fin?"Prueba terminada":"Ronda "+T.rd+" de "+TNMAX+" · "+TNR[T.rd])+'</b></p><div class="tb" style="flex-wrap:wrap;gap:8px;margin:0">'+(fin?"":'<button class="go" data-act="ttrd" data-m="r">⏭ Simular ronda (al azar)</button><button data-act="ttrd" data-m="w">Reales ganan</button><button data-act="ttrd" data-m="l">Reales pierden</button><button data-act="ttfin">⏩ Simular hasta el final</button>')+'<button data-act="ttst">↺ Reiniciar prueba</button><button data-act="ttx">Salir de la prueba</button></div><p class="mut" style="margin-bottom:0">Revisa 🎁 Premios (con insignias), Naciones (botón «ver» para el mazo de cada NPC) y Eliminatorias. Reclamar un premio aquí solo muestra qué ganarías.</p></section>'+trnBgView()}
+{const _c=trnClaim;trnClaim=async function(id){if(!TRN.test)return _c.apply(this,arguments);const r=trnPz().find(x=>x.id==id);if(!r)return;if(!trnAch().has(id))return toast("Todavía no alcanzas este premio");TRN.test.claims[id]=Date.now();toast("🧪 PRUEBA: ganarías "+trnRw(r)+" (no se entrega nada)",7000);render()}}
+{const _p=trnPlay;trnPlay=function(){if(TRN.test)return toast("🧪 En la prueba los duelos se simulan con los botones de la pestaña «Modo de prueba»",6000);return _p.apply(this,arguments)}}
+{const _t=ACT.tadm;ACT.tadm=function(b){if(TRN.test&&["create","start","next","reset"].includes(b.dataset.a))return toast("🧪 Estás en modo de prueba: sal de la prueba para hacer esto en el torneo real",6000);return _t.apply(this,arguments)}}
+Object.assign(ACT,{tnpc(b){trnNpcEd(b.dataset.k)},tfix(b){trnFix(b.dataset.id)},ttst(){trnTestOn()},ttx(){trnTestOff()},ttrd(b){trnTestRound(b.dataset.m)},
+ ttfin(){let g=0;while(TRN.test&&TRN.test.rd<=TNMAX&&g++<20)trnTestRound("r")},
+ async tbfree(b){if(!U||!U.admin||!confirm("¿Liberar esta insignia?\nSe reasignará al primer jugador que cumpla la condición."))return;try{await D("torneo","s1").collection("badges").doc(b.dataset.id).delete();toast("Insignia liberada")}catch(e){toast("No se pudo liberar")}}});
+
+
 /* vista previa de una carta para subastar (sin venta a la tienda) */
 function aucPv(id){if(!id||!CB[id])return'<p class="mut">No tienes cartas disponibles para subastar.</p>';const ps=packsOf(id),ls=ps.map(t=>`<div>${PKI[t][0]} — ${packPrice(t)>0?packPrice(t)+" monedas":"regalo de bienvenida"}</div>`).join("")||"<div>Solo se obtiene como premio especial</div>";return`<div class="row" style="align-items:flex-start;gap:16px;flex-wrap:nowrap"><img src="${IMG[id][0]}" style="width:170px;border-radius:8px" data-act="zoom" data-id="${id}"><div><b style="font-size:20px">${esc(cnm(id))}</b><br>${lvTxt(id)} · ${RAR(id)[0]} · ATK ${CB[id][2]} / DEF ${CB[id][3]}<p class="mut" style="margin:8px 0 2px">Sale en:</p>${ls}</div></div>`}
 
@@ -3002,35 +3076,34 @@ function specWatchViewers(mid){const seen={};
 Object.assign(ACT,{specv(b){startSpectate(b.dataset.mid)}});
 
 /* ===== EMOJIS / STICKERS ESTILO EGIPCIO (reemplaza los emojis del juego por íconos de oro y lapislázuli) ===== */
-{const G="#f2c14e",D="#5b3600",B="#2b59c3",T="#22c5b5",R="#d9473f",
-S=(d,c)=>`<g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="${d}" stroke="${D}" stroke-width="5.4"/><path d="${d}" stroke="${c||G}" stroke-width="3"/></g>`,
-P=(d,f)=>`<path d="${d}" fill="${f}" stroke="${D}" stroke-width="1.6" stroke-linejoin="round"/>`,
+{const GC="#cdb06a",S=(d,w)=>`<path d="${d}" fill="none" stroke="${GC}" stroke-width="${w||1.7}" stroke-linecap="round" stroke-linejoin="round"/>`,
+GF=(d)=>`<path d="${d}" fill="${GC}" stroke="none"/>`,
 IC={
-ankh:S("M16 15v14M9.5 21h13")+S("M16 15c-4.500 0-6-3-6-6s2-5.500 6-5.500 6 2.500 6 5.500-1.500 6-6 6z"),
-eye:P("M2 16c4-6 9-8 14-8s10 2 14 8c-4 5-9 7-14 7S6 21 2 16z","#f7e7b0")+`<circle cx="16" cy="16" r="4.500" fill="${B}" stroke="${D}"/><circle cx="16" cy="16" r="1.800" fill="${D}"/>`+S("M4 9c7-5 17-5 24 0",G)+S("M16 23v4l-4 3",G),
-scarab:`<circle cx="16" cy="5" r="3" fill="${R}" stroke="${D}"/>`+P("M16 9c5 0 8 4 8 10s-3 10-8 10-8-4-8-10 3-10 8-10z",T)+`<path d="M16 10v18M8.500 15 3 12M8 21l-5 2M23.500 15 29 12M24 21l5 2" stroke="${D}" stroke-width="2" stroke-linecap="round"/>`,
-pyramid:P("M16 4 30 27H2z",G)+`<path d="M16 4l14 23H16z" fill="#c9922a"/><circle cx="25" cy="7" r="3" fill="${R}" stroke="${D}"/>`,
-sun:`<g stroke="${G}" stroke-width="2.600" stroke-linecap="round">${[0,45,90,135,180,225,270,315].map(a=>`<path transform="rotate(${a} 16 16)" d="M16 2v4"/>`).join("")}</g><circle cx="16" cy="16" r="8" fill="${R}" stroke="${D}" stroke-width="1.600"/><circle cx="16" cy="16" r="3.500" fill="${G}"/>`,
-mask:P("M7 5h18l4 24-7-4v-8H10v8l-7 4z",B)+P("M11 8h10v13c0 3-2 5-5 5s-5-2-5-5z",G)+`<path d="M7 11h3M6 16h4M22 11h3M22 16h4" stroke="${G}" stroke-width="2" stroke-linecap="round"/><path d="M13 14h2M17 14h2" stroke="${D}" stroke-width="2" stroke-linecap="round"/>`,
-crown:P("M3 25 5 9l7 7 4-11 4 11 7-7 2 16z",G)+`<circle cx="16" cy="19" r="2.500" fill="${B}" stroke="${D}"/><circle cx="8" cy="20" r="1.800" fill="${T}"/><circle cx="24" cy="20" r="1.800" fill="${T}"/>`,
-coin:`<circle cx="16" cy="16" r="13" fill="${G}" stroke="${D}" stroke-width="1.800"/><circle cx="16" cy="16" r="9.500" fill="none" stroke="#c9922a" stroke-width="1.600"/>`+S("M16 16v8M12.500 20h7",D).replace(/5\.4/,"0.01")+`<circle cx="16" cy="13" r="3" fill="none" stroke="${D}" stroke-width="2"/>`,
-chest:P("M4 14h24v13H4z",B)+P("M4 14c0-6 5-9 12-9s12 3 12 9z",G)+`<rect x="13.500" y="15" width="5" height="7" rx="1" fill="${G}" stroke="${D}"/>`,
-jackal:P("M5 3l7 7h8l7-7v13c0 7-5 13-11 13S5 23 5 16z","#2b2b3a")+`<path d="M12 16h2M18 16h2" stroke="${G}" stroke-width="2.500" stroke-linecap="round"/><path d="M8 25h16" stroke="${G}" stroke-width="3.500" stroke-linecap="round"/>`+`<path d="M14 21h4l-2 3z" fill="${D}"/>`,
-falcon:P("M3 23 13 9c1-3 5-5 9-4l5 3-5 2c-1 6-6 11-14 13z",B)+`<circle cx="21" cy="9" r="1.500" fill="${G}"/><path d="M27 8l3 1-3 2z" fill="${G}" stroke="${D}"/>`,
-cobra:P("M11 9c0-4 3-6 6-6s6 2 6 6-2 7-6 7-6-3-6-7z",G)+S("M17 16c-3 5 5 6 1 11-2 2-6 2-8 0",T)+`<circle cx="15" cy="8" r="1.200" fill="${D}"/><circle cx="19" cy="8" r="1.200" fill="${D}"/>`,
-lotus:P("M16 5c4 4 5 12 0 22-5-10-4-18 0-22z",T)+P("M6 11c7 0 11 6 10 16-7-2-11-8-10-16z","#2fb3d1")+P("M26 11c-7 0-11 6-10 16 7-2 11-8 10-16z","#2fb3d1"),
-scroll:P("M7 5h18v22H7z","#f3e2b3")+`<path d="M11 11h10M11 16h10M11 21h6" stroke="${D}" stroke-width="2" stroke-linecap="round"/><circle cx="7" cy="5" r="2.500" fill="${G}" stroke="${D}"/><circle cx="25" cy="27" r="2.500" fill="${G}" stroke="${D}"/>`,
-sand:P("M8 4h16c0 8-6 9-7 12 1 3 7 4 7 12H8c0-8 6-9 7-12-1-3-7-4-7-12z",G)+`<path d="M12 8h8l-4 5zM13 25h6l-3-4z" fill="${R}"/>`,
-lock:P("M7 14h18v14H7z",G)+S("M11 14v-3a5 5 0 0 1 10 0v3",B)+`<circle cx="16" cy="21" r="2" fill="${D}"/>`,
-unlock:P("M7 14h18v14H7z",G)+S("M11 14v-3a5 5 0 0 1 9-3",B)+`<circle cx="16" cy="21" r="2" fill="${D}"/>`,
-check:S("M6 17l7 7 13-15",T),cross:S("M8 8l16 16M24 8 8 24",R),
-warn:P("M16 3 30 28H2z",G)+`<path d="M16 12v8" stroke="${D}" stroke-width="3" stroke-linecap="round"/><circle cx="16" cy="24" r="1.800" fill="${D}"/>`,
-khopesh:S("M8 27l5-5")+S("M13 22 21 9c2-4 8-3 8 2s-5 5-7 3",G),
-shield:P("M16 3l11 4v9c0 7-5 11-11 13C10 27 5 23 5 16V7z",B)+`<circle cx="16" cy="15" r="4" fill="${G}" stroke="${D}"/><circle cx="16" cy="15" r="1.500" fill="${D}"/>`,
-fire:P("M16 3c2 6 9 8 9 16a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 2 4 3 4-1-5-1-8 2-12z",R)+`<path d="M16 17c3 3 4 5 4 7a4 4 0 0 1-8 0c0-2 1-3 4-7z" fill="${G}"/>`,
-sistrum:S("M16 29V16")+S("M8 16c0-9 16-9 16 0z")+`<path d="M11 12h10" stroke="${D}" stroke-width="2"/>`
+ankh:S("M16 4c-3.300 0-5 2.200-5 4.800s1.700 4.700 5 4.700 5-2.100 5-4.700S19.300 4 16 4z")+S("M16 13.500V28M9.500 17.500h13"),
+eye:S("M3 16c3.500-5 8-7 13-7s9.500 2 13 7c-3.500 5-8 7-13 7S6.500 21 3 16z")+`<circle cx="16" cy="16" r="3.200" fill="none" stroke="${GC}" stroke-width="1.700"/>`+GF("M16 14.700a1.300 1.300 0 1 0 .001 0z")+S("M7 10c5.500-3 12.500-3 18 0")+S("M16 23v3.500l-3 2.500"),
+scarab:`<circle cx="16" cy="6" r="2.300" fill="none" stroke="${GC}" stroke-width="1.600"/>`+S("M16 9c4 0 7 3.500 7 8.500S20 27 16 27s-7-4.500-7-9.500S12 9 16 9z")+S("M16 9v18M9.500 14.500 4.500 12M9 20l-5 2M22.500 14.500 27.500 12M23 20l5 2",1.500),
+pyramid:S("M16 5 29 27H3z")+S("M16 5v22M9.500 16h13",1.300),
+sun:`<circle cx="16" cy="16" r="5.500" fill="none" stroke="${GC}" stroke-width="1.700"/>`+[0,45,90,135,180,225,270,315].map(a=>`<path transform="rotate(${a} 16 16)" d="M16 3.500v4" stroke="${GC}" stroke-width="1.700" stroke-linecap="round"/>`).join(""),
+mask:S("M9 5h14l4 7-3 16h-5v-6h-8v6H8L5 12z")+S("M12 13h2.500M17.500 13H20M16 15v4",1.500),
+crown:S("M16 4c3 4 4.500 9 4 14l4.500 9h-17L12 18c-.5-5 1-10 4-14z")+S("M12 18h8",1.300),
+coin:`<circle cx="16" cy="16" r="11.500" fill="none" stroke="${GC}" stroke-width="1.700"/><circle cx="16" cy="16" r="7.500" fill="none" stroke="${GC}" stroke-width="1.200"/>`+S("M16 12v8M13 16h6",1.400),
+chest:S("M5 14h22v13H5z")+S("M5 14c0-5.500 5-9 11-9s11 3.500 11 9")+S("M14 17.500h4V22h-4z",1.400),
+jackal:S("M6 4l6 6h8l6-6v12c0 7-5 12-10 12S6 23 6 16z")+S("M12 16h2.500M17.500 16H20M14 22h4",1.500),
+falcon:S("M4 23 14 9c1-3 5-5 9-4l4 3-4 2c-1 6-6 11-14 13z")+GF("M21 9.500a1.100 1.100 0 1 0 .001 0z"),
+cobra:S("M11 9c0-4 3-6 6-6s6 2 6 6-2 7-6 7-6-3-6-7z")+S("M17 16c-3 5 5 6 1 11-2 2-6 2-8 0"),
+lotus:S("M16 5c4 4 5 12 0 22-5-10-4-18 0-22z")+S("M6 11c7 0 11 6 10 16-7-2-11-8-10-16z")+S("M26 11c-7 0-11 6-10 16 7-2 11-8 10-16z"),
+scroll:S("M7 5h18v22H7z")+S("M11 11h10M11 16h10M11 21h6",1.400),
+sand:S("M8 4h16c0 8-6 9-7 12 1 3 7 4 7 12H8c0-8 6-9 7-12-1-3-7-4-7-12z")+S("M12 7h8",1.300),
+lock:S("M7 14h18v14H7z")+S("M11 14v-3a5 5 0 0 1 10 0v3")+GF("M16 19.500a1.800 1.800 0 1 0 .001 0z"),
+unlock:S("M7 14h18v14H7z")+S("M11 14v-3a5 5 0 0 1 9.500-2")+GF("M16 19.500a1.800 1.800 0 1 0 .001 0z"),
+check:S("M6 17l7 7 13-15",2),cross:S("M8 8l16 16M24 8 8 24",2),
+warn:S("M16 4 29 27H3z")+S("M16 12v7",2)+GF("M16 22.500a1.300 1.300 0 1 0 .001 0z"),
+khopesh:S("M8 27l5-5")+S("M13 22 21 9c2-4 8-3 8 2s-5 5-7 3"),
+shield:S("M16 3l11 4v9c0 7-5 11-11 13C10 27 5 23 5 16V7z")+`<circle cx="16" cy="15" r="3.500" fill="none" stroke="${GC}" stroke-width="1.400"/>`,
+fire:S("M16 3c2 6 9 8 9 16a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 2 4 3 4-1-5-1-8 2-12z"),
+sistrum:S("M16 29V16")+S("M8 16c0-9 16-9 16 0z")+S("M11 12h10",1.300)
 },
-GR={eye:"👁👀🔍🔮🧠🎯",scarab:"🔄🔁🪲🤪⏭⚙🛠⛏🧪",pyramid:"🏜⛰🗿🏴🌍",crown:"👑🏆🥇",mask:"🥈🥉🧑🧙🧝🥷👤👥🎮🙂😀😎",coin:"🪙💰💸",chest:"🎁📦🎴🎡🎉",jackal:"🐺💀☠",falcon:"🦅🏹🕊",cobra:"🐉🦑🎣",khopesh:"⚔🗡",shield:"🛡",scroll:"📘📚📢📨💬📝",sand:"⏱⏳🕒🕐⌛",lock:"🔒🔐",unlock:"🔓",check:"✅✔",cross:"❌✖❎",warn:"⚠",sistrum:"🔔🔕🔊🔇🎵",sun:"☀🌟⭐✨⚡🌠🌙🌑",fire:"🔥",lotus:"🌲🌿❄🌫"},
+GR={eye:"👁👀🔍🔮🧠🎯",scarab:"🔄🔁🪲🤪⏭⚙🛠⛏🧪",pyramid:"🏜⛰🗿🏴🌍",crown:"👑🏆🥇",mask:"🥈🥉🧑🧙🧝🥷👤👥🎮🙂😀😎",coin:"🪙💰💸🎲🧮",chest:"🎁📦🎴🎡🎉",jackal:"🐺💀☠",falcon:"🦅🏹🕊",cobra:"🐉🦑🎣",khopesh:"⚔🗡",shield:"🛡",scroll:"📘📚📢📨💬📝🧾📜🗓📊📈",sand:"⏱⏳🕒🕐⌛",lock:"🔒🔐",unlock:"🔓",check:"✅✔",cross:"❌✖❎",warn:"⚠",sistrum:"🔔🔕🔊🔇🎵",sun:"☀🌟⭐✨⚡🌠🌙🌑🎯",fire:"🔥",lotus:"🌲🌿❄🌫"},
 MP={};Object.entries(GR).forEach(([k,s])=>[...s].forEach(c=>MP[c.codePointAt(0)]=k));
 const st=document.createElement("style");st.textContent=".eg{display:inline-block;width:1.2em;height:1.2em;vertical-align:-.22em;margin:0 .06em;background:center/contain no-repeat}"+Object.entries(IC).map(([k,v])=>`.eg-${k}{background-image:url("data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'+v+'</svg>')}")}`).join("");document.head.appendChild(st);
 const RE=/\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic}\uFE0F?|[\u{1F3FB}-\u{1F3FF}])*\uFE0F?/gu;
@@ -3041,5 +3114,285 @@ if(i<t.length)f.append(t.slice(i));p.replaceChild(f,n)}
 else if(n.nodeType==1&&n.nodeName!="svg"&&!n.classList.contains("eg")){const w=document.createTreeWalker(n,NodeFilter.SHOW_TEXT),a=[];while(w.nextNode())a.push(w.currentNode);a.forEach(fx)}}
 new MutationObserver(ms=>{for(const m of ms){if(m.type=="characterData")fx(m.target);else m.addedNodes.forEach(fx)}}).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
 fx(document.body)}
+
+
+/* ===== TORNEO v3 · 1) horarios y avisos · 2) historial y estadísticas · 3) equipo México · 4) pronósticos · 5) ver partidas ===== */
+const TLV={on:0,mid:null,seq:0,fromTrn:0,bypass:0,subs:[],hb:0,fin:0};
+const TSK={on:0,kl:{},fk:null,snap:null};
+const TNN={st:null,res:{},bets:[],ver:0,ev:-1,E:null,adv:0,fired:null};
+const TRB={sel:{},amt:{},all:[],busy:0,settling:0};
+const TVV={live:[],u:null};
+const BMIN=10,BMAX=2000,SCH3=[[[0,1],[2,3]],[[0,2],[1,3]],[[0,3],[1,2]]];
+{const s=document.createElement("style");s.textContent=`.bar2{height:8px;background:#ffffff1f;border-radius:5px;overflow:hidden;min-width:60px}.bar2 i{display:block;height:100%;background:linear-gradient(90deg,#ffd86b,#e0a823)}.fch{display:inline-block;min-width:22px;text-align:center;border-radius:6px;padding:1px 5px;margin:1px;font-size:13px;background:#ffffff14;color:#aab}.fch.w{background:#2bff8a33;color:#7dff9c}.fch.l{background:#ff54683a;color:#ff9a9a}.bo{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.bo button,.tq button{transform:none!important;background-image:none!important;text-transform:none!important;letter-spacing:0!important;flex:1;min-width:90px;padding:8px 6px;border-radius:10px;border:1.5px solid #ffffff33;background:#ffffff10;color:#fff;font:700 15px Rajdhani,sans-serif;cursor:pointer;clip-path:none;box-shadow:none}.bo button.on{border-color:#ffd86b!important;background:#ffd86b33!important}.bo button,.tq button:not(.go){background-color:#ffffff12!important;color:#fff!important}.bo button small{display:block;color:#ffd86b;font-size:14px}.tq{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}.tq button{flex:0 0 auto;min-width:0;padding:5px 10px;font-size:13px}.tq input{width:110px;margin:0}.sch{border-color:#52e0ff88!important;background:#52e0ff14!important}.live{color:#ff5468;font-weight:800}`;document.head.appendChild(s)}
+
+/* ---------- utilidades de tiempo ---------- */
+const fmtDT=t=>new Date(t).toLocaleString("es-MX",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+function fmtLeft(ms){ms=Math.max(0,ms);const s=Math.floor(ms/1000),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),x=s%60;if(d)return d+" d "+h+" h";if(h)return h+" h "+String(m).padStart(2,"0")+" min";return m+" min "+String(x).padStart(2,"0")+" s"}
+const cdT=ts=>`<b data-cd="${ts}">${fmtLeft(ts-nowS())}</b>`;
+setInterval(()=>{try{document.querySelectorAll("[data-cd]").forEach(e=>{e.textContent=fmtLeft(+e.dataset.cd-nowS())});document.querySelectorAll("[data-pg]").forEach(e=>{const [o,c]=e.dataset.pg.split(",").map(Number);e.style.width=Math.max(0,Math.min(100,(nowS()-o)/(c-o)*100))+"%"})}catch(e){}},1000);
+const nN=ni=>TN.N[ni][2]+" "+TN.N[ni][1];
+
+/* ---------- 1. horarios de las jornadas ---------- */
+const trnSc=r=>((TRN.st&&TRN.st.sc)||{})[r]||{};
+function trnPh(r,st){st=st||TRN.st;if(TRN.test)return"open";const s=(st&&st.sc&&st.sc[r])||{},n=nowS();if(s.o&&n<s.o)return"wait";if(s.c&&n>=s.c)return"closed";return"open"}
+const trnLocked=r=>!!(TRN.st&&!TRN.test&&!(U&&U.admin)&&r==(TRN.st.rd||0)&&r>=1&&trnPh(r)=="wait");
+function trnLk(fn){return function(){const st=TRN.st;if(!st||!trnLocked(st.rd||0))return fn.apply(this,arguments);let E2=null;try{E2=trnEngine({...st,res:TRN.res,rd:(st.rd||0)-1})}catch(e){}if(!E2)return fn.apply(this,arguments);const real=TRN.E;TRN.E=E2;try{return fn.apply(this,arguments)}finally{TRN.E=real}}}
+function trnSchBanner(){const st=TRN.st;if(!st||TRN.test)return"";const rd=st.rd||0;if(rd<1||rd>TNMAX)return"";const s=trnSc(rd);if(!s.o&&!s.c)return"";
+ const ph=trnPh(rd),mi=trnMine();let h=`<section class="pn sch" style="padding:10px 14px"><b style="color:#7fe3ff">⏱ ${esc(TNR[rd])}</b> · `;
+ if(ph=="wait")h+=`se habilita en ${cdT(s.o)} <small class="mut">(${fmtDT(s.o)})</small>`;
+ else if(ph=="open")h+=s.c?`abierta · cierra en ${cdT(s.c)} <small class="mut">(${fmtDT(s.c)})</small>`:`abierta`;
+ else h+=`el plazo terminó · esperando que el administrador abra la siguiente`;
+ if(ph=="open"&&s.o&&s.c)h+=`<div class="bar2" style="margin-top:6px"><i data-pg="${s.o},${s.c}" style="width:${Math.max(0,Math.min(100,(nowS()-s.o)/(s.c-s.o)*100))}%"></i></div>`;
+ if(mi.me){if(mi.cur){const rp=TRN.res[mi.cur.id+"_"+U.uid];h+=`<div style="margin-top:6px">⚔️ Tu duelo: ${rp?'<b style="color:#7dff9c">ya jugado ✔</b>':ph=="wait"?`se habilita ${fmtDT(s.o)}`:ph=="open"?'<b style="color:#ffd86b">pendiente · ¡juégalo!</b>':'<b style="color:#ff9a9a">no jugado</b>'}</div>`}else h+=`<div style="margin-top:6px" class="mut">En esta jornada no te toca duelo.</div>`}
+ const nx=(TRN.st.sc||{})[rd+1];if(nx&&nx.o)h+=`<div class="mut" style="margin-top:4px">Siguiente: ${esc(TNR[rd+1]||"")} · abre ${fmtDT(nx.o)}</div>`;
+ return h+`</section>`}
+function trnCal(){const st=TRN.st,sc=st.sc||{},rd=st.rd||0;if(!Object.keys(sc).length)return"";
+ return`<section class="pn"><details><summary style="cursor:pointer;font-size:19px;color:#ffd86b">🗓 Calendario del torneo</summary><table class="tt" style="margin-top:8px"><tr><th>Ronda</th><th>Abre</th><th>Cierra</th><th></th></tr>${Array.from({length:TNMAX},(_,i)=>i+1).filter(r=>sc[r]).map(r=>{const s=sc[r];return`<tr class="${r==rd?"mx":""}"><td>${r} · ${esc(TNR[r])}</td><td>${s.o?fmtDT(s.o):"—"}</td><td>${s.c?fmtDT(s.c):"—"}</td><td>${r<rd?"✅":r==rd?(trnPh(r)=="wait"?"⏳":"▶"):""}</td></tr>`}).join("")}</table>${st.auto?'<p class="mut" style="margin:6px 0 0">Las jornadas se cierran solas al llegar la hora de cierre.</p>':""}</details></section>`}
+{const _r=trnRes;trnRes=function(){let h=_r.apply(this,arguments);try{const st=TRN.st,rd=st.rd||0;if(rd>=1&&rd<=TNMAX&&!TRN.test){const s=trnSc(rd),ph=trnPh(rd);
+  if(ph!="open")h=h.replace(/<button class="go" data-act="tplay"[^>]*>[^<]*<\/button>/,ph=="wait"?`<div class="tm sch" style="margin-top:8px">🔒 Tu duelo se habilita en ${cdT(s.o)} · ${fmtDT(s.o)}</div>`:`<div class="tm" style="margin-top:8px">⌛ El plazo para jugar esta jornada ya terminó</div>`)}
+  h=h.replace("</section>","</section>"+trnCal())}catch(e){console.error(e)}return h}}
+{const _p=trnPlay;trnPlay=function(mid){const st=TRN.st;if(st&&!TRN.test){const rd=st.rd||0,s=trnSc(rd),ph=trnPh(rd);if(ph=="wait")return toast("🔒 Esta jornada se habilita el "+fmtDT(s.o),6000);if(ph=="closed")return toast("⌛ El plazo de esta jornada ya terminó",6000)}return _p.apply(this,arguments)}}
+{const _a=trnAdm;trnAdm=function(){const st=TRN.st,sc=st.sc||{},n=Object.keys(sc).length;return _a.apply(this,arguments)+`<section class="pn" style="border-color:#52e0ff88"><h3 style="margin-top:0">🗓 Horarios de las jornadas</h3><p class="mut" style="margin-top:0">Define cuándo se habilita y cuándo cierra cada ronda. Los jugadores ven una cuenta regresiva y reciben avisos. ${n?`Hay horario en <b>${n}</b> rondas${st.auto?" · cierre automático ACTIVO":""}.`:"Aún no hay horarios: las rondas se juegan en cuanto las abres."}</p><button class="go" data-act="tsch">🗓 Programar horarios</button></section>`}}
+function trnSchEdit(){if(TRN.test)return toast("🧪 Sal del modo de prueba para programar horarios");const st=TRN.st,sc=st.sc||{};
+ const v=t=>{if(!t)return"";const d=new Date(t),p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+"T"+p(d.getHours())+":"+p(d.getMinutes())};
+ const o=tModal(`<h3 style="margin:0 0 6px;color:#ffd86b">🗓 Horarios de las jornadas</h3><p class="mut" style="margin:0 0 8px">Hora de tu dispositivo. «Abre» habilita los duelos; «Cierra» es el límite para jugar. Deja vacío lo que no quieras limitar.</p>
+ <div style="background:#ffffff0c;border-radius:10px;padding:8px 10px;margin-bottom:8px"><b>Rellenar rápido</b><div class="tq"><label>Primera jornada abre<br><input type="datetime-local" id="qs" style="width:200px"></label><label>Duración (horas)<br><input type="number" id="qd" min="1" value="24"></label><label>Pausa entre jornadas (h)<br><input type="number" id="qg" min="0" value="0"></label><button id="qf">Rellenar</button></div></div>
+ <div style="max-height:46vh;overflow:auto"><table class="tt"><tr><th>#</th><th>Ronda</th><th>Abre</th><th>Cierra</th></tr>${Array.from({length:TNMAX},(_,i)=>i+1).map(r=>`<tr><td>${r}</td><td style="font-size:14px">${esc(TNR[r])}</td><td><input type="datetime-local" id="so${r}" value="${v((sc[r]||{}).o)}" style="margin:0"></td><td><input type="datetime-local" id="sc${r}" value="${v((sc[r]||{}).c)}" style="margin:0"></td></tr>`).join("")}</table></div>
+ <label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="sauto" ${st.auto?"checked":""} style="width:auto;margin:0"> Cerrar y avanzar la jornada automáticamente al llegar la hora de cierre <small class="mut">(funciona mientras algún administrador tenga la app abierta)</small></label>
+ <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="go" id="ssv">💾 Guardar</button><button id="scl">Borrar horarios</button><button id="sx">Cancelar</button></div>`);
+ o.firstChild.style.maxWidth="880px";const q=s=>o.querySelector(s);q("#sx").onclick=tClose;
+ q("#qf").onclick=()=>{const t0=new Date(q("#qs").value).getTime(),du=Math.max(1,+q("#qd").value||24)*36e5,gp=Math.max(0,+q("#qg").value||0)*36e5;if(!t0)return toast("Elige cuándo abre la primera jornada");for(let r=1;r<=TNMAX;r++){const a=t0+(r-1)*(du+gp);q("#so"+r).value=v(a);q("#sc"+r).value=v(a+du)}};
+ q("#scl").onclick=async()=>{if(!confirm("¿Borrar todos los horarios?"))return;try{await D("torneo","s1").update({sc:FV.delete(),auto:FV.delete()});toast("Horarios borrados");tClose()}catch(e){toast("No se pudo guardar")}};
+ q("#ssv").onclick=async()=>{const n={};for(let r=1;r<=TNMAX;r++){const a=q("#so"+r).value?new Date(q("#so"+r).value).getTime():0,c=q("#sc"+r).value?new Date(q("#sc"+r).value).getTime():0;if(a&&c&&c<=a)return toast("En la ronda "+r+" el cierre debe ser después de la apertura",5000);if(a||c)n[r]={...(a?{o:a}:{}),...(c?{c}:{})}}
+  try{await D("torneo","s1").update({sc:n,auto:!!q("#sauto").checked});toast("✅ Horarios guardados");tClose()}catch(e){toast("No se pudo guardar")}}}
+
+/* ---------- avisos (fuera y dentro del torneo) y cierre automático ---------- */
+function tnnEng(){if(!TNN.st)return null;if(TNN.E&&TNN.ev==TNN.ver)return TNN.E;try{TNN.E=trnEngine({...TNN.st,res:TNN.res});TNN.ev=TNN.ver}catch(e){TNN.E=null}return TNN.E}
+function tnnFired(){if(TNN.fired)return TNN.fired;try{TNN.fired=JSON.parse(localStorage.getItem("trn_nf_"+U.uid)||"{}")}catch(e){TNN.fired={}}return TNN.fired}
+function tnnMark(k){const f=tnnFired();f[k]=1;try{localStorage.setItem("trn_nf_"+U.uid,JSON.stringify(f))}catch(e){}}
+const tnnLab=t=>t>=864e5?"24 horas":t>=216e5?"6 horas":t>=36e5?"1 hora":"15 minutos";
+function tnnTick(){try{
+ if(!U||!db||!TNN.st||TRN.test)return;const st=TNN.st,rd=st.rd||0;
+ if(U.admin&&st.auto&&rd>=1&&rd<=TNMAX&&!TNN.adv){const s=(st.sc||{})[rd];if(s&&s.c&&nowS()>=s.c+4000){TNN.adv=1;const ref=D("torneo","s1");
+  db.runTransaction(async tx=>{const x=await tx.get(ref);if(!x.exists||(x.data().rd||0)!==rd)return;tx.update(ref,{rd:rd+1,["cl."+rd]:Date.now()})}).then(()=>toast("⏭ "+TNR[rd]+" cerrada automáticamente",6000)).catch(()=>{}).finally(()=>setTimeout(()=>TNN.adv=0,20000))}}
+ if(!trnVis())return;
+ const E0=(TNN.bets.some(b=>!b.paid&&b.r<rd))?tnnEng():null;if(E0)trnBetSettle(E0,st);
+ if(rd<1||rd>TNMAX)return;
+ const sc=st.sc||{},s=sc[rd]||{},now=nowS(),F=tnnFired(),rn=TNR[rd],real=Object.values(st.real||{}).some(x=>x&&x.uid==U.uid);
+ let duel=null,played=false;
+ if((s.o||s.c)&&real){const E=tnnEng();if(E){const me=Object.values(E.P).find(p=>p.uid==U.uid);if(me){duel=E.M.find(m=>m.r==rd&&(m.a==me.k||m.b==me.k||m.c==me.k));if(duel)played=!!TNN.res[duel.id+"_"+U.uid]}}}
+ const thr=(L,left,key,cb)=>{for(const t of L){if(left<=t){if(!F[key+t]){L.filter(x=>x>=t).forEach(x=>tnnMark(key+x));cb(t)}return}}};
+ if(s.o||s.c){
+  if(s.o&&now>=s.o&&(!s.c||now<s.c)&&!F["o"+rd]){tnnMark("o"+rd);if(s.c)[9e5,36e5,216e5,864e5].filter(x=>x>=s.c-now).forEach(x=>tnnMark("wc"+rd+"_"+x));if(duel&&!played)notify("⚔️ ¡Ya puedes jugar tu duelo!",rn+" está abierta."+(s.c?" Cierra en "+fmtLeft(s.c-now)+".":""));else if(!real)notify("🏆 Jornada abierta",rn+" ya comenzó. ¡Mira los duelos y haz tus pronósticos!")}
+  if(s.o&&now<s.o&&duel)thr([9e5,36e5,864e5],s.o-now,"wo"+rd+"_",t=>notify("⏰ Tu duelo se habilita pronto",rn+" abre en "+tnnLab(t)+" ("+fmtDT(s.o)+")."));
+  if(s.c&&now<s.c&&(!s.o||now>=s.o)&&duel&&!played)thr([9e5,36e5,216e5,864e5],s.c-now,"wc"+rd+"_",t=>notify("⏳ Te queda poco para jugar","Quedan "+fmtLeft(s.c-now)+" para jugar tu duelo de "+rn+"."))}
+ [rd,rd+1].forEach(r=>{const x=sc[r];if(x&&x.o&&now<x.o&&r<=TNMAX&&trnBetOpen(r,st))thr([36e5],x.o-now,"bt"+r+"_",()=>notify("🎲 Pronósticos por cerrar","Quedan "+fmtLeft(x.o-now)+" para apostar en "+TNR[r]+"."))})
+}catch(e){console.error("[avisos]",e)}}
+{const _n=startNet;startNet=function(){const r=_n.apply(this,arguments);try{
+  TNN.fired=null;TNN.st=null;TNN.res={};TNN.bets=[];TNN.E=null;
+  UN.push(D("torneo","s1").onSnapshot(s=>{TNN.st=s.exists?s.data():null;TNN.ver++;setTimeout(tnnTick,600)},()=>{}));
+  UN.push(D("torneo","s1").collection("res").onSnapshot(s=>{TNN.res={};s.docs.forEach(d=>TNN.res[d.id]=d.data());TNN.ver++},()=>{}));
+  UN.push(D("torneo","s1").collection("bets").where("uid","==",U.uid).onSnapshot(s=>{TNN.bets=s.docs.map(d=>({id:d.id,...d.data()}));setTimeout(tnnTick,800)},()=>{}));
+  UT.push(setInterval(tnnTick,15000))}catch(e){console.error(e)}return r}}
+
+/* ---------- 2. estadísticas de cartas (remates finales y monstruos destruidos) ---------- */
+{const _k=kill;kill=async function(c,cause,killer){const k=(cause||"battle")=="battle"?(killer||FXA):killer,was=c&&c.dying,r=await _k.apply(this,arguments);try{if(TSK.on&&k&&c&&!was&&c.dying&&k.owner!=c.owner&&k.id!=null)TSK.kl[k.id]=(TSK.kl[k.id]||0)+1}catch(e){}return r}}
+{const _e=end;end=function(win){const first=!G.over;if(first){try{if(TSK.on&&FXA&&FXA.id!=null&&!G.n3)TSK.fk={id:FXA.id,o:FXA.owner};if(TLV.on)TLV.fin=1}catch(e){}}const r=_e.apply(this,arguments);if(first&&TLV.on)tlvEnd("finished");return r}}
+const tskSnap=()=>({kl:{...TSK.kl},fk:TSK.fk?TSK.fk.id:null,fo:TSK.fk?TSK.fk.o:null});
+trnReport=async function(mid,win,place,n){n=n||0;if(!n){TSK.snap=tskSnap();if(TLV.on&&!TLV.fin)tlvEnd("abandoned")}
+ try{const d={mid,uid:U.uid,w:!!win,ts:Date.now()};if(place)d.p=place;const s=TSK.snap;if(s){if(Object.keys(s.kl).length)d.kl=s.kl;if(s.fk!=null){d.fk=s.fk;d.fo=s.fo}}
+  await D("torneo","s1").collection("res").doc(mid+"_"+U.uid).set(d);toast(place?"Tu lugar ("+place+".º) quedó registrado en el torneo":win?"🏆 Victoria registrada en el torneo":"Derrota registrada en el torneo",4500)}
+ catch(e){if(n<6)setTimeout(()=>trnReport(mid,win,place,n+1),8000);else toast("No se pudo registrar el resultado del torneo. Avisa al administrador.",7000)}};
+function trnCardStats(){const fk={},kl={};let n=0;Object.values(TRN.res||{}).forEach(x=>{let t=0;if(x.fk!=null){fk[x.fk]=(fk[x.fk]||0)+1;t=1}if(x.kl){Object.entries(x.kl).forEach(([id,c])=>kl[id]=(kl[id]||0)+c);t=1}n+=t});
+ const top=o=>Object.entries(o).filter(([id])=>CB[id]).sort((a,b)=>b[1]-a[1]||(+a[0])-(+b[0])).slice(0,10);return{fk:top(fk),kl:top(kl),n}}
+function trnCardTbl(L,unit){if(!L.length)return'<p class="mut" style="margin:6px 0">Aún no hay datos.</p>';const mx=L[0][1];
+ return`<table class="tt"><tr><th>#</th><th>Carta</th><th>${unit}</th><th></th></tr>${L.map(([id,c],i)=>`<tr><td>${i+1}</td><td style="display:flex;align-items:center;gap:8px">${IMG[id]?`<img src="${IMG[id][0]}" style="width:34px;border-radius:4px">`:""}<span>${esc(cnm(id))}</span></td><td><b>${c}</b></td><td style="width:34%"><div class="bar2"><i style="width:${Math.round(c/mx*100)}%"></i></div></td></tr>`).join("")}</table>`}
+
+/* ---------- 2. historial ---------- */
+function trnNatRound(E,r){const grp=r<=3?E.ph1:E.ph2;if(!grp)return null;const L=(E.BR[r]||[]).filter(m=>m.tag=="G");
+ return grp.map(g=>{const enc=SCH3[(r-1)%3].map(([x,y])=>{const a=g.nats[x],b=g.nats[y];let wa=0,wb=0,n=0;L.forEach(m=>{const pa=E.P[m.a].ni,pb=E.P[m.b].ni;if(!((pa==a&&pb==b)||(pa==b&&pb==a))||m.w==null)return;n++;E.P[m.w].ni==a?wa++:wb++});return{a,b,wa,wb,n,done:n==6,w:n==6?(wa>wb?a:wb>wa?b:null):null}});
+  const pts={};g.nats.forEach(n=>pts[n]=0);enc.forEach(e=>{pts[e.a]+=3*e.wa;pts[e.b]+=3*e.wb});return{g,enc,pts}})}
+function trnEncRow(e,E){return`<div class="tm"><span class="${e.w==e.a?"w":""}">${nN(e.a)}</span><b>${e.n?e.wa+" – "+e.wb:"vs"}</b><span class="${e.w==e.b?"w":""}">${nN(e.b)}</span></div><div class="mut" style="text-align:center;margin:-2px 0 4px;font-size:14px">${e.done?(e.w!=null?"🏁 Gana "+nN(e.w)+" · +"+3*(e.w==e.a?e.wa:e.wb)+" pts":"🤝 Empate "+e.wa+"–"+e.wb):e.n?"en juego":"pendiente"}</div>`}
+function trnHi(){const E=TRN.E,st=TRN.st,rd=E.rd||0;
+ if(!rd)return`<section class="pn"><h3 style="margin-top:0">📊 Historial y estadísticas</h3><p class="mut">Aún no hay historial. Aparecerá cuando inicie el torneo.</p></section>`;
+ const rmax=Math.min(rd,TNMAX),r=Math.max(1,Math.min(rmax,TRN.hr||rmax));let h=`<section class="pn"><h3 style="margin-top:0">📊 Resultados por ronda</h3><div class="tb" style="margin:0 0 8px"><button class="mini" data-act="thr" data-r="${r-1}" ${r<=1?"disabled":""}>‹</button><b style="font-size:19px">Ronda ${r} · ${esc(TNR[r])}</b><button class="mini" data-act="thr" data-r="${r+1}" ${r>=rmax?"disabled":""}>›</button></div>`;
+ if(r<=6){const rr=trnNatRound(E,r),r0=r<=3?1:4;
+  if(!rr)h+=`<p class="mut">Sin datos.</p>`;else h+=`<div class="tgrid">${rr.map((x,gi)=>{const cum={};x.g.nats.forEach(n=>cum[n]=0);for(let q=r0;q<=r;q++){const z=trnNatRound(E,q);if(z)Object.entries(z[gi].pts).forEach(([n,p])=>cum[n]+=p)}
+   const ord=x.g.nats.slice().sort((a,b)=>cum[b]-cum[a]||x.pts[b]-x.pts[a]);
+   return`<div class="tbox"><h4>${r<=3?"Grupo "+"ABCDE"[gi]:"Grupo "+(gi+1)}</h4>${x.enc.map(e=>trnEncRow(e,E)).join("")}<table class="tt" style="margin-top:6px"><tr><th>#</th><th>Equipo</th><th>Jornada</th><th>Acum.</th></tr>${ord.map((n,i)=>`<tr class="${n==E.MX?"mx":""}"><td>${i+1}</td><td>${nN(n)}</td><td>+${x.pts[n]}</td><td><b>${cum[n]}</b></td></tr>`).join("")}</table></div>`}).join("")}</div>`}
+ else{const L=E.BR[r]||[];h+=L.length?L.map(tnAny).join(""):'<p class="mut">Sin partidos.</p>'}
+ h+=`</section>`;
+ const mat=(grp,r0,ttl,lab)=>{if(!grp)return"";const rs=[r0,r0+1,r0+2].filter(q=>q<=rd),R=rs.map(q=>trnNatRound(E,q));
+  return`<section class="pn"><h3 style="margin-top:0">${ttl}</h3><p class="mut" style="margin-top:0">Puntos que sumó cada equipo en cada jornada (3 por victoria).</p><div class="tgrid">${grp.map((g,gi)=>`<div class="tbox"><h4>${lab(gi)}</h4><table class="tt"><tr><th>Equipo</th>${rs.map((q,i)=>`<th>J${i+1}</th>`).join("")}<th>Total</th></tr>${g.nats.map(n=>{const v=R.map(z=>z?z[gi].pts[n]:0),t=v.reduce((a,b)=>a+b,0);return{n,v,t}}).sort((a,b)=>b.t-a.t).map(o=>`<tr class="${o.n==E.MX?"mx":""}"><td>${nN(o.n)}</td>${o.v.map(x=>`<td>${x}</td>`).join("")}<td><b>${o.t}</b></td></tr>`).join("")}</table></div>`).join("")}</div></section>`};
+ h+=mat(E.ph1,1,"Puntaje · Fase 1 por jornada",gi=>"Grupo "+"ABCDE"[gi])+mat(E.ph2,4,"Puntaje · Fase 2 por jornada",gi=>"Grupo "+(gi+1));
+ const cs=trnCardStats();
+ h+=`<section class="pn"><h3 style="margin-top:0">🏆 Cartas goleadoras</h3><p class="mut" style="margin-top:0">Estadística de los duelos jugados por los jugadores reales del torneo${cs.n?" ("+cs.n+" con datos)":""}.</p><div class="tgrid"><div class="tbox"><h4>⚔️ Remates finales</h4><small class="mut">Carta con la que se da el último ataque que derrota al rival</small>${trnCardTbl(cs.fk,"Remates")}</div><div class="tbox"><h4>🗡 Cazadoras de monstruos</h4><small class="mut">Cartas que más monstruos destruyen</small>${trnCardTbl(cs.kl,"Destruidos")}</div></div></section>`;
+ const past=Array.from({length:rmax},(_,i)=>i+1).filter(q=>q<rd||(E.champ&&q<=TNMAX)).reverse();
+ if(past.length)h+=`<section class="pn"><h3 style="margin-top:0">📜 Quién ganó cada ronda</h3>${past.map(q=>{let b="";if(q<=6){const z=trnNatRound(E,q);b=z?z.map(x=>x.enc.map(e=>trnEncRow(e,E)).join("")).join(""):""}else b=(E.BR[q]||[]).map(tnAny).join("");return`<details style="margin:6px 0"><summary style="cursor:pointer;font-size:17px">Ronda ${q} · ${esc(TNR[q])}</summary>${b||'<p class="mut">Sin datos</p>'}</details>`}).join("")}</section>`;
+ return h}
+Object.assign(ACT,{thr(b){TRN.hr=+b.dataset.r;render()}});
+
+/* ---------- 3. equipo México ---------- */
+function trnPts(E){const pts={},w={},l={};E.M.forEach(m=>{if(m.tag=="TRI"){if(m.adv)m.adv.forEach(k=>{pts[k]=(pts[k]||0)+3;w[k]=(w[k]||0)+1});if(m.rank)m.mem.filter(k=>!m.adv.includes(k)).forEach(k=>l[k]=(l[k]||0)+1);return}
+  if(m.w==null)return;pts[m.w]=(pts[m.w]||0)+3;w[m.w]=(w[m.w]||0)+1;const lo=m.w==m.a?m.b:m.a;l[lo]=(l[lo]||0)+1});return{pts,w,l}}
+function trnEq(){const E=TRN.E,mx=E.MX,rd=E.rd||0,T=trnPts(E),ks=[0,1,2,3,4,5].map(s=>mx+":"+s);
+ const row=k=>{const p=E.P[k],f1=E.pp1[k]||0,f2=E.pp2[k]||0,tot=T.pts[k]||0;const form=Array.from({length:Math.min(rd,TNMAX)},(_,i)=>i+1).map(r=>{const m=E.BR[r]&&E.BR[r].find(x=>x.a==k||x.b==k||x.c==k||(x.mem&&x.mem.includes(k)));if(!m)return`<span class="fch">–</span>`;if(m.tag=="TRI")return m.adv?`<span class="fch ${m.adv.includes(k)?"w":"l"}">${m.adv.includes(k)?"✓":"✗"}</span>`:`<span class="fch">·</span>`;return m.w==null?`<span class="fch">·</span>`:`<span class="fch ${m.w==k?"w":"l"}">${m.w==k?"✓":"✗"}</span>`}).join("");return{k,p,f1,f2,el:tot-f1-f2,tot,w:T.w[k]||0,l:T.l[k]||0,form}};
+ const R=ks.map(row).sort((a,b)=>b.tot-a.tot||b.w-a.w),team=R.reduce((a,x)=>a+x.tot,0),realPts=R.filter(x=>x.p.uid).reduce((a,x)=>a+x.tot,0);
+ const nt={};Object.entries(T.pts).forEach(([k,p])=>{const ni=E.P[k].ni;nt[ni]=(nt[ni]||0)+p});const rank=TN.N.map((_,ni)=>({ni,p:nt[ni]||0})).sort((a,b)=>b.p-a.p||a.ni-b.ni),pos=rank.findIndex(x=>x.ni==mx)+1;
+ const meK=U&&R.find(x=>x.p.uid==U.uid);
+ let h=`<section class="pn"><h3 style="margin-top:0">🇲🇽 Equipo México</h3><div class="tgrid"><div class="tbox"><h4>Puesto entre 20 naciones</h4><div style="font-size:34px;font-weight:800;color:#ffd86b">#${pos}</div><small class="mut">por puntos totales del torneo</small></div><div class="tbox"><h4>Puntos del equipo</h4><div style="font-size:34px;font-weight:800;color:#7dff9c">${team}</div><small class="mut">${R.reduce((a,x)=>a+x.w,0)} victorias · ${R.reduce((a,x)=>a+x.l,0)} derrotas${team?" · jugadores reales aportan "+Math.round(realPts/team*100)+" %":""}</small></div>${R[0]&&R[0].tot?`<div class="tbox"><h4>👑 Máximo aportador</h4><div style="font-size:21px;font-weight:700">${esc(R[0].p.name)}${R[0].p.uid?" ⭐":""}</div><small class="mut">${R[0].tot} pts · ${Math.round(R[0].tot/Math.max(1,team)*100)} % del equipo</small></div>`:""}</div>${meK?`<p style="color:#7dff9c;margin:10px 0 0">Tú aportas <b>${meK.tot}</b> puntos (${Math.round(meK.tot/Math.max(1,team)*100)} %) al equipo.</p>`:""}</section>`;
+ h+=`<section class="pn"><h3 style="margin-top:0">¿Quién aporta más puntos?</h3><div style="overflow:auto"><table class="tt"><tr><th>#</th><th>Jugador</th><th>Fase 1</th><th>Fase 2</th><th>Elim.</th><th>Total</th><th>Aporte</th><th>Racha por ronda</th></tr>${R.map((x,i)=>`<tr class="${x.p.uid&&U&&x.p.uid==U.uid?"mx":""}"><td>${i==0&&x.tot?"👑":i+1}</td><td>${esc(x.p.name)}${x.k==mx+":0"?" 🎖":""}<br><small class="mut">${x.p.uid?"Real ⭐":"NPC · nivel "+x.p.lv}</small></td><td>${x.f1}</td><td>${x.f2}</td><td>${x.el}</td><td><b>${x.tot}</b></td><td style="min-width:110px"><div class="bar2"><i style="width:${Math.round(x.tot/Math.max(1,R[0].tot)*100)}%"></i></div><small class="mut">${team?Math.round(x.tot/team*100):0} %</small></td><td>${x.form||'<span class="mut">—</span>'}</td></tr>`).join("")}</table></div><p class="mut" style="margin-bottom:0">3 puntos por victoria (en las partidas de 3, por avanzar). ✓ victoria · ✗ derrota · · pendiente · – sin duelo. Máx. 9 puntos por jugador en cada fase de grupos.</p></section>`;
+ h+=`<section class="pn"><h3 style="margin-top:0">🌍 Clasificación de naciones por puntos</h3><table class="tt"><tr><th>#</th><th>Nación</th><th>Puntos</th></tr>${rank.filter((x,i)=>i<8||x.ni==mx).map(x=>`<tr class="${x.ni==mx?"mx":""}"><td>${rank.indexOf(x)+1}</td><td>${nN(x.ni)}</td><td>${x.p}</td></tr>`).join("")}</table></section>`;
+ return h}
+
+/* ---------- 4. pronósticos ---------- */
+function trnBetOpen(r,st){st=st||TRN.st;if(!st||TRN.test)return false;const rd=st.rd||0;if(r<1||r>TNMAX||rd>r)return false;if(rd==r)return trnPh(r,st)=="wait";if(rd==r-1){const s=(st.sc||{})[r];return!(s&&s.o&&nowS()>=s.o)}return false}
+function trnEvOdds(e){const E=TRN.E,P=E.P,sg=(a,b)=>1/(1+Math.exp(-(a-b)*.5));
+ if(e.kind=="nat"){let d=[1];for(let s=0;s<6;s++){const p=sg(P[e.a+":"+s].lv,P[e.b+":"+s].lv),nd=new Array(d.length+1).fill(0);d.forEach((q,i)=>{nd[i]+=q*(1-p);nd[i+1]+=q*p});d=nd}let pa=0,pe=0,pb=0;d.forEach((q,k)=>{if(k>3)pa+=q;else if(k==3)pe+=q;else pb+=q});e.p={a:pa,e:pe,b:pb}}
+ else{const pa=sg(P[e.a].lv,P[e.b].lv);e.p={a:pa,b:1-pa}}
+ e.odds={};for(const k in e.p)e.odds[k]=Math.max(1.1,Math.min(15,Math.round(.9/Math.max(.02,e.p[k])*100)/100));return e}
+function trnEvents(r){const E=TRN.E;if(!E)return[];const o=[];
+ if(r<=6){const grp=r<=3?E.ph1:E.ph2;if(!grp)return[];grp.forEach((g,gi)=>SCH3[(r-1)%3].forEach(([x,y])=>o.push({id:"N."+r+"."+g.nats[x]+"."+g.nats[y],r,kind:"nat",a:g.nats[x],b:g.nats[y],g:gi})))}
+ else(E.BR[r]||[]).filter(m=>m.tag!="TRI").forEach(m=>o.push({id:m.id,r,kind:"duel",a:m.a,b:m.b}));
+ return o.map(trnEvOdds)}
+function trnEvFromId(id){const p=id.split(".");if(p[0]=="N")return{id,kind:"nat",r:+p[1],a:+p[2],b:+p[3]};return{id,kind:"duel",r:+p[1]}}
+function trnEvRes(e,E){if(e.kind=="nat"){const L=(E.BR[e.r]||[]).filter(m=>m.tag=="G"&&((E.P[m.a].ni==e.a&&E.P[m.b].ni==e.b)||(E.P[m.a].ni==e.b&&E.P[m.b].ni==e.a)));if(L.length<6||L.some(m=>m.w==null))return null;let wa=0,wb=0;L.forEach(m=>{E.P[m.w].ni==e.a?wa++:wb++});return wa>wb?"a":wb>wa?"b":"e"}
+ const m=E.M.find(x=>x.id==e.id);if(!m||m.w==null)return null;return m.w==m.a?"a":"b"}
+const trnEvLab=e=>{const E=TRN.E;if(e.kind=="nat")return{a:nN(e.a),b:nN(e.b),e:"Empate"};const A=E.P[e.a],B=E.P[e.b];return{a:TN.N[A.ni][2]+" "+A.name,b:TN.N[B.ni][2]+" "+B.name}};
+async function trnBetSettle(E,st){if(!U||!db||!E||!st||TRB.settling||TRN.test)return;const rd=st.rd||0,L=TNN.bets.filter(b=>!b.paid&&b.r<rd);if(!L.length)return;TRB.settling=1;
+ try{for(const b of L){const w=trnEvRes(trnEvFromId(b.ev),E);if(!w)continue;const ref=D("torneo","s1").collection("bets").doc(b.id);
+  if(b.pick==w){const pay=Math.floor(b.amt*b.odds);await db.runTransaction(async tx=>{const s=await tx.get(ref);if(!s.exists||s.data().paid)return;tx.update(D("users",U.uid),{gold:FV.increment(pay)});tx.update(ref,{paid:1,won:1,pay,res:w})});notify("💰 ¡Pronóstico acertado!","+"+pay+" monedas · "+((b.lab&&b.lab.t)||""))}
+  else{await ref.update({paid:1,won:0,pay:0,res:w}).catch(()=>{});toast("Pronóstico fallado: "+((b.lab&&b.lab.t)||""),4500)}}}catch(e){console.error("[pronósticos]",e)}TRB.settling=0}
+async function trnBet(ev,pick,amt){if(!U||!db||TRB.busy)return;if(TRN.test)return toast("🧪 Los pronósticos no funcionan en modo de prueba");
+ const r=trnEvFromId(ev).r;if(!trnBetOpen(r))return toast("Los pronósticos de esta ronda ya cerraron");const e=trnEvents(r).find(x=>x.id==ev);if(!e||!e.odds[pick])return toast("Ese pronóstico ya no está disponible");
+ amt=Math.floor(+amt||0);if(amt<BMIN||amt>BMAX)return toast("Apuesta entre "+BMIN+" y "+BMAX+" monedas");if((U.gold||0)<amt)return toast("No tienes suficientes monedas");
+ const lb=trnEvLab(e),bref=D("torneo","s1").collection("bets").doc(U.uid+"_"+ev),uref=D("users",U.uid);TRB.busy=1;
+ try{await db.runTransaction(async tx=>{const bs=await tx.get(bref),us=await tx.get(uref);if(bs.exists)throw"Ya tienes un pronóstico en este duelo";if(((us.data()||{}).gold||0)<amt)throw"No tienes suficientes monedas";tx.update(uref,{gold:FV.increment(-amt)});tx.set(bref,{uid:U.uid,name:U.name,ev,r,pick,amt,odds:e.odds[pick],ts:Date.now(),paid:0,lab:{t:lb.a+" vs "+lb.b,p:lb[pick]}})});
+  toast("🎲 Pronóstico registrado: "+lb[pick]+" · ×"+e.odds[pick],5000);delete TRB.sel[ev]}catch(x){toast(typeof x=="string"?x:"No se pudo registrar el pronóstico")}
+ TRB.busy=0;render()}
+function trnBtCard(e,mine){const lb=trnEvLab(e),keys=e.kind=="nat"?["a","e","b"]:["a","b"],sel=TRB.sel[e.id],amt=TRB.amt[e.id]||100;
+ const agg={a:0,e:0,b:0};TRB.all.filter(x=>x.ev==e.id).forEach(x=>agg[x.pick]=(agg[x.pick]||0)+1);const nb=agg.a+agg.e+agg.b;
+ let h=`<div class="tbox"><div style="font-size:15px" class="mut">${e.kind=="nat"?"Grupo "+(e.r<=3?"ABCDE"[e.g]:e.g+1):"Duelo individual"}${nb?" · "+nb+" pronóstico"+(nb>1?"s":""):""}</div>`;
+ if(mine)h+=`<div class="tm me" style="margin:6px 0 0;display:block">Tu pronóstico: <b style="color:#ffd86b">${esc(lb[mine.pick])}</b> · ${mine.amt} 💰 × ${mine.odds} = <b>${Math.floor(mine.amt*mine.odds)}</b></div><div class="bo">${keys.map(k=>`<button disabled class="${k==mine.pick?"on":""}" style="opacity:${k==mine.pick?1:.5}">${esc(lb[k])}<small>×${e.odds[k]}</small></button>`).join("")}</div>`;
+ else{h+=`<div class="bo">${keys.map(k=>`<button data-act="tbp" data-ev="${esc(e.id)}" data-k="${k}" class="${sel==k?"on":""}">${esc(lb[k])}<small>×${e.odds[k]}${agg[k]?" · "+agg[k]+" 🗳":""}</small></button>`).join("")}</div>`;
+  if(sel)h+=`<div class="tq"><input type="number" min="${BMIN}" max="${BMAX}" step="10" value="${amt}" data-bamt="${esc(e.id)}"><button data-act="tbq" data-ev="${esc(e.id)}" data-v="50">50</button><button data-act="tbq" data-ev="${esc(e.id)}" data-v="200">200</button><button data-act="tbq" data-ev="${esc(e.id)}" data-v="1000">1000</button><button class="go" data-act="tbet" data-ev="${esc(e.id)}" style="flex:1">APOSTAR → ${Math.floor(amt*e.odds[sel])}</button></div>`}
+ return h+`</div>`}
+function trnBt(){const st=TRN.st,rd=st.rd||0,gold=(U&&U.gold)||0;
+ let h=`<section class="pn"><h3 style="margin-top:0">🎲 Pronósticos</h3><p class="mut" style="margin-top:0">Apuesta monedas a quién gana cada enfrentamiento entre naciones (el equipo con más victorias de sus 6 duelos; también puedes apostar al empate) y, en la eliminación, a quién gana cada duelo. Lo pueden hacer todos, ¡incluso los eliminados! Ganas <b>lo apostado × la cuota</b>. Una apuesta por partido, de ${BMIN} a ${BMAX} monedas. Cierran cuando se habilita la ronda.</p><p style="margin:6px 0 0">💰 Tus monedas: <b style="color:#ffd86b">${gold.toLocaleString("es")}</b></p></section>`;
+ if(TRN.test)return h+`<section class="pn"><p class="mut">🧪 Los pronósticos no están disponibles en el modo de prueba.</p></section>`;
+ const mineBy={};TRB.all.filter(x=>x.uid==U.uid).forEach(x=>mineBy[x.ev]=x);let any=0;
+ [rd,rd+1].filter(r=>r>=1&&r<=TNMAX&&trnBetOpen(r)).forEach(r=>{any=1;const s=(st.sc||{})[r]||{},ev=trnEvents(r);
+  h+=`<section class="pn"><h3 style="margin-top:0">${esc(TNR[r])}</h3><p class="mut" style="margin-top:0">${s.o?"Los pronósticos cierran en "+cdT(s.o)+" ("+fmtDT(s.o)+").":"Cierran cuando el administrador habilite la ronda."}</p>${ev.length?`<div class="tgrid">${ev.map(e=>trnBtCard(e,mineBy[e.id])).join("")}</div>`:`<p class="mut">Los emparejamientos de esta ronda se conocerán cuando el administrador avance de ronda.</p>`}</section>`});
+ if(!any){const nx=Array.from({length:TNMAX},(_,i)=>i+1).find(r=>r>rd&&(st.sc||{})[r]&&(st.sc[r].o||0)>nowS());h+=`<section class="pn"><p class="mut" style="margin:0">No hay pronósticos abiertos ahora mismo.${rd>TNMAX?" El torneo terminó.":" Se abrirán en cuanto se conozcan los emparejamientos de la siguiente ronda."}${nx?" Próxima apertura: "+esc(TNR[nx])+" · "+fmtDT(st.sc[nx].o):""}</p></section>`}
+ const my=TRB.all.filter(x=>x.uid==U.uid).sort((a,b)=>b.ts-a.ts);
+ h+=`<section class="pn"><h3 style="margin-top:0">🧾 Mis pronósticos</h3>${my.length?my.map(b=>`<div class="tm ${b.paid&&b.won?"me":""}"><span>${esc((b.lab&&b.lab.t)||b.ev)}<br><small class="mut">${esc(TNR[b.r]||"")} · tu pronóstico: ${esc((b.lab&&b.lab.p)||b.pick)}</small></span><span style="text-align:right;flex:0 0 auto">${b.amt} 💰 × ${b.odds}<br>${b.paid?(b.won?`<b style="color:#7dff9c">+${b.pay}</b>`:`<b style="color:#ff9a9a">−${b.amt}</b>`):'<span class="mut">pendiente</span>'}</span></div>`).join(""):'<p class="mut">Todavía no has hecho pronósticos.</p>'}</section>`;
+ const by={};TRB.all.forEach(x=>{const o=by[x.uid]=by[x.uid]||{name:x.name,n:0,h:0,s:0,pf:0};o.n++;if(x.paid){o.s++;if(x.won)o.h++;o.pf+=(x.pay||0)-x.amt}});const rk=Object.entries(by).sort((a,b)=>b[1].pf-a[1].pf||b[1].h-a[1].h).slice(0,10);
+ h+=`<section class="pn"><h3 style="margin-top:0">🏅 Mejores pronosticadores</h3>${rk.length?`<table class="tt"><tr><th>#</th><th>Jugador</th><th>Aciertos</th><th>Ganancia</th></tr>${rk.map(([u,o],i)=>`<tr class="${u==U.uid?"mx":""}"><td>${i+1}</td><td>${esc(o.name||"?")}</td><td>${o.h}/${o.s}${o.n>o.s?' <small class="mut">+'+(o.n-o.s)+' pend.</small>':""}</td><td style="color:${o.pf>=0?"#7dff9c":"#ff9a9a"}">${o.pf>=0?"+":""}${o.pf}</td></tr>`).join("")}</table>`:'<p class="mut">Aún no hay pronósticos.</p>'}</section>`;
+ return h}
+app.addEventListener("input",e=>{const t=e.target;if(t&&t.dataset&&t.dataset.bamt)TRB.amt[t.dataset.bamt]=+t.value||0});
+Object.assign(ACT,{tbp(b){TRB.sel[b.dataset.ev]=b.dataset.k;render()},tbq(b){TRB.amt[b.dataset.ev]=+b.dataset.v;render()},
+ tbet(b){const id=b.dataset.ev,inp=[...app.querySelectorAll("[data-bamt]")].find(x=>x.dataset.bamt==id);const a=inp?+inp.value:(TRB.amt[id]||100);trnBet(id,TRB.sel[id],a)}});
+{const _on=trnOn;trnOn=function(){const f=!TRN.u.length&&db;_on.apply(this,arguments);if(f&&TRN.u.length)TRN.u.push(D("torneo","s1").collection("bets").onSnapshot(s=>{TRB.all=s.docs.map(d=>({id:d.id,...d.data()}));if(VW=="trn"&&app.style.display!="none")render();setTimeout(()=>{if(TRN.E&&TRN.st)trnBetSettle(TRN.E,TRN.st)},700)},()=>{}))}}
+
+/* ---------- 5. ver partidas de otros jugadores (desde la eliminación individual) ---------- */
+function tvvOn(){if(TVV.u||!db)return;TVV.u=Co("matches").where("tourn","==",1).where("status","==","playing").onSnapshot(s=>{TVV.live=s.docs.map(d=>({id:d.id,...d.data()}));if(VW=="trn"&&TRN.tab=="vv"&&app.style.display!="none")render()},()=>{})}
+function tvvOff(){if(TVV.u){try{TVV.u()}catch(e){}TVV.u=null}}
+{const _o=trnOff;trnOff=function(){tvvOff();return _o.apply(this,arguments)}}
+function trnVv(){const st=TRN.st,E=TRN.E,rd=st.rd||0;let h=`<section class="pn"><h3 style="margin-top:0">👁 Ver partidas</h3><p class="mut" style="margin-top:0">Desde la <b>Eliminación individual (Ronda 7)</b> el torneo deja de ser por equipos y cada jugador va por su lado: aquí puedes mirar en vivo los duelos de los jugadores reales, igual que en el modo Trío. Los jugadores reciben un aviso cuando alguien entra a verlos.</p>`;
+ if(rd<7&&!(U&&U.admin))return h+`<p style="margin:0">🔒 Disponible a partir de la Ronda 7 · ahora vamos en: ${esc(TNR[Math.max(1,rd)]||"")}.</p></section>`;
+ const live=TVV.live.filter(x=>nowS()-(x.lu||x.st||0)<150000&&x.a!=U.uid).sort((a,b)=>(b.st||0)-(a.st||0));
+ h+=live.length?live.map(x=>`<div class="tm"><span><b class="live">● EN VIVO</b> · <b style="min-width:0;color:#fff">${esc(x.an||"?")}</b> vs <b style="min-width:0;color:#fff">${esc(x.bn||"?")}</b></span><span style="flex:0 0 auto;min-width:0"><small class="mut">${esc(x.rn||"")}</small> <button class="go" data-act="tvw" data-mid="${esc(x.id)}">👁 VER</button></span></div>`).join(""):`<p class="mut" style="margin:6px 0 0">No hay duelos en curso ahora mismo. Cuando un jugador empiece su duelo aparecerá aquí al instante.</p>`;
+ h+=`</section>`;
+ if(rd>=7&&rd<=TNMAX&&E){const ms=E.M.filter(m=>m.r==rd&&m.tag!="TRI"&&(E.P[m.a].uid||E.P[m.b].uid));
+  if(ms.length)h+=`<section class="pn"><h3 style="margin-top:0">Duelos de jugadores reales · ${esc(TNR[rd])}</h3>${ms.map(m=>{const A=E.P[m.a],B=E.P[m.b],re=A.uid?A:B,rp=TRN.res[m.id+"_"+re.uid];return`<div class="tm"><span>${tnP(m.a)} <small class="mut">vs</small> ${tnP(m.b)}</span><span style="flex:0 0 auto;min-width:0">${rp?(rp.w?'<b style="color:#7dff9c">✔ jugado · ganó '+esc(re.name)+'</b>':'<b style="color:#ff9a9a">✔ jugado · perdió '+esc(re.name)+'</b>'):'<span class="mut">por jugar</span>'}</span></div>`}).join("")}</section>`;
+  if(rd==9)h+=`<section class="pn"><p class="mut" style="margin:0">Las partidas de 3 de esta ronda se juegan contra la CPU y no se pueden mirar en vivo.</p></section>`}
+ return h}
+Object.assign(ACT,{tvw(b){startSpectate(b.dataset.mid)}});
+{const _s=startSpectate;startSpectate=function(){TLV.fromTrn=(VW=="trn")?1:0;TLV.bypass=TLV.fromTrn;try{return _s.apply(this,arguments)}finally{TLV.bypass=0}}}
+{const _o=onlineOK;onlineOK=function(){return TLV.bypass||_o.apply(this,arguments)}}
+{const _x=exitOnline;exitOnline=function(){const back=ON.spec&&TLV.fromTrn,r=_x.apply(this,arguments);if(back&&U){TLV.fromTrn=0;TRN.tab="vv";showApp("trn")}return r}}
+/* --- transmisión del duelo del torneo (solo rondas 1 contra 1 desde la Ronda 7) --- */
+function txl(m){if(!TLV.on)return;m.n=TLV.seq++;m.by="b";D("matches",TLV.mid).collection("moves").doc(String(m.n).padStart(5,"0")).set(m).catch(()=>{})}
+async function NS1(c,pos,i){if(i==null)i=AR(1,pos).indexOf(null);TLV.on&&txl({t:"sum",h:P[1].hand.indexOf(c),id:c.id,s:pos,i});await summon(1,c,pos,i)}
+{const _tx=tx;tx=function(m){if(TLV.on&&!ON.on&&!ON.spec){m.n=TLV.seq++;m.by="a";D("matches",TLV.mid).collection("moves").doc(String(m.n).padStart(5,"0")).set(m).catch(()=>{});return}return _tx.apply(this,arguments)}}
+function tlvEnd(status){if(!TLV.on)return;const mid=TLV.mid;TLV.on=0;clearInterval(TLV.hb);TLV.subs.forEach(f=>{try{f()}catch(e){}});TLV.subs=[];const u={status,lu:nowS()};if(status=="abandoned")u.gone="a";setTimeout(()=>D("matches",mid).update(u).catch(()=>{}),status=="finished"?1500:0)}
+function tlvBegin(decks,first){try{
+ if(TLV.on)tlvEnd("abandoned");TLV.fin=0;TSK.on=0;TSK.kl={};TSK.fk=null;
+ const sc=STORY.cur;if(!(U&&db&&sc&&sc.tourn&&!sc.sim&&TRN.cur&&!ON.on&&!ON.spec&&!G.n3))return;TSK.on=1;
+ const E=TRN.E,m=E&&E.M.find(x=>x.id==TRN.cur.mid);if(!m||m.tag=="TRI"||m.r<7||!decks||decks.length!=2)return;
+ const A=E.P[m.a],B=E.P[m.b],me=A.uid==U.uid?A:B,op=me===A?B:A,nm=p=>TN.N[p.ni][2]+" "+p.name,mid="tn_"+Date.now().toString(36)+"_"+String(U.uid).slice(0,8),cp=a=>JSON.parse(JSON.stringify(a));
+ Object.assign(TLV,{on:1,mid,seq:0,subs:[]});
+ D("matches",mid).set({tourn:1,status:"playing",trio:false,a:U.uid,b:"cpu",an:nm(me),bn:nm(op),decks:{a:cp(decks[0]),b:cp(decks[1])},first:(first||0)==0?"a":"b",r:m.r,rn:TNR[m.r],tm:m.id,st:nowS(),lu:nowS()}).catch(()=>{TLV.on=0});
+ TLV.hb=setInterval(()=>{if(!TLV.on||G.over){clearInterval(TLV.hb);return}D("matches",mid).update({lu:nowS()}).catch(()=>{})},20000);
+ TLV.subs.push(D("matches",mid).collection("viewers").onSnapshot(s=>{s.docChanges().forEach(ch=>{const x=ch.doc.data()||{};if(ch.type=="added"&&ch.doc.id!=U.uid&&Date.now()-(x.ts||0)<90000)notify("👁 Nuevo espectador",(x.name||"Alguien")+" está viendo tu duelo")})},()=>{}))}catch(e){console.error("[transmisión]",e)}}
+{const _s=start;start=function(decks,first){const r=_s.apply(this,arguments);if(!ON.spec)tlvBegin(decks,first);return r}}
+
+/* ---------- pantalla del torneo con las pestañas nuevas ---------- */
+trnGr=trnLk(trnGr);trnPa=trnLk(trnPa);trnEq=trnLk(trnEq);trnHi=trnLk(trnHi);trnEl=trnLk(trnEl);
+rTrn=function(){
+ const A='<div class="ap" style="width:min(1560px,100%)"><div class="hd"><button class="mini" data-act="goback">← Volver</button><b class="nm">🏆 Torneo</b></div>';
+ if(!trnVis())return A+'<section class="pn"><h2 style="margin-top:0">🔒 Torneo bloqueado</h2><p class="mut">El administrador abrirá esta sección muy pronto. ¡Prepara un mazo de 30 cartas con máximo 3 comodines y cartas de nivel 4 en adelante!</p></section></div>';
+ if(!TRN.st){return A+`<section class="pn"><h2 style="margin-top:0">🏆 Torneo Mundial · Temporada 1</h2><p class="mut">${!TRN.ld?"Cargando…":U.admin?"El torneo todavía no está creado.":"El torneo aún no está listo. Vuelve pronto."}</p>${U.admin&&TRN.ld?`<button class="go" data-act="tadm" data-a="create">Crear torneo (quedas como capitán de México)</button>`:""}${U.admin?trnAdmOnly():""}</section></div>`}
+ if(!TRN.E)return A+'<section class="pn"><p class="mut">Cargando torneo…</p></section></div>';
+ const T=[["res","Resumen"],["eq","Equipo México"],["hi","Historial"],["bt","Pronósticos"],["vv","Ver partidas"],["pr","Premios"],["gr","Grupos"],["pa","Partidos"],["el","Eliminatorias"],["na","Naciones"]];if(U.admin){T.push(["sm","Simulación total"]);T.push(["si","Simulación de 3"]);T.push(["tt","Modo de prueba"])}
+ if(TRN.tab=="vv")tvvOn();else tvvOff();
+ const body={res:trnRes,pr:trnPr,eq:trnEq,gr:trnGr,pa:trnPa,el:trnEl,na:trnNa,si:trnSi,tt:trnTT,hi:trnHi,bt:trnBt,vv:trnVv,sm:trnSm}[TRN.tab]||trnRes;
+ return A+`${trnBanner()}${trnSchBanner()}<div class="ttabs">${T.map(([k,t])=>`<button class="${TRN.tab==k?"on":""}" data-act="ttab" data-t="${k}">${t}</button>`).join("")}</div>${body()}</div>`};
+Object.assign(ACT,{tsch(){trnSchEdit()}});
+
+/* ===== NIVELES DE LOS NPC: 10 % muy débiles · 30 % débiles · 30 % fuertes · 20 % muy fuertes · 10 % élites ===== */
+const TTIER=[["Muy débil",.10,[2,3],"#9aa3c7","10 %"],["Débil",.30,[4,5],"#7dd3ff","30 %"],["Fuerte",.30,[6,7],"#7dff9c","30 %"],["Muy fuerte",.25,[8,8],"#ffb35c","25 %"],["Élite",.033,[9,9],"#ff6ad5","≈ 3 %"],["Legendario",.017,[10,10],"#ffd86b","≈ 2 %"]];
+const trnTierOf=lv=>lv<=3?0:lv<=5?1:lv<=7?2:lv==8?3:lv==9?4:5;
+TN.EL={br_0:["Maximillion Pegasus",9,"om"],de_0:["Marik Ishtar",9,"dv"]};
+TN.ro1=TN.ro0;let TNT=null;
+function tnTierTbl(){if(TNT)return TNT;const all=[],T={};
+ TN.N.forEach(n=>{for(let s=0;s<6;s++){const d=TN.ro1(n[0],s);all.push({k:n[0]+"_"+s,n:d.n,lv:d.lv,th:d.th})}});
+ const JL=[10,10,9,9],forced=new Set();
+ for(let s=0;s<4;s++){const x=all.find(a=>a.k=="jp_"+s);x.lv=JL[s];forced.add(x.k)}
+ Object.entries(TN.EL).forEach(([k,v])=>{const x=all.find(a=>a.k==k);x.n=v[0];x.lv=v[1];x.th=v[2];forced.add(k)});
+ const rest=all.filter(a=>!forced.has(a.k)).sort((a,b)=>b.lv-a.lv||rlSeed("tier|"+a.k)()-rlSeed("tier|"+b.k)());
+ const cut=[30,36,36,12],ord=[3,2,1,0];let i=0;
+ ord.forEach((t,j)=>{rest.slice(i,i+cut[j]).forEach(a=>{const r=TTIER[t][2];a.lv=rlSeed("tl|"+a.k)()<.5?r[0]:r[r.length-1]});i+=cut[j]});
+ all.forEach(a=>T[a.k]=a);return TNT=T}
+TN.ro0=function(key,s){const t=tnTierTbl()[key+"_"+s];return{n:t.n,lv:t.lv,th:t.th}};
+
+/* ===== SIMULACIÓN TOTAL (solo administrador): resultados de todo el torneo sin jugar partidas ===== */
+let SIMSALT="";
+const TSM2={runs:200,busy:0,prog:0,agg:null,single:null,seedN:1};
+const STG=["s36","t18","t9","f6","t4","fi","ch"],SGL=["Top 36","Top 18","Top 9","Finalistas (6)","Top 4","Gran final","Campeón"];
+function simOnce(salt){SIMSALT=salt;try{return trnEngine({rd:TNMAX+1,real:{},res:{},cl:{},ov:{}})}finally{SIMSALT=""}}
+function simStages(E){const S={s36:E.s36||[],t18:(E.r7||[]).map(m=>m.w),t9:(E.r8||[]).map(m=>m.w),f6:E.fin||[],t4:E.top4||[],fi:E.fi?[E.fi.f.a,E.fi.f.b]:[],ch:E.champ?[E.champ]:[]};return S}
+function simAgg(A,E){const S=simStages(E),T=trnPts(E);A.n++;
+ STG.forEach(g=>S[g].forEach(k=>{if(k==null)return;const o=A.pl[k]=A.pl[k]||{};o[g]=(o[g]||0)+1}));
+ Object.entries(T.w).forEach(([k,w])=>{const o=A.pl[k]=A.pl[k]||{};o.w=(o.w||0)+w});
+ const q1=E.q1?new Set([...E.q1.f,...E.q1.s,...E.q1.t]):new Set(),q2=new Set(E.q2||[]);
+ TN.N.forEach((_,ni)=>{const o=A.na[ni]=A.na[ni]||{p2:0,p3:0,ch:0,g1:0};if(q1.has(ni))o.p2++;if(q2.has(ni))o.p3++;if(E.champ&&E.P[E.champ].ni==ni)o.ch++;for(let s=0;s<6;s++)o.g1+=E.pp1[ni+":"+s]||0})}
+async function simRun(n){if(TSM2.busy)return;TSM2.busy=1;TSM2.prog=0;render();const A={n:0,pl:{},na:{}},base=TSM2.seedN;TSM2.seedN+=n;
+ try{for(let i=0;i<n;i++){simAgg(A,simOnce("mc"+(base+i)+"|"));if(i%5==4||i==n-1){TSM2.prog=i+1;const e=document.getElementById("smp");if(e)e.textContent=(i+1)+" / "+n;await new Promise(r=>setTimeout(r,0))}}TSM2.agg=A}catch(e){console.error(e);toast("La simulación falló: "+e.message)}
+ TSM2.busy=0;render()}
+function simTierChip(lv){const t=TTIER[trnTierOf(lv)];return`<span style="color:${t[3]};font-weight:700">${t[0]}</span>`}
+function simTierBox(){const T=tnTierTbl(),c=TTIER.map(()=>0);Object.values(T).forEach(a=>c[trnTierOf(a.lv)]++);const nm=t=>Object.values(T).filter(a=>trnTierOf(a.lv)==t).map(a=>esc(a.n)).join(", ");
+ return`<div class="tbox"><h4>Niveles de los 120 duelistas</h4><table class="tt"><tr><th>Nivel</th><th>Meta</th><th>Duelistas</th></tr>${TTIER.map((t,i)=>`<tr><td style="color:${t[3]};font-weight:700">${t[0]}</td><td>${t[4]}</td><td><b>${c[i]}</b> (${(c[i]/1.2).toFixed(1)} %)</td></tr>`).join("")}</table><p class="mut" style="margin:6px 0 0"><b>Legendarios:</b> ${nm(5)}.<br><b>Élites:</b> ${nm(4)}.</p></div>`}
+function simStageTbl(E){const S=simStages(E),P=E.P;return`<table class="tt"><tr><th>Etapa</th>${TTIER.map(t=>`<th style="color:${t[3]}">${t[0]}</th>`).join("")}</tr>${STG.map((g,i)=>{const c=TTIER.map(()=>0);S[g].forEach(k=>{if(k!=null)c[trnTierOf(P[k].lv)]++});return`<tr><td>${SGL[i]} <small class="mut">(${S[g].length})</small></td>${c.map(x=>`<td>${x||"·"}</td>`).join("")}</tr>`}).join("")}</table>`}
+function simSingle(E){const real=TRN.E;TRN.E=E;let h="";
+ try{const P=E.P,pn=k=>tnP(k)+" "+simTierChip(P[k].lv);
+  h+=`<section class="pn"><h3 style="margin-top:0">🏆 Resultado de esta simulación</h3>${E.champ?[["🥇 Campeón",E.champ],["🥈 Segundo",E.second],["🥉 Tercero",E.third],["4.º",E.fourth]].map(([t,k])=>`<div class="tm"><span><b style="min-width:0">${t}</b></span><span style="text-align:right">${pn(k)} <small class="mut">· ${esc(TN.N[P[k].ni][1])}</small></span></div>`).join(""):'<p class="mut">Sin campeón.</p>'}<h4 style="color:#ffd86b;margin:12px 0 4px">¿Qué nivel de duelista llega a cada etapa?</h4>${simStageTbl(E)}</section>`;
+  h+=trnGr()+trnEl()}catch(e){console.error(e);h+='<p class="terr">No se pudo mostrar la simulación: '+esc(e.message)+'</p>'}finally{TRN.E=real}
+ return h.replace(/<button class="mini" data-act="tfix"[^>]*>[^<]*<\/button>/g,"")}
+const spc=(x,n)=>n?(x/n*100).toFixed(x/n*100<10&&x?1:0)+" %":"–";
+function simAggView(A){const T=tnTierTbl(),cnt=TTIER.map(()=>0);Object.values(T).forEach(a=>cnt[trnTierOf(a.lv)]++);
+ const tier=TTIER.map(()=>({w:0,g:{}}));
+ const nameOf={};TN.N.forEach((n,ni)=>{for(let s=0;s<6;s++){const a=T[n[0]+"_"+s];nameOf[ni+":"+s]={n:a.n,lv:a.lv,ni}}});
+ Object.entries(A.pl).forEach(([k,o])=>{const t=tier[trnTierOf(nameOf[k].lv)];t.w+=o.w||0;STG.forEach(g=>t.g[g]=(t.g[g]||0)+(o[g]||0))});
+ let h=`<section class="pn"><h3 style="margin-top:0">📈 Estadística de ${A.n} torneos simulados</h3><p class="mut" style="margin-top:0">Todos los jugadores son NPC con los niveles actuales. Las tasas son por jugador de cada nivel (cuántas veces, de 100 torneos, llega un duelista de ese nivel a cada etapa).</p><div style="overflow:auto"><table class="tt"><tr><th>Nivel</th><th>Duelistas</th><th>Victorias prom.</th>${STG.map((g,i)=>`<th>${SGL[i]}</th>`).join("")}<th>Títulos del nivel</th></tr>${TTIER.map((t,i)=>`<tr><td style="color:${t[3]};font-weight:700">${t[0]}</td><td>${cnt[i]}</td><td>${cnt[i]?(tier[i].w/A.n/cnt[i]).toFixed(1):"–"}</td>${STG.map(g=>`<td>${spc(tier[i].g[g]||0,A.n*cnt[i])}</td>`).join("")}<td><b>${spc(tier[i].g.ch||0,A.n)}</b></td></tr>`).join("")}</table></div></section>`;
+ const top=Object.entries(A.pl).filter(([k,o])=>o.t9||o.ch).sort((a,b)=>(b[1].ch||0)-(a[1].ch||0)||(b[1].fi||0)-(a[1].fi||0)||(b[1].t9||0)-(a[1].t9||0)).slice(0,15);
+ h+=`<section class="pn"><h3 style="margin-top:0">👑 Duelistas con más títulos</h3><table class="tt"><tr><th>#</th><th>Duelista</th><th>Nivel</th><th>Campeón</th><th>Gran final</th><th>Top 4</th><th>Top 9</th></tr>${top.map(([k,o],i)=>{const p=nameOf[k];return`<tr><td>${i+1}</td><td>${TN.N[p.ni][2]} ${esc(p.n)}</td><td>${simTierChip(p.lv)}</td><td><b>${spc(o.ch||0,A.n)}</b></td><td>${spc(o.fi||0,A.n)}</td><td>${spc(o.t4||0,A.n)}</td><td>${spc(o.t9||0,A.n)}</td></tr>`}).join("")}</table></section>`;
+ const nr=TN.N.map((n,ni)=>({ni,...A.na[ni]})).sort((a,b)=>(b.ch||0)-(a.ch||0)||b.p3-a.p3||b.p2-a.p2);
+ h+=`<section class="pn"><h3 style="margin-top:0">🌍 Naciones</h3><table class="tt"><tr><th>#</th><th>Nación</th><th>Nivel prom.</th><th>Pts prom. Fase 1</th><th>Pasa a Fase 2</th><th>Llega a eliminación</th><th>Campeón</th></tr>${nr.map((x,i)=>{const lvs=[0,1,2,3,4,5].map(s=>nameOf[x.ni+":"+s].lv);return`<tr class="${TN.N[x.ni][0]=="mx"?"mx":""}"><td>${i+1}</td><td>${nN(x.ni)}</td><td>${(lvs.reduce((a,b)=>a+b,0)/6).toFixed(1)}</td><td>${(x.g1/A.n).toFixed(1)}</td><td>${spc(x.p2,A.n)}</td><td>${spc(x.p3,A.n)}</td><td><b>${spc(x.ch||0,A.n)}</b></td></tr>`}).join("")}</table></section>`;
+ return h}
+function trnSm(){let h=`<section class="pn"><h3 style="margin-top:0">🧮 Simulación total del torneo</h3><p class="mut" style="margin-top:0">Simula <b>todos los resultados</b> de las 16 rondas (grupos, reagrupación, eliminación, partidas de 3, liga, semifinales y final) sin jugar duelos y sin tocar el torneo real. Sirve para ver estadísticas y cómo se reparten los niveles. Los NPC usan los niveles actuales (incluidas tus ediciones) y todos los puestos los ocupan NPC.</p><div class="tb" style="flex-wrap:wrap;gap:8px;margin:0"><button class="go" data-act="smone" ${TSM2.busy?"disabled":""}>▶ Simular un torneo completo</button><label>Estadística de <select id="smn" ${TSM2.busy?"disabled":""}>${[50,200,500,1000].map(n=>`<option value="${n}" ${TSM2.runs==n?"selected":""}>${n} torneos</option>`).join("")}</select></label><button data-act="smmc" ${TSM2.busy?"disabled":""}>📈 Simular muchos</button>${TSM2.busy?`<b>Simulando… <span id="smp">${TSM2.prog}</span></b>`:""}</div></section><section class="pn"><div class="tgrid">${simTierBox()}</div></section>`;
+ if(TSM2.agg)h+=simAggView(TSM2.agg);if(TSM2.single)h+=simSingle(TSM2.single);return h}
+app.addEventListener("change",e=>{if(e.target&&e.target.id=="smn")TSM2.runs=+e.target.value||200});
+Object.assign(ACT,{smone(){try{TSM2.single=simOnce("one"+Date.now()+"|")}catch(e){console.error(e);toast("La simulación falló: "+e.message)}render()},smmc(){const s=document.getElementById("smn");simRun(s?+s.value:TSM2.runs)}});
 
 </script></body></html>
