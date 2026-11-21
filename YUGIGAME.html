@@ -2664,13 +2664,13 @@ const TN={
 };
 const TNR=["","Fase 1 · Jornada 1","Fase 1 · Jornada 2","Fase 1 · Jornada 3","Fase 2 · Jornada 1","Fase 2 · Jornada 2","Fase 2 · Jornada 3","Eliminación · 36 jugadores","Eliminación · 18 jugadores","Partidas de 3 · 9 jugadores","Liga de 6 · Jornada 1","Liga de 6 · Jornada 2","Liga de 6 · Jornada 3","Liga de 6 · Jornada 4","Liga de 6 · Jornada 5","Semifinales","Final y tercer lugar"];
 const tnDif=L=>L<=3?"Muy débil":L<=5?"Débil":L<=7?"Fuerte":L==8?"Muy fuerte":L==9?"Élite":"Legendario";
-const TNMAX=16,WKU=["c0","ce","cs","cp","cpe","cu"];
+const TNMAX=16,WKU=["c0","ce","cs","cp","cpe"];
 /* reglas de la Temporada 1: 30 cartas, máximo 3 comodines (ultra especiales incluidos) y todas las demás de nivel 4 en adelante */
 function trnCheck(deck){const msgs=[],low=[],bad=[];let n=0,w=0;
  for(const [id,q] of Object.entries(deck||{})){if(!CB[id]||!(q>0))continue;n+=q;const k=lv(+id);
-  if(WKU.includes(k))w+=q;else if(/^n\d+$/.test(k)){if(+k.slice(1)<4)low.push([id,q])}else bad.push(id)}
+  if(WKU.includes(k))w+=q;else if(k=="cu"){}else if(/^n\d+$/.test(k)){if(+k.slice(1)<4)low.push([id,q])}else bad.push(id)}
  if(n!=30)msgs.push("Tu mazo tiene "+n+" cartas y debe tener exactamente 30.");
- if(w>3)msgs.push("Tienes "+w+" comodines (los ultra especiales cuentan) y el máximo es 3.");
+ if(w>3)msgs.push("Tienes "+w+" comodines (de defensa 0; los ultra especiales no cuentan) y el máximo es 3.");
  if(low.length)msgs.push("Hay cartas de nivel menor a 4: "+low.slice(0,6).map(([id,q])=>cnm(id)+(q>1?" ×"+q:"")).join(", ")+(low.length>6?" y "+(low.length-6)+" más":"")+".");
  if(bad.length)msgs.push("Hay cartas sin nivel válido (magia/trampa): "+bad.slice(0,4).map(cnm).join(", ")+".");
  return{ok:!msgs.length,msgs,w,n}}
@@ -2679,7 +2679,7 @@ function trnDeckFor(p){
  const L=Math.max(1,Math.min(10,p.lv||5)),lo=L<4?1:4,R=rlSeed("trnd|"+p.k+"|"+p.name),shf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
  const WK=["c0","ce","cs","cp","cpe"],num=id=>{const k=lv(id);return/^n\d+$/.test(k)?+k.slice(1):0},ids=C.map(c=>c[0]),pw=id=>CB[id][2]+CB[id][3];
  let hi=L,pool=ids.filter(id=>num(id)>=lo&&num(id)<=hi);while(pool.length<30&&hi<10){hi++;pool=ids.filter(id=>num(id)>=lo&&num(id)<=hi)}
- const wild=ids.filter(id=>WK.includes(lv(id))),xn=L>=9?3:L>=7?2:L>=5?1:0,out=[],used=new Set();let w=0;
+ const wl=ids.filter(id=>WK.includes(lv(id))),wd=wl.filter(id=>CB[id][3]===0),wild=wd.length>=3?wd:wl,xn=3,out=[],used=new Set();let w=0;
  const add=id=>{if(out.length<30&&!used.has(id)){used.add(id);out.push(id)}};
  const rx=TN.RX[p.th];
  if(rx){let tm=shf(pool.filter(id=>rx.test(CB[id][1])));if(L>=8)tm.sort((a,b)=>pw(b)-pw(a));tm.slice(0,p.sig?18:12).forEach(add);
@@ -2741,7 +2741,7 @@ const tnP=k=>{const p=TRN.E.P[k];return TN.N[p.ni][2]+" "+esc(p.name)+(p.uid?" �
 {const st=document.createElement("style");st.textContent=`.tt{width:100%;border-collapse:collapse;font-size:17px}.tt th{color:#ffd86b;text-align:left;font-weight:600;padding:4px 8px}.tt td{padding:6px 8px;border-top:1px solid #ffffff1c}.tt tr.mx td{background:#2bff8a1f}.tt tr.q td:first-child{box-shadow:inset 3px 0 #7dff9c}.tm{display:flex;align-items:center;gap:8px;padding:8px 10px;margin:5px 0;border-radius:10px;background:#ffffff0c;font-size:16px;flex-wrap:wrap}.tm.me{outline:1.5px solid #ffd86b;background:#ffd86b18}.tm>span{flex:1;min-width:130px}.tm>span:last-of-type{text-align:right}.tm b{min-width:78px;text-align:center;color:#cfd6ff}.tm .w{color:#7dff9c;font-weight:700}.ttabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.ttabs button{background:#ffffff12;border:1.5px solid #ffffff2a;color:#fff;border-radius:999px;padding:8px 16px;font:700 16px Rajdhani,sans-serif;cursor:pointer}.ttabs button.on{background:linear-gradient(#ffd86b,#e0a823);color:#1a1200;border-color:#ffd86b}.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}.tbox{background:#ffffff0a;border:1px solid #ffffff22;border-radius:12px;padding:10px 12px}.tbox h4{margin:0 0 6px;color:#ffd86b}.trule li{margin:4px 0}.terr{color:#ff9a9a;margin:8px 0}`;document.head.appendChild(st)}
 /* ---------- datos en vivo ---------- */
 function trnOn(){if(TRN.u.length||!db)return;
- TRN.u.push(D("torneo","s1").onSnapshot(s=>{TRN.ld=1;TRN.st=s.exists?s.data():null;trnRe()},()=>{}));
+ TRN.u.push(D("torneo","s1").onSnapshot(s=>{TRN.ld=1;TRN.raw=s.exists?s.data():null;TRN.st=trnEffSt(TRN.raw);trnRe()},()=>{}));
  TRN.u.push(D("torneo","s1").collection("res").onSnapshot(s=>{TRN.res={};s.docs.forEach(d=>TRN.res[d.id]=d.data());trnRe()},()=>{}));
  TRN.u.push(D("torneo","s1").collection("claims").doc(U.uid).onSnapshot(s=>{TRN.cl=s.exists?s.data():{};if(VW=="trn"&&app.style.display!="none")render()},()=>{}))}
 function trnOff(){TRN.u.forEach(f=>{try{f()}catch(e){}});TRN.u=[]}
@@ -2756,7 +2756,7 @@ const tnAny=m=>m.tag=="TRI"?tnTri(m):tnRow(m);
 function tnTbl(g,qn){const E=TRN.E;return`<table class="tt"><tr><th>#</th><th>Equipo</th><th>Pts</th><th>V</th></tr>${g.t.map((x,i)=>`<tr class="${x.ni==E.MX?"mx":""} ${qn&&qn(i,x)?"q":""}"><td>${i+1}</td><td>${TN.N[x.ni][2]} ${TN.N[x.ni][1]}</td><td>${x.pts}</td><td>${x.w}</td></tr>`).join("")}</table>`}
 function trnRes(){const st=TRN.st,E=TRN.E,mi=trnMine(),rd=st.rd||0,real=st.real||{},nre=Object.keys(real).length;
  let h=`<section class="pn"><h2 style="margin-top:0">🌍 Torneo Mundial · Temporada 1</h2><p class="mut" style="margin-top:0">120 duelistas, 20 naciones. México compite con un equipo de 6 jugadores reales.</p><p class="tbig" style="font-size:21px;margin:6px 0"><b>${rd==0?"Inscripciones abiertas":rd>TNMAX?"Torneo terminado":"Ronda "+rd+" de "+TNMAX+" · "+TNR[rd]}</b></p>
- <ul class="trule"><li>Mazo de <b>30 cartas</b>.</li><li>Máximo <b>3 comodines</b> (los ultra especiales cuentan como comodín).</li><li>Todas las demás cartas deben ser de <b>nivel 4 o superior</b>.</li><li>Cada victoria vale 3 puntos. En los grupos cada jugador enfrenta a un rival de cada otra nación: máximo 9 puntos por jugador y 54 por equipo.</li></ul></section>`;
+ <ul class="trule"><li>Mazo de <b>30 cartas</b>.</li><li>Máximo <b>3 comodines</b> (cartas de defensa 0). Las <b>ultra especiales no cuentan</b> como comodín y se pueden usar.</li><li>Todas las demás cartas deben ser de <b>nivel 4 o superior</b>.</li><li>Cada victoria vale 3 puntos. En los grupos cada jugador enfrenta a un rival de cada otra nación: máximo 9 puntos por jugador y 54 por equipo.</li></ul></section>`;
  if(E&&E.champ){const pod=[["🥇 Campeón",E.champ],["🥈 Segundo",E.second],["🥉 Tercero",E.third],["4.º",E.fourth]];h+=`<section class="pn"><h3 style="margin-top:0">🏆 Podio final</h3>${pod.map(([t,k])=>`<div class="tm ${E.P[k].uid==(U&&U.uid)?"me":""}"><span><b style="min-width:0">${t}</b></span><span style="text-align:right">${tnP(k)}</span></div>`).join("")}</section>`}
  h+=`<section class="pn"><h3 style="margin-top:0">🇲🇽 Equipo México · ${nre}/6 jugadores</h3>`+[0,1,2,3,4,5].map(i=>real[i]?`<div class="tm ${U&&real[i].uid==U.uid?"me":""}"><span>#${i+1}${i==0?" · Capitán":""}</span><span><b style="min-width:0;color:#fff">${esc(real[i].name)}</b> ⭐</span></div>`:`<div class="tm"><span>#${i+1}</span><span style="opacity:.6">Vacante · lo juega un NPC provisional (${esc(TN.NM.mx[i])})</span></div>`).join("");
  if(mi.me)h+=`<p style="color:#7dff9c;margin:8px 0 0">✅ Ya estás inscrito en el equipo de México.</p>`;
@@ -2829,7 +2829,7 @@ async function trnJoin(){if(!U||!db)return;TRN.err=null;const ck=trnCheck(U.col&
 /* ---------- duelo del torneo ---------- */
 async function trnReport(mid,win,place,n){n=n||0;try{const d={mid,uid:U.uid,w:!!win,ts:Date.now()};if(place)d.p=place;await D("torneo","s1").collection("res").doc(mid+"_"+U.uid).set(d);toast(place?"Tu lugar ("+place+".º) quedó registrado en el torneo":win?"🏆 Victoria registrada en el torneo":"Derrota registrada en el torneo",4500)}catch(e){if(n<6)setTimeout(()=>trnReport(mid,win,place,n+1),8000);else toast("No se pudo registrar el resultado del torneo. Avisa al administrador.",7000)}}
 function trnPlay(mid){const E=TRN.E,st=TRN.st;if(!E||!U||!st)return;const m=E.M.find(x=>x.id==mid);if(!m)return toast("No se encontró el partido");
- if(m.r!=st.rd)return toast("Ese partido ya no está abierto");
+ if(m.r!=E.rd)return toast("Ese partido ya no está abierto o el plazo terminó");
  const mem=m.tag=="TRI"?m.mem:[m.a,m.b];if(!mem.some(k=>E.P[k].uid==U.uid))return;
  if(TRN.res[mid+"_"+U.uid])return toast("Ya registraste el resultado de este partido");
  const ck=trnCheck(U.col.deck);if(!ck.ok){toast("Tu mazo ya no cumple las reglas: "+ck.msgs[0],7000);return showApp("col")}
@@ -3683,5 +3683,75 @@ Object.keys(MYP).forEach(t=>{PKI[t]=[MYP[t][0],MYP[t][1]];PKIMG[t]=MI[t]});
 async function arGrant(uid){try{const ref=D("users",uid);let got=0;await db.runTransaction(async tx=>{const sn=await tx.get(ref),x=sn.data()||{};if(x.arg11||!x.col||nkey(x.name||"")!="areli rios")return;tx.update(ref,{"col.packs.pts":FV.increment(1),"col.packs.plr":FV.increment(1),"col.packs.pzc":FV.increment(1),arg11:true});got=1});
 if(got&&U&&U.uid==uid){U.col.packs=U.col.packs||{};["pts","plr","pzc"].forEach(t=>U.col.packs[t]=(U.col.packs[t]||0)+1);U.arg11=1;setTimeout(()=>{fx(`<div class="stg"><h2>🎁 ¡Regalo especial para ti!</h2><p class="mut">Recibiste 3 sobres: Syrena Tinta, Lana Del Rey y un sobre de comodines de defensa cero.</p><div class="row" style="justify-content:center;gap:10px">${["pts","plr","pzc"].map(t=>`<img src="${PKIMG[t]}" style="height:170px;border-radius:8px;filter:drop-shadow(0 0 18px ${MYP[t][1]})">`).join("")}</div><div class="row" style="justify-content:center;gap:12px"><button onclick="fxClose();showApp('pk')">ABRIR AHORA</button><button class="ghost" onclick="fxClose()">Luego</button></div></div>`);try{snd(520,.25,"sine",.08,900)}catch(e){}},1200)}}catch(e){console.error(e)}}
 {const _su=setUser;setUser=function(uid,d){_su.apply(this,arguments);if(U&&d&&d.col&&!d.arg11&&db&&nkey(d.name||"")=="areli rios")arGrant(uid)}}
+}
+
+/* ===== v11b: quitar a «Areli Ríos» los sobres de nivel 1, 2, 3 y de bienvenida (una sola vez) ===== */
+{async function arClean(uid){try{const ref=D("users",uid);let did=0;await db.runTransaction(async tx=>{const sn=await tx.get(ref),x=sn.data()||{};if(x.arc11||!x.col||nkey(x.name||"")!="areli rios")return;tx.update(ref,{"col.packs.p1":0,"col.packs.p2":0,"col.packs.p3":0,"col.packs.pw":0,arc11:true});did=1});
+if(did&&U&&U.uid==uid){U.col.packs=U.col.packs||{};["p1","p2","p3","pw"].forEach(t=>U.col.packs[t]=0);U.arc11=1;try{render()}catch(e){}}}catch(e){console.error(e)}}
+const _sc=setUser;setUser=function(uid,d){_sc.apply(this,arguments);if(U&&d&&d.col&&!d.arc11&&db&&nkey(d.name||"")=="areli rios")arClean(uid)}}
+
+/* ===== v12: fecha límite por ronda + avisos del torneo ===== */
+function trnEffSt(st){if(!st||!st.hrs||!st.dl||!(st.rd>=1))return st;const ms=st.hrs*36e5,n=Date.now();let rd=st.rd,dl=st.dl;const cl=Object.assign({},st.cl);while(rd<=TNMAX&&n>dl){cl[rd]=dl;rd++;dl+=ms}return Object.assign({},st,{rd,cl,dl})}
+function trnDlTxt(){const st=TRN.st;if(!st||!st.dl||!(st.rd>=1&&st.rd<=TNMAX))return"";const ms=st.dl-Date.now();if(ms<=0)return"El plazo terminó";const m=Math.floor(ms/6e4),d=Math.floor(m/1440),h=Math.floor(m%1440/60);return"Faltan "+(d?d+" d ":"")+(d||h?h+" h ":"")+(m%60)+" min"}
+function trnNtf(txt,key){try{const k="trnn|"+(U&&U.uid)+"|"+key;if(localStorage.getItem(k))return;localStorage.setItem(k,"1")}catch(e){}
+ toast(txt,9000);try{if(window.Notification&&Notification.permission=="granted")new Notification("Torneo Mundial",{body:txt})}catch(e){}}
+function trnNotifyCheck(){try{if(!U||TRN.test||!TRN.E||!TRN.st)return;const st=TRN.st,rd=st.rd||0;if(rd<1||rd>TNMAX)return;const mi=trnMine();if(!mi.cur||TRN.res[mi.cur.id+"_"+U.uid])return;
+ trnNtf("Empezó la ronda "+rd+": tienes un duelo pendiente en el torneo.","r"+rd+"a");
+ if(st.dl){const ms=st.dl-Date.now();if(ms>0&&ms<=3*36e5)trnNtf("Te quedan "+(ms<=36e5?"menos de 1 h":Math.ceil(ms/36e5)+" h")+" para jugar tu duelo del torneo.","r"+rd+"b");if(ms>0&&ms<=30*6e4)trnNtf("¡Últimos minutos! Menos de 30 min para tu duelo del torneo.","r"+rd+"c")}}catch(e){console.error(e)}}
+{const _tre=trnRe;trnRe=function(){const r=_tre.apply(this,arguments);trnNotifyCheck();return r}}
+setInterval(()=>{try{if(U&&db&&!TRN.u.length&&trnVis())trnOn();if(TRN.raw){const e=trnEffSt(TRN.raw),ch=e.rd!==(TRN.st||{}).rd;TRN.st=e;if(ch)trnRe()}trnNotifyCheck();const t=document.getElementById("tdlt");if(t)t.textContent=trnDlTxt()}catch(x){}},15000);
+{const _rt=rTrn;rTrn=function(){let h=_rt.apply(this,arguments);try{const st=TRN.st;if(!st||TRN.test)return h;let add="";
+ if(st.dl&&st.rd>=1&&st.rd<=TNMAX){const f=new Date(st.dl).toLocaleString("es-MX",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+  add+=`<section class="pn" style="border-color:#ffd86b88"><b>Ronda ${st.rd} · fecha límite: ${f}</b> · <span id="tdlt">${trnDlTxt()}</span><p class="mut" style="margin:6px 0 0">Quien no juegue su duelo antes de esa hora cuenta como derrota y el torneo pasa solo a la siguiente ronda.</p>${window.Notification&&Notification.permission=="default"?`<button class="go" data-act="tnotif" style="margin-top:8px">Activar avisos del navegador</button>`:""}</section>`}
+ if(U&&U.admin)add+=`<section class="pn"><h3 style="margin-top:0">Fecha límite por ronda (administrador)</h3><p class="mut" style="margin-top:0">Cada ronda cierra sola al pasar el tiempo: quien no jugó cuenta como derrota. ${st.hrs?"Plazo actual: <b>"+st.hrs+" h</b> por ronda.":"Ahora no hay límite de tiempo."}</p><div class="tb" style="flex-wrap:wrap;gap:8px;margin:0"><input id="tdh" type="number" min="1" step="1" value="${st.hrs||24}" style="width:90px"> horas por ronda <button class="go" data-act="tdl" data-a="set">${st.hrs?"Cambiar y reiniciar plazo":"Aplicar"}</button>${st.hrs?`<button data-act="tdl" data-a="off">Quitar límite</button>`:""}</div></section>`;
+ const m='🏆 Torneo</b></div>',i=h.indexOf(m);if(i>-1)h=h.slice(0,i+m.length)+add+h.slice(i+m.length)}catch(e){console.error(e)}return h}}
+Object.assign(ACT,{tnotif(){try{Notification.requestPermission().then(()=>render())}catch(e){}},
+async tdl(b){if(!U||!U.admin||TRN.test||!db)return;const ref=D("torneo","s1"),a=b.dataset.a,rd=(TRN.st||{}).rd||0;try{
+ if(a=="off"){await ref.update({hrs:FV.delete(),dl:FV.delete()});toast("Plazo por ronda quitado")}
+ else{const h=Math.max(1,Math.min(720,Math.round(+(document.getElementById("tdh")||{}).value||0)));if(!h)return toast("Escribe las horas");const u={hrs:h};if(rd>=1&&rd<=TNMAX){u.dl=Date.now()+h*36e5;Object.entries(TRN.st.cl||{}).forEach(([k,v])=>{if(+k<rd)u["cl."+k]=v})}await ref.update(u);toast("Plazo guardado: "+h+" h por ronda")}}catch(e){console.error(e);toast("No se pudo guardar el plazo")}}});
+{const _ta=ACT.tadm;ACT.tadm=async function(b){const a=b.dataset.a,raw=TRN.raw||{},st=TRN.st||{};
+ if(U&&U.admin&&!TRN.test&&raw.hrs&&(a=="start"||a=="next")){const rd=st.rd||0,ref=D("torneo","s1");try{
+  if(a=="start"){if(rd!=0)return;if(!confirm("¿Iniciar el torneo?\nSe cierran las inscripciones y empieza la Ronda 1 con "+raw.hrs+" h de plazo."))return;await ref.update({rd:1,dl:Date.now()+raw.hrs*36e5})}
+  else{if(!(rd>=1&&rd<=TNMAX))return;if(!confirm("¿Cerrar la ronda "+rd+" y pasar a la siguiente?\n\nQuien no haya jugado su duelo contará como derrota."))return;const u={rd:rd+1,["cl."+rd]:Date.now(),dl:Date.now()+raw.hrs*36e5};Object.entries(st.cl||{}).forEach(([k,v])=>{if(+k<rd)u["cl."+k]=v});await ref.update(u)}}catch(e){console.error(e);toast("No se pudo completar la acción")}return}
+ const r=await _ta.apply(this,arguments);if(a=="reset"){try{await D("torneo","s1").update({dl:FV.delete()})}catch(e){}}return r}}
+
+/* ===== v12: plazos por ronda y avisos del torneo ===== */
+{
+const DLH=48,LS=k=>{try{return localStorage.getItem(k)}catch(e){return null}},LW=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+const fmtD=ts=>new Date(ts).toLocaleString("es-MX",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+/* plazo de la ronda r: el que fijó el admin o (si hay plazo automático) inicio de ronda + horas */
+const trnDl=(st,r,cl,r0)=>{if(st.dl&&st.dl[r])return st.dl[r];const dh=st.dh==null?DLH:+st.dh;if(!(dh>0))return 0;const t=st["t"+r]||(r>r0?cl[r-1]:0);return t?t+dh*36e5:0};
+/* estado efectivo: si venció el plazo, la ronda se cierra sola (quien no jugó cuenta como derrota) */
+const trnEff=st=>{const r0=st.rd||0;if(r0<1||r0>TNMAX)return st;const cl={...(st.cl||{})},now=Date.now();let rd=r0;
+ while(rd>=1&&rd<=TNMAX){const d=trnDl(st,rd,cl,r0);if(d&&now>d){if(!cl[rd])cl[rd]=d;rd++}else break}
+ return rd==r0?st:{...st,rd,cl,eff:1}};
+const trnSync=async()=>{if(!U||!U.admin||!db||!TRN.raw||!TRN.st||TRN.syn)return;const raw=TRN.raw,eff=TRN.st;if(!eff.eff||eff.rd<=raw.rd)return;TRN.syn=1;
+ try{const up={rd:eff.rd};for(let r=raw.rd;r<eff.rd;r++)up["cl."+r]=eff.cl[r];if(eff.rd<=TNMAX)up["t"+eff.rd]=eff.cl[eff.rd-1];await D("torneo","s1").update(up)}catch(e){console.error(e)}TRN.syn=0};
+const trnNote=(t,b)=>{try{toast(t+" · "+b,9000)}catch(e){}try{if("Notification"in window&&Notification.permission=="granted")new Notification(t,{body:b})}catch(e){}};
+const trnNotify=()=>{if(!U||!TRN.E||!TRN.st||!trnVis())return;const E=TRN.E,rd=E.rd,mi=trnMine();if(!mi.me)return;const k="tn:"+U.uid+":",last=+LS(k+"rd")||0,now=Date.now(),raw=TRN.raw||TRN.st;
+ const dl=rd>=1&&rd<=TNMAX?trnDl(raw,rd,TRN.st.cl||{},raw.rd):0,done=m=>!!(m&&TRN.res[m.id+"_"+U.uid]);
+ if(rd!==last){LW(k+"rd",rd);
+  if(last>=1&&last<rd&&last<=TNMAX){const pm=mi.ms.find(m=>m.r==last);if(pm&&!done(pm))trnNote("Ronda "+last+" cerrada","No jugaste tu duelo a tiempo: contó como derrota.")}
+  if(rd>=1&&rd<=TNMAX)trnNote("Empezó la ronda "+rd+" del torneo",(mi.cur?(done(mi.cur)?"Ya jugaste tu duelo.":"Tienes un duelo pendiente."):"En esta ronda no te toca duelo.")+(dl?" Plazo: "+fmtD(dl)+".":""));
+  else if(rd>TNMAX)trnNote("El torneo terminó","Gracias por participar.")}
+ if(dl&&mi.cur&&!done(mi.cur)){const left=dl-now;if(left>0)for(const h of [.25,1,6,24])if(left<=h*36e5){const key=k+"r"+rd+"_"+h;if(!LS(key)){[.25,1,6,24].filter(x=>x>=h).forEach(x=>LW(k+"r"+rd+"_"+x,1));trnNote("Tu duelo del torneo vence pronto","Te quedan "+(h<1?Math.round(h*60)+" minutos":h+" h")+" o menos para jugar la ronda "+rd+".")}break}}};
+{const _re=trnRe;trnRe=function(){try{if(TRN.st){const raw=TRN.st.eff?TRN.raw:TRN.st;TRN.raw=raw;TRN.st=trnEff(raw)}}catch(e){console.error(e)}const r=_re.apply(this,arguments);try{trnSync();trnNotify()}catch(e){console.error(e)}return r}}
+/* al avanzar (iniciar o cerrar ronda) se guarda la hora de inicio de la nueva ronda */
+{const _t=ACT.tadm;ACT.tadm=async function(b){const a=b.dataset.a,rd=(TRN.st||{}).rd||0,r=await _t.apply(this,arguments);
+ if(U&&U.admin&&db&&(a=="start"||a=="next")){try{const ref=D("torneo","s1"),x=(await ref.get()).data()||{};if((x.rd||0)>=1&&x.rd!==rd&&x["t"+x.rd]==null)await ref.update({["t"+x.rd]:Date.now()})}catch(e){console.error(e)}}return r}}
+Object.assign(ACT,{async tdl(b){if(!U||!U.admin||!db)return;const st=TRN.st||{},rd=st.rd||0,ref=D("torneo","s1"),a=b.dataset.a;
+ try{if(a=="round"){if(rd<1||rd>TNMAX)return toast("No hay una ronda en curso");const h=parseFloat(prompt("¿En cuántas horas termina la ronda "+rd+"? (contadas desde ahora)","24"));if(!(h>0))return;await ref.update({["dl."+rd]:Date.now()+h*36e5});toast("Plazo de la ronda "+rd+" guardado")}
+ else{const h=parseFloat(prompt("Horas de plazo para cada ronda nueva (0 = sin plazo automático)",String(st.dh==null?DLH:st.dh)));if(isNaN(h)||h<0)return;await ref.update({dh:h});toast(h>0?"Plazo automático: "+h+" h por ronda":"Plazo automático desactivado")}}
+ catch(e){console.error(e);toast("No se pudo guardar el plazo")}}});
+{const _g=ACT.gtrn;ACT.gtrn=function(){try{if("Notification"in window&&Notification.permission=="default")Notification.requestPermission()}catch(e){}return _g.apply(this,arguments)}}
+/* pantalla: plazo con cuenta regresiva y controles del administrador */
+{const _rt=rTrn;rTrn=function(){let h=_rt.apply(this,arguments);try{const st=TRN.st;if(st&&st.rd>=1&&st.rd<=TNMAX){const raw=TRN.raw||st,d=trnDl(raw,st.rd,st.cl||{},raw.rd);
+ if(d)h=h.replace(/(<b>Ronda \d+ de \d+[^<]*<\/b><\/p>)/,'$1<p style="margin:4px 0 8px">⏱ Plazo de la ronda: <b class="tdl" data-d="'+d+'" style="color:#ffd86b"></b> <span class="mut">('+fmtD(d)+')</span></p>')}}catch(e){console.error(e)}return h}}
+{const _ta=trnAdm;trnAdm=function(){let h=_ta.apply(this,arguments);try{const st=TRN.st||{},dh=st.dh==null?DLH:+st.dh,rd=st.rd||0,raw=TRN.raw||st,d=rd>=1&&rd<=TNMAX?trnDl(raw,rd,st.cl||{},raw.rd):0;
+ h=h.replace('<button data-act="tadm" data-a="reset">','<button data-act="tdl" data-a="round">⏱ Definir plazo de la ronda actual</button><button data-act="tdl" data-a="auto">⏳ Plazo automático: '+(dh>0?dh+" h":"desactivado")+'</button><button data-act="tadm" data-a="reset">');
+ h=h.replace(/<\/section>\s*$/,'<p class="mut" style="margin:8px 0 0">Plazo de la ronda actual: <b>'+(d?fmtD(d):"sin plazo")+'</b>. Al vencer, la ronda se cierra sola, quien no jugó cuenta como derrota y empieza la siguiente.</p></section>')}catch(e){console.error(e)}return h}}
+/* reloj, avisos y cierre automático */
+setInterval(()=>document.querySelectorAll(".tdl").forEach(e=>{const l=+e.dataset.d-Date.now();e.textContent=l<=0?"terminado":(l>=864e5?Math.floor(l/864e5)+" d ":"")+Math.floor(l%864e5/36e5)+" h "+Math.floor(l%36e5/6e4)+" min"+(l<36e5?" "+Math.floor(l%6e4/1e3)+" s":"")}),1000);
+setInterval(()=>{try{if(!U||!db||!trnVis())return;if(!TRN.u.length)trnOn();TRN.last=Date.now();const raw=TRN.st&&TRN.st.eff?TRN.raw:TRN.st;if(!raw)return;if(trnEff(raw).rd!==TRN.st.rd)trnRe();else{trnSync();trnNotify()}}catch(e){console.error(e)}},20000);
 }
 </script></body></html>
