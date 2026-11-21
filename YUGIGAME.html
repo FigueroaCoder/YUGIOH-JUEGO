@@ -2682,7 +2682,7 @@ function trnDeckFor(p){
  if(p.sig){const ul=/Yugi/i.test(p.name)?[9001,9003,9011,9024,9001]:[9012,9014,9022,9014,9022],uu=ul.filter(i=>CB[i]);if(uu.length){const base=out.filter(i=>!(i>=9000&&i<9100)).slice(0,30-uu.length);out.length=0;base.concat(uu).forEach(i=>out.push(i))}}
  return out.map(id=>({id,n:CB[id][1],a:CB[id][2],d:CB[id][3]}))}
 /* motor determinista: con el estado (ronda, equipo real, resultados) calcula TODO el torneo */
-function trnEngine(st){
+function trnEngine(st){if(!TN.G0)TN.G0=TN.G.map(a=>a.slice());TN.G=tnGrOk(st&&st.grp)?st.grp:TN.G0;
  const rd=st.rd||0,real=st.real||{},res=st.res||{},cl=st.cl||{},N=TN.N,NI={};N.forEach((n,i)=>NI[n[0]]=i);
  const hs=k=>rlSeed("trnh|"+k)(),P={};
  N.forEach((n,ni)=>{for(let s=0;s<6;s++){const d=TN.ro(n[0],s),rl=n[0]=="mx"?real[s]:null;P[ni+":"+s]={k:ni+":"+s,ni,s,name:rl?rl.name:d.n,lv:rl?7:d.lv,th:d.th,uid:rl?rl.uid:null,dk:rl?rl.deck:null,sig:n[0]=="jp"&&s<2}}});
@@ -2792,7 +2792,7 @@ function trnPa(){const E=TRN.E,rd=E.rd;if(!rd)return`<section class="pn"><p clas
  const ks=m=>m.tag=="TRI"?m.mem:[m.a,m.b];if(TRN.pf=="mx")L=L.filter(m=>ks(m).some(k=>E.P[k].ni==E.MX));else if(TRN.pf=="me")L=L.filter(m=>U&&ks(m).some(k=>E.P[k].uid==U.uid));
  const f=(k,t)=>`<button class="${TRN.pf==k?"on":""}" data-act="tpf" data-f="${k}">${t}</button>`;
  return`<section class="pn"><div class="tb" style="margin:0 0 8px"><button class="mini" data-act="trs" data-r="${r-1}" ${r<=1?"disabled":""}>‹</button><b style="font-size:19px">Ronda ${r} · ${TNR[r]}</b><button class="mini" data-act="trs" data-r="${r+1}" ${r>=Math.min(rd,TNMAX)?"disabled":""}>›</button></div><div class="ttabs" style="margin-top:0">${f("mx","México")}${f("me","Solo yo")}${f("all","Todos")}</div>${L.length?L.map(tnAny).join(""):'<p class="mut">Sin partidos con este filtro.</p>'}</section>`}
-function trnEl(){const E=TRN.E;if(!E.s36)return`<section class="pn"><h3 style="margin-top:0">Fase 3 · Eliminación individual</h3><p class="mut">Se juega cuando terminen las fases de grupos. Los 36 jugadores de las 6 naciones clasificadas se enfrentan: 36 → 18 → 9 → 3 tríadas → 6 finalistas.</p></section>`;
+function trnElList_old(){const E=TRN.E;if(!E.s36)return`<section class="pn"><h3 style="margin-top:0">Fase 3 · Eliminación individual</h3><p class="mut">Se juega cuando terminen las fases de grupos. Los 36 jugadores de las 6 naciones clasificadas se enfrentan: 36 → 18 → 9 → 3 tríadas → 6 finalistas.</p></section>`;
  const sec=(t,L)=>L&&L.length?`<section class="pn"><h3 style="margin-top:0">${t}</h3>${L.map(tnRow).join("")}</section>`:"";
  let h=sec("Ronda de 36 jugadores (18 duelos)",E.r7)+sec("Ronda de 18 jugadores (9 duelos)",E.r8);
  if(E.triM)h+=`<section class="pn"><h3 style="margin-top:0">Partidas de 3 · avanzan 2 de cada 3</h3><p class="mut" style="margin-top:0">Los 9 sobrevivientes juegan 3 partidas de 3 jugadores (modo Trío). Si hay jugadores reales en la tríada, cada uno juega su partida contra los otros dos; si es solo de NPC se simula.</p><div class="tgrid">${E.triM.map((m,i)=>tnTri(m,i)).join("")}</div></section>`;
@@ -3026,7 +3026,7 @@ function specUI(on){let b=document.getElementById("spx");if(!on){if(b)b.remove()
   st.textContent="#spx{position:fixed;left:54px;bottom:10px;z-index:2450;display:flex;gap:8px;align-items:center;background:#0a0c24ee;border:1px solid #ffffff55;border-radius:999px;padding:5px 6px 5px 14px;color:#fff;font:700 14px Rajdhani,sans-serif;letter-spacing:.04em;box-shadow:0 4px 16px #000a;max-width:calc(100vw - 70px)}#spx span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#spx button{clip-path:none;box-shadow:none;border:1px solid #ffffff66;background:#ff3b6b;color:#fff;border-radius:999px;padding:4px 12px;font:800 13px Rajdhani,sans-serif;cursor:pointer}";
   document.head.appendChild(st)}
   b=document.createElement("div");b.id="spx";b.innerHTML="<span></span><button type=\"button\">SALIR</button>";document.body.appendChild(b);b.querySelector("button").onclick=()=>exitOnline()}
- b.firstChild.textContent="👁 ESPECTANDO · "+ON.an+" vs "+ON.bn}
+ b.firstChild.textContent=(ON.rpl?"🎬 REPETICIÓN · ":"👁 ESPECTANDO · ")+ON.an+" vs "+ON.bn}
 function specEnd(aWon,why){if(!ON.spec||G.over)return;G.over=1;G.busy=1;G.fast=0;
  const nm=aWon?ON.an:ON.bn,o=$("#ov");o.querySelector("h1").textContent="🏆 GANÓ "+String(nm).toUpperCase();o.querySelector("p").textContent=why||"Fin del duelo";
  $("#go").textContent="SALIR";$("#ovm").style.display="none";$("#oxit").style.display="none";$("#orev").style.display="none";o.style.display="flex"}
@@ -3042,30 +3042,30 @@ async function specPump(){if(!SP||SP.run)return;const me=SP;me.run=1;
  catch(e){console.error("espectador",e);if(ON.spec&&SP===me){toast("Se perdió la sincronización del duelo");exitOnline()}}
  finally{me.run=0}
  if(ON.spec&&SP===me&&G.fast&&me.target>=0&&me.seq>=me.target)G.fast=0}
-function specCleanup(){const mid=ON.mid;ON.spec=0;G.over=1;G.busy=1;G.fast=0;SP=null;specUI(false);try{D("matches",mid).collection("viewers").doc(U.uid).delete().catch(()=>{})}catch(e){}}
+function specCleanup(){const mid=ON.mid;ON.spec=0;ON.rpl=0;G.over=1;G.busy=1;G.fast=0;SP=null;specUI(false);try{D("matches",mid).collection("viewers").doc(U.uid).delete().catch(()=>{})}catch(e){}}
 {const _co=cleanupOnline;cleanupOnline=function(){if(ON.spec)specCleanup();return _co.apply(this,arguments)}}
 {const _end=end;end=function(win){if(ON.spec){specEnd(!!win,"Los puntos de vida de un duelista llegaron a cero");return}return _end.apply(this,arguments)}}
 {const _rr=reportResult;reportResult=function(){if(ON.spec)return;return _rr.apply(this,arguments)}}
-async function startSpectate(mid){if(!U||!db)return;
+async function startSpectate(mid,rpl){if(!U||!db)return;
  if(ON.on)return toast("Termina tu partida antes de ver otro duelo");
  if(!onlineOK())return toast("Aún no tienes desbloqueado el modo en línea");
  let m;try{const s=await D("matches",mid).get();if(!s.exists)throw 0;m=s.data()}catch(e){return toast("No se pudo abrir ese duelo")}
  if(m.trio||!m.decks||!m.decks.a||!m.decks.b)return toast("Ese duelo no se puede ver");
- if(m.status!="playing")return toast("Ese duelo ya terminó");
- if(m.a==U.uid||m.b==U.uid)return toast("Ese duelo es tuyo");
+ if(m.status!="playing"&&!(rpl&&m.tourn&&m.status=="finished"))return toast("Ese duelo ya terminó");
+ if(!rpl&&(m.a==U.uid||m.b==U.uid))return toast("Ese duelo es tuyo");
  if(ON.on)return;cleanupOnline();
  const me=SP={q:[],seq:0,target:-1,run:0,mid};
- Object.assign(ON,{on:1,role:"a",mid,q:[],seq:0,pumping:0,lastSeen:Date.now(),oppBeat:null,spec:1,trio:0,my:0,an:m.an||"Jugador A",bn:m.bn||"Jugador B",opp:m.bn||"Jugador B",oppId:m.b,ab:0,oppAb:0,bonus:null});
+ Object.assign(ON,{on:1,role:"a",mid,q:[],seq:0,pumping:0,lastSeen:Date.now(),oppBeat:null,spec:1,rpl:rpl?1:0,trio:0,my:0,an:m.an||"Jugador A",bn:m.bn||"Jugador B",opp:m.bn||"Jugador B",oppId:m.b,ab:0,oppAb:0,bonus:null});
  app.style.display="none";INC=[];showInc();beat("spec");specUI(true);
- D("matches",mid).collection("viewers").doc(U.uid).set({uid:U.uid,name:U.name,ts:Date.now()}).catch(()=>{});
- ON.subs.push(D("matches",mid).onSnapshot(d=>{const x=d.data();if(!x||!ON.spec||SP!==me||G.over)return;
+ if(!rpl)D("matches",mid).collection("viewers").doc(U.uid).set({uid:U.uid,name:U.name,ts:Date.now()}).catch(()=>{});
+ ON.subs.push(D("matches",mid).onSnapshot(d=>{if(rpl)return;const x=d.data();if(!x||!ON.spec||SP!==me||G.over)return;
   if(x.status=="abandoned"&&x.gone)setTimeout(()=>specEndIdle(x.gone!="a",(x.gone=="a"?ON.an:ON.bn)+" abandonó el duelo"),2500);
   else if(x.status=="finished")setTimeout(()=>{if(!ON.spec||G.over)return;const a=P&&P[0]?P[0].lp:1,b=P&&P[1]?P[1].lp:1;specEndIdle(b<=0?true:a<=0?false:a>=b,"El duelo terminó")},12000)},()=>{}));
- G.fast=1;
+ G.fast=rpl?0:1;
  start([m.decks.a.map(x=>({...x})),m.decks.b.map(x=>({...x}))],m.first=="a"?0:1);
  G.specDone=1;$("#lp0 b").textContent=String(ON.an).toUpperCase();$("#lp1 b").textContent=String(ON.bn).toUpperCase();
  $("#surr").style.display="none";$("#claim").style.display="none";
- ON.subs.push(D("matches",mid).collection("moves").orderBy("n").onSnapshot(s=>{if(SP!==me)return;if(me.target<0){me.target=s.size;if(!me.target)G.fast=0}
+ ON.subs.push(D("matches",mid).collection("moves").orderBy("n").onSnapshot(s=>{if(SP!==me)return;if(me.target<0){me.target=s.size;if(!me.target)G.fast=0;if(rpl)tvRplWatch(me)}
   s.docChanges().forEach(ch=>{if(ch.type=="added")me.q.push(ch.doc.data())});specPump()},()=>{toast("No se pudo seguir el duelo")}))}
 /* ---- aviso a los jugadores: alguien entró a verlos ---- */
 function specWatchViewers(mid){const seen={};
@@ -3122,7 +3122,7 @@ const TSK={on:0,kl:{},fk:null,snap:null};
 const TNN={st:null,res:{},bets:[],ver:0,ev:-1,E:null,adv:0,fired:null};
 const TRB={sel:{},amt:{},all:[],busy:0,settling:0};
 const TVV={live:[],u:null};
-const BMIN=10,BMAX=2000,SCH3=[[[0,1],[2,3]],[[0,2],[1,3]],[[0,3],[1,2]]];
+const BMIN=10,BMAX=500,SCH3=[[[0,1],[2,3]],[[0,2],[1,3]],[[0,3],[1,2]]];
 {const s=document.createElement("style");s.textContent=`.bar2{height:8px;background:#ffffff1f;border-radius:5px;overflow:hidden;min-width:60px}.bar2 i{display:block;height:100%;background:linear-gradient(90deg,#ffd86b,#e0a823)}.fch{display:inline-block;min-width:22px;text-align:center;border-radius:6px;padding:1px 5px;margin:1px;font-size:13px;background:#ffffff14;color:#aab}.fch.w{background:#2bff8a33;color:#7dff9c}.fch.l{background:#ff54683a;color:#ff9a9a}.bo{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.bo button,.tq button{transform:none!important;background-image:none!important;text-transform:none!important;letter-spacing:0!important;flex:1;min-width:90px;padding:8px 6px;border-radius:10px;border:1.5px solid #ffffff33;background:#ffffff10;color:#fff;font:700 15px Rajdhani,sans-serif;cursor:pointer;clip-path:none;box-shadow:none}.bo button.on{border-color:#ffd86b!important;background:#ffd86b33!important}.bo button,.tq button:not(.go){background-color:#ffffff12!important;color:#fff!important}.bo button small{display:block;color:#ffd86b;font-size:14px}.tq{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}.tq button{flex:0 0 auto;min-width:0;padding:5px 10px;font-size:13px}.tq input{width:110px;margin:0}.sch{border-color:#52e0ff88!important;background:#52e0ff14!important}.live{color:#ff5468;font-weight:800}`;document.head.appendChild(s)}
 
 /* ---------- utilidades de tiempo ---------- */
@@ -3192,7 +3192,7 @@ function tnnTick(){try{
   TNN.fired=null;TNN.st=null;TNN.res={};TNN.bets=[];TNN.E=null;
   UN.push(D("torneo","s1").onSnapshot(s=>{TNN.st=s.exists?s.data():null;TNN.ver++;setTimeout(tnnTick,600)},()=>{}));
   UN.push(D("torneo","s1").collection("res").onSnapshot(s=>{TNN.res={};s.docs.forEach(d=>TNN.res[d.id]=d.data());TNN.ver++},()=>{}));
-  UN.push(D("torneo","s1").collection("bets").where("uid","==",U.uid).onSnapshot(s=>{TNN.bets=s.docs.map(d=>({id:d.id,...d.data()}));setTimeout(tnnTick,800)},()=>{}));
+  UN.push(D("torneo","s1").collection("bets").where("uid","==",U.uid).onSnapshot(s=>{TNN.bets=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.q);setTimeout(tnnTick,800)},()=>{}));
   UT.push(setInterval(tnnTick,15000))}catch(e){console.error(e)}return r}}
 
 /* ---------- 2. estadísticas de cartas (remates finales y monstruos destruidos) ---------- */
@@ -3250,7 +3250,7 @@ function trnBetOpen(r,st){st=st||TRN.st;if(!st||TRN.test)return false;const rd=s
 function trnEvOdds(e){const E=TRN.E,P=E.P,sg=(a,b)=>1/(1+Math.exp(-(a-b)*.5));
  if(e.kind=="nat"){let d=[1];for(let s=0;s<6;s++){const p=sg(P[e.a+":"+s].lv,P[e.b+":"+s].lv),nd=new Array(d.length+1).fill(0);d.forEach((q,i)=>{nd[i]+=q*(1-p);nd[i+1]+=q*p});d=nd}let pa=0,pe=0,pb=0;d.forEach((q,k)=>{if(k>3)pa+=q;else if(k==3)pe+=q;else pb+=q});e.p={a:pa,e:pe,b:pb}}
  else{const pa=sg(P[e.a].lv,P[e.b].lv);e.p={a:pa,b:1-pa}}
- e.odds={};for(const k in e.p)e.odds[k]=Math.max(1.1,Math.min(15,Math.round(.9/Math.max(.02,e.p[k])*100)/100));return e}
+ e.odds={};for(const k in e.p)e.odds[k]=Math.max(1.1,Math.min(5,Math.round(.9/Math.max(.02,e.p[k])*100)/100));return e}
 function trnEvents(r){const E=TRN.E;if(!E)return[];const o=[];
  if(r<=6){const grp=r<=3?E.ph1:E.ph2;if(!grp)return[];grp.forEach((g,gi)=>SCH3[(r-1)%3].forEach(([x,y])=>o.push({id:"N."+r+"."+g.nats[x]+"."+g.nats[y],r,kind:"nat",a:g.nats[x],b:g.nats[y],g:gi})))}
  else(E.BR[r]||[]).filter(m=>m.tag!="TRI").forEach(m=>o.push({id:m.id,r,kind:"duel",a:m.a,b:m.b}));
@@ -3292,7 +3292,7 @@ function trnBt(){const st=TRN.st,rd=st.rd||0,gold=(U&&U.gold)||0;
 app.addEventListener("input",e=>{const t=e.target;if(t&&t.dataset&&t.dataset.bamt)TRB.amt[t.dataset.bamt]=+t.value||0});
 Object.assign(ACT,{tbp(b){TRB.sel[b.dataset.ev]=b.dataset.k;render()},tbq(b){TRB.amt[b.dataset.ev]=+b.dataset.v;render()},
  tbet(b){const id=b.dataset.ev,inp=[...app.querySelectorAll("[data-bamt]")].find(x=>x.dataset.bamt==id);const a=inp?+inp.value:(TRB.amt[id]||100);trnBet(id,TRB.sel[id],a)}});
-{const _on=trnOn;trnOn=function(){const f=!TRN.u.length&&db;_on.apply(this,arguments);if(f&&TRN.u.length)TRN.u.push(D("torneo","s1").collection("bets").onSnapshot(s=>{TRB.all=s.docs.map(d=>({id:d.id,...d.data()}));if(VW=="trn"&&app.style.display!="none")render();setTimeout(()=>{if(TRN.E&&TRN.st)trnBetSettle(TRN.E,TRN.st)},700)},()=>{}))}}
+{const _on=trnOn;trnOn=function(){const f=!TRN.u.length&&db;_on.apply(this,arguments);if(f&&TRN.u.length)TRN.u.push(D("torneo","s1").collection("bets").onSnapshot(s=>{{const _a=s.docs.map(d=>({id:d.id,...d.data()}));TRB.all=_a.filter(x=>!x.q);TRQ.all=_a.filter(x=>x.q);setTimeout(()=>{try{qzSettle()}catch(e){}},400)};if(VW=="trn"&&app.style.display!="none")render();setTimeout(()=>{if(TRN.E&&TRN.st)trnBetSettle(TRN.E,TRN.st)},700)},()=>{}))}}
 
 /* ---------- 5. ver partidas de otros jugadores (desde la eliminación individual) ---------- */
 function tvvOn(){if(TVV.u||!db)return;TVV.u=Co("matches").where("tourn","==",1).where("status","==","playing").onSnapshot(s=>{TVV.live=s.docs.map(d=>({id:d.id,...d.data()}));if(VW=="trn"&&TRN.tab=="vv"&&app.style.display!="none")render()},()=>{})}
@@ -3327,6 +3327,262 @@ function tlvBegin(decks,first){try{
  TLV.subs.push(D("matches",mid).collection("viewers").onSnapshot(s=>{s.docChanges().forEach(ch=>{const x=ch.doc.data()||{};if(ch.type=="added"&&ch.doc.id!=U.uid&&Date.now()-(x.ts||0)<90000)notify("👁 Nuevo espectador",(x.name||"Alguien")+" está viendo tu duelo")})},()=>{}))}catch(e){console.error("[transmisión]",e)}}
 {const _s=start;start=function(decks,first){const r=_s.apply(this,arguments);if(!ON.spec)tlvBegin(decks,first);return r}}
 
+/* ===== TORNEO v4 · 📡 muro en vivo · 🌳 cuadro visual · 🚩 banderas · 🎯 quiniela ===== */
+const TRQ={all:[],loc:{g:{},d:{}},dr:{},busy:0},TLVW={f:"real",n:60};
+{const s=document.createElement("style");s.textContent=`
+.k4f{height:1em;width:1.45em;vertical-align:-.14em;border-radius:2px;box-shadow:0 0 0 1px #ffffff55;object-fit:cover;margin-right:.12em;display:inline-block}
+.tt .k4f{height:18px;width:27px;vertical-align:-4px;margin-right:6px}
+.k4lvh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.k4lvd{margin:14px 0 4px;color:#ffd86b;font:700 15px Rajdhani,sans-serif;letter-spacing:.08em;text-transform:uppercase}
+.k4lvi{display:flex;align-items:center;gap:12px;padding:9px 12px;margin:5px 0;border-radius:10px;background:#ffffff0c;font-size:17px;border-left:4px solid #ffffff22}
+.k4lvi.w{border-left-color:#7dff9c}.k4lvi.l{border-left-color:#ff5468}.k4lvi.me{outline:1.5px solid #ffd86b;background:#ffd86b18}
+.k4lvi .k4lvt{min-width:84px;text-align:right;line-height:1.15;flex:0 0 auto}.k4lvi .k4lvt b{display:block;color:#fff;font-size:18px}.k4lvi .k4lvt small{color:#9aa3c7;font-size:13px}
+.k4lvi .k4lvx{flex:1;min-width:0}.k4lvi .k4lvx small{display:block;color:#9aa3c7;font-size:13px;margin-top:1px}
+.k4lvn{background:#ff5468;color:#fff;border-radius:6px;padding:0 6px;font-size:11px;font-weight:800;letter-spacing:.06em;margin-left:6px;vertical-align:2px}
+.k4w{overflow-x:auto;overflow-y:hidden;border:1px solid #ffffff22;border-radius:12px;background:#ffffff07;padding:6px 4px 10px;-webkit-overflow-scrolling:touch}
+.k4b{position:relative}.k4b svg{position:absolute;left:0;top:0;pointer-events:none}
+.k4b svg path{fill:none;stroke:#ffffff2e;stroke-width:1.6}.k4b svg path.k4lw{stroke:#ffd86b;stroke-width:2}.k4b svg path.k4lm{stroke:#7dff9c;stroke-width:2.2}.k4b svg path.k4dash{stroke-dasharray:5 4}
+.k4h{position:absolute;top:2px;text-align:center;font:800 17px Cinzel,serif;color:#ffd86b;letter-spacing:.04em;line-height:1.05}.k4h small{display:block;font:600 12px Rajdhani,sans-serif;color:#9aa3c7;letter-spacing:0;margin-top:2px}
+.k4m{position:absolute;background:#10173a;border:1.5px solid #ffffff2e;border-radius:9px;box-shadow:0 2px 8px #0008}
+.k4m.me{border-color:#ffd86b;box-shadow:0 0 0 2px #ffd86b55}.k4m.mxm{border-left:4px solid #2bff8a}
+.k4m>em{position:absolute;top:-17px;left:3px;font:700 12px Rajdhani,sans-serif;font-style:normal;color:#ffd86b;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}
+.k4p{height:24px;display:flex;align-items:center;gap:4px;padding:0 8px;font-size:14px;white-space:nowrap;overflow:hidden;cursor:pointer}
+.k4p:first-of-type{border-radius:7px 7px 0 0}.k4p:last-child{border-radius:0 0 7px 7px}.k4p+.k4p{border-top:1px solid #ffffff1a}
+.k4p .k4n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.k4p i{font-style:normal;color:#7dff9c}
+.k4p.w{color:#7dff9c;font-weight:700;background:#2bff8a14}.k4p.l{opacity:.5}.k4p.tbd{opacity:.45;font-style:italic;cursor:default}
+.k4p.mxp .k4n{color:#9dffc4}.k4p.mep .k4n{color:#ffd86b}.k4p.hl{outline:2px solid #52e0ff;outline-offset:-2px;background:#52e0ff26;opacity:1}
+.k4m.k4g .k4p{height:26px}.k4m.k4g .k4p b{min-width:18px;color:#ffd86b}.k4m.k4g .k4p.cut{border-top:2px dashed #ff546877}.k4m.k4g .k4p.q{box-shadow:inset 3px 0 #7dff9c}.k4m.k4g .k4p span:last-child{color:#cfd6ff;font-weight:700}
+.k4m.k4c{background:linear-gradient(#2a2208,#10173a);border-color:#ffd86b}
+.k4r{display:flex;align-items:center;gap:8px;padding:6px 8px;margin:4px 0;border-radius:9px;background:#ffffff0c;font-size:16px}
+.k4r b{min-width:34px;color:#ffd86b}.k4r span{flex:1}
+.k4qb{transform:none!important;background-image:none!important;text-transform:none!important;letter-spacing:0!important;clip-path:none;box-shadow:none;padding:3px 11px;border-radius:8px;border:1.5px solid #ffffff33;background-color:#ffffff14!important;color:#fff!important;font:700 15px Rajdhani,sans-serif;cursor:pointer;min-width:0}
+.k4qb:disabled{opacity:.3;cursor:default}
+.k4qs{font-size:13px;font-weight:700;margin-left:6px}.k4qs.ok{color:#7dff9c}.k4qs.dirty{color:#ffd86b}.k4qs.no{color:#9aa3c7}
+
+#app .k4chips button,#app button.k4qb{clip-path:none!important;box-shadow:none!important;transform:none!important;text-transform:none!important;letter-spacing:0!important;font-style:normal!important;background-image:none!important;background-color:#ffffff14!important;border:1.5px solid #ffffff33!important;color:#fff!important;font-family:Rajdhani,sans-serif!important;font-weight:700!important;min-width:0!important}
+#app .k4chips button{border-radius:999px!important;padding:7px 16px!important;font-size:16px!important}
+#app button.k4qb{border-radius:8px!important;padding:3px 12px!important;font-size:15px!important}
+#app .k4chips button.on{background-color:#ffd86b!important;color:#1a1200!important;border-color:#ffd86b!important}
+#app button.k4qb:disabled{opacity:.3!important}
+.k4r.k4sel{outline:2px solid #52e0ff;background:#52e0ff22}
+.k4r .k4qb+.k4qb{margin-left:0}
+`;document.head.appendChild(s)}
+
+/* ---------- 🚩 banderas como imagen (en Windows y algunos Android el emoji se ve como letras “JP”, “MX”…) ---------- */
+const TFS=(()=>{const R=(x,y,w,h,f)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}"/>`,
+ V=(a,b,c)=>R(0,0,20.1,40,a)+R(20,0,20.1,40,b)+R(40,0,20,40,c),
+ H=(a,b,c)=>R(0,0,60,13.4,a)+R(0,13.3,60,13.4,b)+R(0,26.6,60,13.4,c),
+ star=(cx,cy,r,f)=>{let p=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,q=i%2?r*.4:r;p.push((cx+q*Math.cos(a)).toFixed(1)+","+(cy+q*Math.sin(a)).toFixed(1))}return`<polygon points="${p.join(" ")}" fill="${f}"/>`};
+ let us=R(0,0,60,40,"#fff");for(let i=0;i<13;i+=2)us+=R(0,i*40/13,60,40/13+.1,"#b22234");us+=R(0,0,26,21.6,"#3c3b6e");for(let r=0;r<4;r++)for(let c=0;c<5;c++)us+=`<circle cx="${3.2+c*5}" cy="${3.4+r*5.2}" r=".95" fill="#fff"/>`;
+ let uy=R(0,0,60,40,"#fff");for(let i=1;i<9;i+=2)uy+=R(0,i*40/9,60,40/9+.1,"#0038a8");uy+=R(0,0,22.4,22.3,"#fff")+`<circle cx="11.2" cy="11.1" r="6" fill="#fcd116" stroke="#b8860b" stroke-width=".6"/>`;
+ let hr=H("#ff0000","#fff","#171796");for(let i=0;i<3;i++)for(let j=0;j<4;j++)hr+=R(25.5+i*3,13+j*2.75,3,2.75,(i+j)%2?"#fff":"#ff0000");hr+=`<rect x="25.5" y="13" width="9" height="11" fill="none" stroke="#fff" stroke-width=".5"/>`;
+ const tg=(x,y,a)=>`<g transform="translate(${x} ${y}) rotate(${a})" fill="#000">${R(-5,-3,10,1.5,"#000")+R(-5,-.7,10,1.5,"#000")+R(-5,1.6,10,1.5,"#000")}</g>`;
+ return{
+ JP:R(0,0,60,40,"#fff")+`<circle cx="30" cy="20" r="12" fill="#bc002d"/>`,
+ BR:R(0,0,60,40,"#009c3b")+`<path d="M30 4 56 20 30 36 4 20z" fill="#ffdf00"/><circle cx="30" cy="20" r="9" fill="#002776"/><path d="M21.4 18q9-2.8 17.4 2.8" stroke="#fff" stroke-width="1.6" fill="none"/>`,
+ DE:H("#000","#dd0000","#ffce00"),FR:V("#0055a4","#fff","#ef4135"),
+ AR:H("#74acdf","#fff","#74acdf")+`<circle cx="30" cy="20" r="3.6" fill="#f6b40e"/>`,
+ ES:R(0,0,60,40,"#aa151b")+R(0,10,60,20,"#f1bf00")+`<rect x="14" y="15" width="6.5" height="10" rx="2" fill="#aa151b" opacity=".85"/>`,
+ GB:R(0,0,60,40,"#fff")+R(25,0,10,40,"#ce1124")+R(0,15,60,10,"#ce1124"),
+ IT:V("#009246","#fff","#ce2b37"),NL:H("#ae1c28","#fff","#21468b"),
+ PT:R(0,0,24,40,"#006600")+R(24,0,36,40,"#ff0000")+`<circle cx="24" cy="20" r="6.4" fill="#ffcc00"/><circle cx="24" cy="20" r="3.8" fill="#fff"/><circle cx="24" cy="20" r="2" fill="#ce1126"/>`,
+ US:us,
+ KR:R(0,0,60,40,"#fff")+`<circle cx="30" cy="20" r="9.5" fill="#0047a0"/><path d="M20.5 20a9.5 9.5 0 0 1 19 0a4.75 4.75 0 0 1-9.5 0a4.75 4.75 0 0 0-9.5 0z" fill="#cd2e3a"/>`+tg(10,8,-34)+tg(50,8,34)+tg(10,32,34)+tg(50,32,-34),
+ HR:hr,BE:V("#000","#fdda24","#ef3340"),UY:uy,
+ MX:V("#006847","#fff","#ce1126")+`<circle cx="30" cy="20" r="5.6" fill="none" stroke="#5b8a2b" stroke-width="1.5"/><circle cx="30" cy="20" r="2.7" fill="#a97c50"/>`,
+ CO:R(0,0,60,20,"#fcd116")+R(0,20,60,10,"#003893")+R(0,30,60,10,"#ce1126"),
+ MA:R(0,0,60,40,"#c1272d")+`<path d="M30 10 37.6 33.4 17.7 19 42.3 19 22.4 33.4z" fill="none" stroke="#006233" stroke-width="1.9" stroke-linejoin="miter"/>`,
+ SN:V("#00853f","#fdef42","#e31b23")+star(30,20,7.2,"#00853f"),
+ CA:R(0,0,60,40,"#fff")+R(0,0,15,40,"#d52b1e")+R(45,0,15,40,"#d52b1e")+`<path d="M30 8l2.5 5 3.3-1.3-1 7 3.5-2-.8 3.9 2.5.9-6 4.8.9 3-5.2-.6V33h-1.4v-2.9l-5.2.6.9-3-6-4.8 2.5-.9-.8-3.9 3.5 2-1-7 3.3 1.3z" fill="#d52b1e"/>`}})();
+const TFC={},TFRX=/[\u{1F1E6}-\u{1F1FF}]{2}/gu;
+const tfCode=s=>String.fromCharCode(...[...s].map(ch=>ch.codePointAt(0)-0x1F1E6+65));
+function tfSrc(c){if(c in TFC)return TFC[c];const b=TFS[c];return TFC[c]=b?"data:image/svg+xml;charset=utf-8,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 40" preserveAspectRatio="none">'+b+'</svg>'):null}
+function tfText(n){const p=n.parentNode;if(!p||/^(SCRIPT|STYLE|TEXTAREA|OPTION|TITLE)$/.test(p.nodeName))return;const v=n.nodeValue,f=document.createDocumentFragment();let i=0,m,any=0;TFRX.lastIndex=0;
+ while((m=TFRX.exec(v))){const src=tfSrc(tfCode(m[0]));if(!src)continue;any=1;if(m.index>i)f.appendChild(document.createTextNode(v.slice(i,m.index)));const im=document.createElement("img");im.className="k4f";im.alt=m[0];im.src=src;im.draggable=false;f.appendChild(im);i=m.index+m[0].length}
+ if(!any)return;if(i<v.length)f.appendChild(document.createTextNode(v.slice(i)));p.replaceChild(f,n)}
+function tfWalk(root){if(!root||!root.isConnected)return;if(root.nodeType==3)return tfText(root);if(root.nodeType!=1)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),L=[];let n;while((n=w.nextNode())){TFRX.lastIndex=0;if(TFRX.test(n.nodeValue))L.push(n)}L.forEach(tfText)}
+{const pend=new Set();let q=0;const run=()=>{q=0;try{const L=[...pend];pend.clear();L.forEach(tfWalk);const w=app.querySelector(".k4w");if(w&&!w.dataset.rs){w.dataset.rs="1";w.scrollLeft=TRN.bsx||0}}catch(e){console.error("[banderas]",e)}};
+ new MutationObserver(ms=>{for(const m of ms){m.addedNodes.forEach(n=>pend.add(n));if(m.type=="characterData")pend.add(m.target)}if(!q&&pend.size){q=1;requestAnimationFrame(run)}}).observe(app,{childList:true,subtree:true,characterData:true});
+ app.addEventListener("scroll",e=>{const t=e.target;if(t&&t.classList&&t.classList.contains("k4w"))TRN.bsx=t.scrollLeft},true);
+ tfWalk(app)}
+
+/* ---------- 📡 muro de resultados en vivo ---------- */
+const tvTime=ts=>{const d=new Date(ts),h=d.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});return d.toDateString()==new Date(nowS()).toDateString()?h:d.toLocaleDateString("es-MX",{day:"numeric",month:"short"})+" · "+h};
+const tvAgo=ts=>{const s=Math.max(0,Math.floor((nowS()-ts)/1000));if(s<60)return"ahora mismo";const m=Math.floor(s/60);if(m<60)return"hace "+m+" min";const h=Math.floor(m/60);if(h<24)return"hace "+h+" h";return"hace "+Math.floor(h/24)+" d"};
+const tvDay=ts=>{const d=new Date(ts).toDateString();return d==new Date(nowS()).toDateString()?"Hoy":d==new Date(nowS()-864e5).toDateString()?"Ayer":new Date(ts).toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"})};
+function trnLvItems(){const E=TRN.E,st=TRN.st||{},res=TRN.res||{},cl=st.cl||{},P=E.P,out=[];
+ const rp=(m,p)=>{const e=p.uid&&res[m.id+"_"+p.uid];return e&&(cl[m.r]==null||e.ts<=cl[m.r])?e:null};
+ E.M.forEach(m=>{
+  if(m.r<8)return;
+  if(m.tag=="TRI"){m.mem.forEach(k=>{const p=P[k];if(!p.uid)return;const e=rp(m,p);if(!e)return;out.push({id:m.id+"|"+k,ts:e.ts,r:m.r,tri:1,k,pl:+e.p||(e.w?1:3),adv:m.adv?m.adv.includes(k):null,real:1,mx:p.ni==E.MX,me:!!(U&&p.uid==U.uid)})});return}
+  if(m.w==null)return;
+  const A=P[m.a],B=P[m.b],ea=rp(m,A),eb=rp(m,B),real=!!(A.uid||B.uid),closed=E.rd>m.r;
+  let ts=Math.max(ea?ea.ts:0,eb?eb.ts:0)||null,np=false;
+  if(real&&closed){const lo=m.w==m.a?B:A;if(lo.uid&&!rp(m,lo))np=true;if(!ts)ts=cl[m.r]||null}
+  const rl=[A,B].filter(p=>p.uid);let s=m.w,o=m.w==m.a?m.b:m.a,won=true;
+  if(rl.length==1){s=rl[0].k;o=s==m.a?m.b:m.a;won=m.w==s}
+  out.push({id:m.id,ts,r:m.r,s,o,won,real,np,mx:A.ni==E.MX||B.ni==E.MX,me:!!(U&&(A.uid==U.uid||B.uid==U.uid))})});
+ return out.sort((a,b)=>(b.ts||0)-(a.ts||0)||b.r-a.r||(a.id<b.id?-1:1))}
+function trnLvRow(it){const nm=k=>tnP(k);let t;
+ if(it.tri)t=`${it.adv===false?"❌":"✅"} <b>${nm(it.k)}</b> quedó <b>${it.pl}.º</b> en su partida de 3${it.adv===true?" · avanza":it.adv===false?" · eliminado":""}`;
+ else if(!it.real)t=`⚔️ ${nm(it.s)} venció a ${nm(it.o)}`;
+ else t=`${it.won?"✅":"❌"} <b>${nm(it.s)}</b> ${it.won?"venció a":"cayó ante"} <b>${nm(it.o)}</b>${it.np?' <small style="display:inline;color:#ff9a9a">· no se presentó</small>':""}`;
+ const fresh=it.ts&&nowS()-it.ts<12e4;
+ return`<div class="k4lvi ${it.real?(it.tri?(it.adv===false?"l":"w"):it.won?"w":"l"):""} ${it.me?"me":""}"><div class="k4lvt">${it.ts?`<b>${tvTime(it.ts)}</b><small>${tvAgo(it.ts)}</small>`:`<small>sin hora</small>`}</div><div class="k4lvx">${t}${fresh?'<span class="k4lvn">NUEVO</span>':""}<small>${esc(TNR[it.r]||"")}</small></div></div>`}
+function trnLv(){const E=TRN.E;if((TRN.st.rd||0)<8)return`<section class="pn"><h3 style="margin-top:0">📡 Muro de resultados en vivo</h3><p class="mut" style="margin:0">Se activa cuando quedan 18 jugadores (Ronda 8) y sigue hasta la final.</p></section>`;
+ const all=trnLvItems(),f=TLVW.f,L=all.filter(x=>f=="all"?true:f=="mx"?x.mx&&x.real:x.real),cnt={real:all.filter(x=>x.real).length};
+ const chip=(k,t)=>`<button class="${f==k?"on":""}" data-act="tlf" data-f="${k}">${t}</button>`;
+ let h=`<section class="pn"><div class="k4lvh"><h3 style="margin:0"><span class="live">●</span> Muro de resultados en vivo</h3><span class="mut">${cnt.real} resultado${cnt.real==1?"":"s"} de jugadores reales</span></div><p class="mut" style="margin:6px 0 0">Desde la ronda de 18 jugadores hasta la final. Se actualiza solo: cada resultado aparece en cuanto el jugador termina su duelo, con la hora en que ocurrió.</p><div class="ttabs k4chips" style="margin-bottom:0">${chip("real","Jugadores reales")}${chip("mx","🇲🇽 Solo México")}${chip("all","Incluir duelos NPC")}</div></section>`;
+ if(!L.length)return h+`<section class="pn"><p class="mut" style="margin:0">Todavía no hay resultados con este filtro. Aparecerán en cuanto un jugador termine su duelo.</p></section>`;
+ let last="";const rows=L.slice(0,TLVW.n).map(it=>{let d="";if(it.ts){const g=tvDay(it.ts);if(g!=last){last=g;d=`<div class="k4lvd">${esc(g)}</div>`}}else if(last!="·"){last="·";d=`<div class="k4lvd">Sin hora registrada</div>`}return d+trnLvRow(it)}).join("");
+ return h+`<section class="pn" style="padding-top:6px">${rows}${L.length>TLVW.n?`<div style="text-align:center;margin-top:10px"><button data-act="tlm">Mostrar más (${L.length-TLVW.n})</button></div>`:""}</section>`}
+trnLv=trnLk(trnLv);
+function trnLvMini(){const E=TRN.E;if(!E||(TRN.st.rd||0)<8)return"";const L=trnLvItems().filter(x=>x.real).slice(0,5);if(!L.length)return"";
+ return`<section class="pn"><h3 style="margin-top:0"><span class="live">●</span> Últimos resultados</h3>${L.map(trnLvRow).join("")}<div style="margin-top:8px"><button class="mini" data-act="ttab" data-t="live">Ver muro completo →</button></div></section>`}
+{const _r=trnRes,_lm=trnLk(trnLvMini);trnRes=function(){let a="";try{a=_lm()||""}catch(e){console.error(e)}return a+_r.apply(this,arguments)}}
+
+/* ---------- 🌳 cuadro de eliminatorias ---------- */
+function trnElList(){const E=TRN.E;if(!E.s36)return`<section class="pn"><h3 style="margin-top:0">Fase 3 · Eliminación individual</h3><p class="mut">Se juega cuando terminen las fases de grupos.</p></section>`;
+ const sec=(t,L)=>L&&L.length?`<section class="pn"><h3 style="margin-top:0">${t}</h3>${L.map(tnRow).join("")}</section>`:"";
+ let h=sec("Ronda de 36 jugadores (18 duelos)",E.r7)+sec("Ronda de 18 jugadores (9 duelos)",E.r8);
+ if(E.triM)h+=`<section class="pn"><h3 style="margin-top:0">Partidas de 3 · avanzan 2 de cada 3</h3><div class="tgrid">${E.triM.map((m,i)=>tnTri(m,i)).join("")}</div></section>`;
+ if(E.lg)h+=`<section class="pn"><h3 style="margin-top:0">Liga de 6 · pasan los 4 mejores</h3><table class="tt"><tr><th>#</th><th>Jugador</th><th>Pts</th><th>V</th></tr>${E.lg.map((x,i)=>`<tr class="${E.P[x.k].uid&&U&&E.P[x.k].uid==U.uid?"mx":""} ${i<4&&E.rd>14?"q":""}"><td>${i+1}</td><td>${tnP(x.k)}</td><td>${x.pts}</td><td>${x.w}</td></tr>`).join("")}</table></section>`;
+ h+=sec("Semifinales",E.sf);if(E.fi)h+=sec("Final",[E.fi.f])+sec("Tercer lugar",[E.fi.t3]);return h}
+function trnBrk(E){
+ const CW=196,GP=46,SL=62,T0=40,MH=50,X=i=>i*(CW+GP);
+ let c1=E.r7?E.r7.slice():null,c2=E.r8?E.r8.slice():null;const c3=E.triM||null;
+ if(c2&&E.tri){const key=m=>{const j=E.tri.findIndex(t=>t.includes(m.w));return j*3+E.tri[j].indexOf(m.w)};c2.sort((a,b)=>key(a)-key(b))}
+ if(c1&&c2){const o=[];c2.forEach(m=>[m.a,m.b].forEach(k=>{const f=c1.find(x=>x.w==k);if(f&&!o.includes(f))o.push(f)}));c1.forEach(x=>{if(!o.includes(x))o.push(x)});c1=o}
+ const cy1=Array.from({length:18},(_,i)=>T0+i*SL+MH/2),cy2=Array.from({length:9},(_,i)=>(cy1[2*i]+cy1[2*i+1])/2),cy3=[0,1,2].map(j=>cy2[3*j+1]),mid=(cy3[0]+cy3[2])/2,Hh=T0+18*SL+4;
+ const cySf=[mid-125,mid+125],cyT=mid+215,LH=6*26+4,ltop=mid-LH/2,rowY=i=>ltop+2+i*26+13,W=X(6)+CW+6;
+ const lines=[],ln=(x1,y1,x2,y2,c)=>{const xm=(x1+x2)/2;lines.push(`<path class="${c||""}" d="M${x1} ${y1}H${xm}V${y2}H${x2}"/>`)};
+ const wl=k=>k==null?"":(E.P[k].ni==E.MX?"k4lm":"k4lw");
+ const slot=(k,lab,w,pre)=>{if(k==null)return`<div class="k4p tbd"><span class="k4n">${esc(lab||"Por definir")}</span></div>`;const p=E.P[k];
+  return`<div class="k4p ${w||""} ${TRN.hk==k?"hl":""} ${p.ni==E.MX?"mxp":""} ${p.uid&&U&&p.uid==U.uid?"mep":""}" data-act="tbh" data-k="${k}"><span class="k4n">${pre?pre+" ":""}${tnP(k)}</span>${w=="w"?"<i>✓</i>":""}</div>`};
+ const inv=(m)=>m&&[m.a,m.b].some(k=>k!=null&&E.P[k]&&E.P[k].uid&&U&&E.P[k].uid==U.uid),imx=(m)=>m&&[m.a,m.b].some(k=>k!=null&&E.P[k]&&E.P[k].ni==E.MX);
+ const mcard=(x,cy,m,la,lb,ttl)=>{const a=m?m.a:null,b=m?m.b:null,d=m&&m.w!=null;
+  return`<div class="k4m ${inv(m)?"me":""} ${imx(m)?"mxm":""}" style="left:${x}px;top:${cy-MH/2}px;width:${CW}px">${ttl?`<em>${ttl}</em>`:""}${slot(a,la,d?(m.w==a?"w":"l"):"")}${slot(b,lb,d?(m.w==b?"w":"l"):"")}</div>`};
+ const cards=[];
+ for(let i=0;i<18;i++)cards.push(mcard(X(0),cy1[i],c1?c1[i]:null));
+ for(let i=0;i<9;i++)cards.push(mcard(X(1),cy2[i],c2?c2[i]:null));
+ for(let j=0;j<3;j++){const m=c3?c3[j]:null,rows=m?(m.rank||m.mem):[null,null,null];
+  cards.push(`<div class="k4m ${m&&m.mem.some(k=>E.P[k].uid&&U&&E.P[k].uid==U.uid)?"me":""}" style="left:${X(2)}px;top:${cy3[j]-38}px;width:${CW}px"><em>Tríada ${j+1} · pasan 2</em>${rows.map((k,i)=>slot(k,"Por definir",m&&m.rank?(i<2?"w":"l"):"")).join("")}</div>`)}
+ const lr=E.lg?E.lg.map(x=>({k:x.k,t:x.pts})):E.fin?E.fin.map(k=>({k,t:null})):null;
+ cards.push(`<div class="k4m k4g" style="left:${X(3)}px;top:${ltop}px;width:${CW}px;height:${LH}px"><em>Liga · pasan 4</em>${[0,1,2,3,4,5].map(i=>{const r=lr&&lr[i];if(!r)return`<div class="k4p tbd ${i==4?"cut":""}"><b>${i+1}</b><span class="k4n">Por definir</span></div>`;const p=E.P[r.k];return`<div class="k4p ${i==4?"cut":""} ${E.rd>14&&i<4?"q":""} ${TRN.hk==r.k?"hl":""} ${p.ni==E.MX?"mxp":""} ${p.uid&&U&&p.uid==U.uid?"mep":""}" data-act="tbh" data-k="${r.k}"><b>${i+1}</b><span class="k4n">${tnP(r.k)}</span><span>${r.t==null?"":r.t}</span></div>`}).join("")}</div>`);
+ const SL1=[["1.º de la liga","4.º de la liga"],["2.º de la liga","3.º de la liga"]];
+ [0,1].forEach(s=>cards.push(mcard(X(4),cySf[s],E.sf?E.sf[s]:null,SL1[s][0],SL1[s][1],"Semifinal "+(s+1))));
+ const lo=m=>m&&m.w!=null?(m.w==m.a?m.b:m.a):null,sw=s=>E.sf&&E.sf[s]&&E.sf[s].w!=null?E.sf[s].w:null;
+ const fm=E.fi?E.fi.f:{a:sw(0),b:sw(1),w:null},tm=E.fi?E.fi.t3:{a:lo(E.sf&&E.sf[0]),b:lo(E.sf&&E.sf[1]),w:null};
+ cards.push(mcard(X(5),mid,fm,"Ganador semi 1","Ganador semi 2","🏆 Final"));
+ cards.push(mcard(X(5),cyT,tm,"Perdedor semi 1","Perdedor semi 2","🥉 Tercer lugar"));
+ cards.push(`<div class="k4m k4c" style="left:${X(6)}px;top:${mid-MH/2}px;width:${CW}px"><em>👑 Campeón</em>${E.champ!=null?slot(E.champ,"","w"):slot(null,"Por definir")}${E.champ!=null?slot(E.second,"","","🥈")+slot(E.third,"","","🥉"):""}</div>`);
+ for(let i=0;i<9;i++)[2*i,2*i+1].forEach(f=>{const m=c1&&c1[f];ln(X(0)+CW,cy1[f],X(1),cy2[i],m&&m.w!=null?wl(m.w):"")});
+ for(let i=0;i<9;i++){const m=c2&&c2[i];ln(X(1)+CW,cy2[i],X(2),cy3[Math.floor(i/3)],m&&m.w!=null?wl(m.w):"")}
+ for(let j=0;j<3;j++)ln(X(2)+CW,cy3[j],X(3),mid,c3&&c3[j]&&c3[j].adv?"k4lw":"");
+ [[0,0],[3,0],[1,1],[2,1]].forEach(([i,s])=>ln(X(3)+CW,rowY(i),X(4),cySf[s],E.top4?"k4lw":""));
+ [0,1].forEach(s=>{const m=E.sf&&E.sf[s];ln(X(4)+CW,cySf[s],X(5),mid,m&&m.w!=null?wl(m.w):"");ln(X(4)+CW,cySf[s],X(5),cyT,"k4dash")});
+ ln(X(5)+CW,mid,X(6),mid,E.champ!=null?wl(E.champ):"");
+ const heads=[["36 jugadores","Ronda 7 · 18 duelos"],["18 jugadores","Ronda 8 · 9 duelos"],["9 jugadores","Ronda 9 · partidas de 3"],["6 jugadores","Rondas 10–14 · liga"],["4 jugadores","Ronda 15 · semifinales"],["Final","Ronda 16"],["Campeón",""]].map((t,i)=>`<div class="k4h" style="left:${X(i)}px;width:${CW}px">${t[0]}${t[1]?`<small>${t[1]}</small>`:""}</div>`).join("");
+ return`<section class="pn"><h3 style="margin-top:0">🌳 Cuadro de eliminatorias</h3><p class="mut" style="margin-top:0">36 → 18 → 9 → 6 → 4 → Final. Desliza para recorrer el cuadro y toca a un jugador para seguir su camino.${E.s36?"":" Se irá llenando cuando terminen las fases de grupos."}</p><div class="k4w"><div class="k4b" style="width:${W}px;height:${Hh}px"><svg width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}">${lines.join("")}</svg>${heads}${cards.join("")}</div></div><p class="mut" style="margin:8px 0 0;font-size:14px">🟩 México · 🟨 tú · <span style="color:#7dff9c">✓</span> ganó el duelo · línea punteada: va al tercer lugar</p></section>`}
+function trnEl(){const E=TRN.E;return trnBrk(E)+`<section class="pn"><details><summary style="cursor:pointer;font-size:17px;color:#ffd86b">📋 Ver detalle en lista</summary><div style="margin-top:8px">${trnElList()}</div></details></section>`}
+Object.assign(ACT,{tlf(b){TLVW.f=b.dataset.f;TLVW.n=60;render()},tlm(){TLVW.n+=100;render()},
+ tbh(b){const k=b.dataset.k;TRN.hk=TRN.hk==k?null:k;app.querySelectorAll(".k4p.hl").forEach(x=>x.classList.remove("hl"));if(TRN.hk)app.querySelectorAll('.k4p[data-k="'+TRN.hk+'"]').forEach(x=>x.classList.add("hl"))}});
+
+/* ---------- 🎯 quiniela: posiciones de grupos (sin empates) + ganador de cada duelo directo ---------- */
+const QZP={E36:1,E18:1,L:1,S:2,F:3,"3":2},QZC={g:50,gb:150,E36:40,E18:40,L:40,S:100,"3":100,F:250,rk:[2000,1000,500]},qzKey=id=>id.replace(/[^A-Za-z0-9]/g,"_");
+const qzMine=()=>{const b=(U&&TRQ.all.find(x=>x.uid==U.uid))||{};return{g:{...(b.g||{}),...TRQ.loc.g},d:{...(b.d||{}),...TRQ.loc.d}}};
+const qzGPts=(pk,act)=>{let ok=0;act.forEach((n,i)=>{if(pk[i]==n)ok++});return ok*2+(ok==4?3:0)};
+function qzGroups(E){const o=[],o1=trnBetOpen(1),o2=trnBetOpen(4);
+ E.ph1.forEach((g,i)=>o.push({key:"a"+i,ph:1,lab:"Grupo "+"ABCDE"[i],nats:g.nats,open:o1,done:!!E.q1,act:E.q1?g.t.map(x=>x.ni):null}));
+ if(E.ph2)E.ph2.forEach((g,i)=>o.push({key:"b"+i,ph:2,lab:"Grupo "+(i+1),nats:g.nats,open:o2,done:!!E.q2,act:E.q2?g.t.map(x=>x.ni):null}));return o}
+function qzScore(q,E){let pts=0,hit=0,tot=0,coins=0;const g=q.g||{},d=q.d||{};
+ qzGroups(E).forEach(x=>{const pk=g[x.key];if(!x.done||!pk||pk.length!=4||!x.nats.every(n=>pk.includes(n)))return;pts+=qzGPts(pk,x.act);let ok=0;x.act.forEach((n,i)=>{tot++;if(pk[i]==n){hit++;ok++}});coins+=ok*QZC.g+(ok==4?QZC.gb:0)});
+ E.M.forEach(m=>{if(m.tag=="TRI"||m.r<7||!(E.rd>m.r)||m.w==null)return;const pk=d[qzKey(m.id)];if(!pk)return;tot++;if(pk==m.w){hit++;pts+=QZP[m.tag]||1;coins+=QZC[m.tag]||QZC.E36}});
+ return{pts,hit,tot,coins}}
+const qzCmp=(a,b)=>b.s.pts-a.s.pts||b.s.hit-a.s.hit||String(a.q.name).localeCompare(String(b.q.name));
+const qzOrd=(g,m)=>{const d=TRQ.dr[g.key];if(d&&d.length==4&&g.nats.every(n=>d.includes(n)))return d;const s=m.g[g.key];if(s&&s.length==4&&g.nats.every(n=>s.includes(n)))return s.slice();return g.nats.slice()};
+function qzGroupCard(g,m){const sv=m.g[g.key],ok=!!(sv&&sv.length==4&&g.nats.every(n=>sv.includes(n)));let h=`<div class="tbox"><h4>${g.lab}`;
+ if(g.open){const ord=qzOrd(g,m),same=ok&&sv.every((n,i)=>n==ord[i]);
+  h+=!ok?`<span class="k4qs no">sin guardar</span>`:same?`<span class="k4qs ok">✔ guardado</span>`:`<span class="k4qs dirty">● cambios sin guardar</span>`;
+  h+=`</h4>`+ord.map((n,i)=>`<div class="k4r"><b>${i+1}.º</b><span>${nN(n)}</span><button class="k4qb" data-act="tqm" data-k="${g.key}" data-i="${i}" data-d="-1" ${i==0?"disabled":""}>▲</button><button class="k4qb" data-act="tqm" data-k="${g.key}" data-i="${i}" data-d="1" ${i==3?"disabled":""}>▼</button></div>`).join("")}
+ else if(!ok)h+=`</h4><p class="mut" style="margin:6px 0">No pronosticaste este grupo.</p>`;
+ else h+=(g.done?`<span class="k4qs ok">+${qzGPts(sv,g.act)} pts</span>`:`<span class="k4qs no">pendiente</span>`)+`</h4><table class="tt"><tr><th>#</th><th>Tu pronóstico</th>${g.done?"<th>Real</th>":""}</tr>${sv.map((n,i)=>`<tr class="${g.done&&g.act[i]==n?"q":""}"><td>${i+1}</td><td>${nN(n)}</td>${g.done?`<td>${g.act[i]==n?"✓ ":""}${nN(g.act[i])}</td>`:""}</tr>`).join("")}</table>`;
+ return h+`</div>`}
+function qzDuelCard(m,E,mine){const key=qzKey(m.id),pk=mine.d[key],c={},tot=TRQ.all.reduce((a,q)=>{const k=(q.d||{})[key];if(k){c[k]=(c[k]||0)+1;return a+1}return a},0),w=QZP[m.tag]||1;
+ const side=k=>{const p=E.P[k],lv=p.uid?"jugador real":"nivel "+p.lv+" · "+tnDif(p.lv);return`<button data-act="tqp" data-id="${esc(m.id)}" data-k="${k}" class="${pk==k?"on":""}">${tnP(k)}<small>${lv}${tot?" · "+Math.round(100*(c[k]||0)/tot)+" % 🗳":""}</small></button>`};
+ return`<div class="tbox"><div class="mut" style="font-size:15px">${esc(TNR[m.r])} · vale ${w} pto${w>1?"s":""}</div><div class="bo">${side(m.a)}${side(m.b)}</div></div>`}
+function trnQz(){const st=TRN.st,E=TRN.E,m=qzMine(),my=qzScore(m,E);
+ const rk=TRQ.all.map(q=>({q,s:qzScore(q,E)})).sort(qzCmp),pos=U?rk.findIndex(x=>x.q.uid==U.uid)+1:0;
+ setTimeout(()=>{try{qzSettle()}catch(e){}},0);let h=`<section class="pn"><h3 style="margin-top:0">🎯 Quiniela del torneo</h3><p class="mut" style="margin-top:0">Gratis y para todos (también para los eliminados); las monedas se pagan solas conforme se definen los resultados. Ordena cómo crees que quedará cada grupo —<b> sin empates</b>— y elige quién gana cada <b>enfrentamiento directo</b>.</p><ul class="trule"><li>Grupos: <b>2 pts</b> por cada nación en su posición exacta (+<b>3 pts</b> si aciertas las 4) · 💰 <b>${QZC.g}</b> monedas por acierto (+<b>${QZC.gb}</b> de bonus por grupo perfecto).</li><li>Duelos directos: <b>1 pt</b> (36, 18 y liga) · <b>2 pts</b> (semifinales y tercer lugar) · <b>3 pts</b> (final) · 💰 <b>${QZC.E36}</b> / <b>${QZC.S}</b> / <b>${QZC.F}</b> monedas.</li><li>Al terminar el torneo, el top 3 del ranking gana 💰 <b>${QZC.rk.join("</b> / <b>")}</b> monedas extra.</li><li>Si dos naciones empatan en puntos, el sistema desempata: el orden final de un grupo nunca queda empatado.</li></ul><p style="margin:6px 0 0">Tus puntos: <b style="color:#ffd86b;font-size:20px">${my.pts}</b> · aciertos ${my.hit}/${my.tot} · 💰 <b style="color:#ffd86b">${my.coins}</b> monedas${pos?` · puesto <b>#${pos}</b> de ${rk.length}`:""}</p></section>`;
+ if(TRN.test)return h+`<section class="pn"><p class="mut" style="margin:0">🧪 La quiniela no está disponible en el modo de prueba.</p></section>`;
+ const gs=qzGroups(E),sec=(ph,ttl,note)=>{const L=gs.filter(g=>g.ph==ph);if(!L.length)return`<section class="pn"><h3 style="margin-top:0">${ttl}</h3><p class="mut" style="margin:0">Se abre cuando terminen los grupos de la Fase 1.</p></section>`;const op=L[0].open;
+  return`<section class="pn"><h3 style="margin-top:0">${ttl}</h3><p class="mut" style="margin-top:0">${note}</p><div class="tgrid">${L.map(g=>qzGroupCard(g,m)).join("")}</div>${op?`<div class="tb" style="margin-top:10px"><button class="go" data-act="tqs" data-ph="${ph}">💾 Guardar posiciones</button><button data-act="tqr" data-ph="${ph}">↺ Deshacer cambios</button></div><p class="mut" style="margin:6px 0 0;font-size:14px">Los grupos que no guardes no suman puntos.</p>`:`<p class="mut" style="margin:8px 0 0">🔒 Pronósticos cerrados para esta fase.</p>`}</section>`};
+ h+=sec(1,"Fase 1 · Posiciones de los grupos A–E","Ordena con ▲▼ de 1.º a 4.º. Cierra cuando se habilita la Ronda 1.");
+ h+=sec(2,"Fase 2 · Posiciones de los grupos 1–3","Cierra cuando se habilita la Ronda 4.");
+ const opn=[];for(let r=7;r<=TNMAX;r++)if(trnBetOpen(r))(E.BR[r]||[]).filter(x=>x.tag!="TRI").forEach(x=>opn.push(x));
+ h+=`<section class="pn"><h3 style="margin-top:0">⚔️ Duelos directos</h3>${opn.length?`<p class="mut" style="margin-top:0">Toca al jugador que crees que ganará. Puedes cambiar tu elección hasta que se habilite la ronda.</p><div class="tgrid">${opn.map(x=>qzDuelCard(x,E,m)).join("")}</div>`:`<p class="mut" style="margin:0">No hay duelos abiertos ahora mismo. Se abren cuando ya se conocen los emparejamientos (desde la Ronda 7) y antes de que se habilite la ronda.</p>`}</section>`;
+ const lst=[];E.M.forEach(x=>{if(x.tag=="TRI"||x.r<7)return;const pk=m.d[qzKey(x.id)];if(pk)lst.push({x,pk})});
+ if(lst.length)h+=`<section class="pn"><h3 style="margin-top:0">🧾 Mis pronósticos de duelos</h3>${lst.reverse().map(({x,pk})=>{const st2=E.rd>x.r&&x.w!=null?(pk==x.w?`<b style="color:#7dff9c">+${QZP[x.tag]||1}</b>`:`<b style="color:#ff9a9a">✗</b>`):`<span class="mut">pendiente</span>`;return`<div class="tm ${E.rd>x.r&&x.w==pk?"me":""}"><span>${tnP(x.a)} vs ${tnP(x.b)}<br><small class="mut">${esc(TNR[x.r])} · tu pronóstico: ${tnP(pk)}</small></span><span style="text-align:right;flex:0 0 auto">${st2}</span></div>`}).join("")}</section>`;
+ h+=`<section class="pn"><h3 style="margin-top:0">🏅 Ranking de la quiniela</h3>${rk.length?`<table class="tt"><tr><th>#</th><th>Jugador</th><th>Aciertos</th><th>Puntos</th><th>💰</th></tr>${rk.slice(0,15).map((x,i)=>`<tr class="${U&&x.q.uid==U.uid?"mx":""}"><td>${i+1}</td><td>${esc(x.q.name||"?")}</td><td>${x.s.hit}/${x.s.tot}</td><td><b>${x.s.pts}</b></td><td>${x.s.coins}</td></tr>`).join("")}</table>`:'<p class="mut" style="margin:0">Aún nadie ha enviado su quiniela. ¡Sé el primero!</p>'}</section>`;
+ return h}
+async function qzWrite(p){if(!U||!db)return false;try{await D("torneo","s1").collection("bets").doc(U.uid+"_Q").set({uid:U.uid,name:U.name,q:1,paid:1,ts:Date.now(),...p},{merge:true});return true}catch(e){console.error("[quiniela]",e);return false}}
+Object.assign(ACT,{
+ tqm(b){const E=TRN.E,g=qzGroups(E).find(x=>x.key==b.dataset.k);if(!g||!g.open)return;const o=qzOrd(g,qzMine()).slice(),i=+b.dataset.i,j=i+(+b.dataset.d);if(j<0||j>3)return;[o[i],o[j]]=[o[j],o[i]];TRQ.dr[g.key]=o;render()},
+ tqr(b){qzGroups(TRN.E).filter(g=>g.ph==+b.dataset.ph).forEach(g=>delete TRQ.dr[g.key]);render()},
+ async tqs(b){if(TRQ.busy)return;const E=TRN.E,m=qzMine(),L=qzGroups(E).filter(g=>g.ph==+b.dataset.ph&&g.open);if(!L.length)return toast("Los pronósticos de esta fase ya cerraron");
+  const gp={};L.forEach(g=>gp[g.key]=qzOrd(g,m));TRQ.busy=1;const ok=await qzWrite({g:gp});TRQ.busy=0;
+  if(!ok)return toast("No se pudo guardar tu quiniela. Intenta de nuevo.",5000);Object.assign(TRQ.loc.g,gp);L.forEach(g=>delete TRQ.dr[g.key]);toast("✔ Posiciones guardadas",3000);render()},
+ async tqp(b){const E=TRN.E,m=E.M.find(x=>x.id==b.dataset.id);if(!m||!trnBetOpen(m.r))return toast("Ese duelo ya está cerrado");if(TRQ.busy)return;
+  const k=b.dataset.k,key=qzKey(m.id),prev=TRQ.loc.d[key];TRQ.busy=1;TRQ.loc.d[key]=k;render();const ok=await qzWrite({d:{[key]:k}});TRQ.busy=0;
+  if(!ok){if(prev===undefined)delete TRQ.loc.d[key];else TRQ.loc.d[key]=prev;toast("No se pudo guardar tu pronóstico",4500)}render()}});
+
+
+async function qzSettle(){const E=TRN.E;if(!U||!db||!E||TRN.test||TRQ.pay)return;const mine=TRQ.all.find(x=>x.uid==U.uid);if(!mine)return;
+ let tot=qzScore(mine,E).coins;
+ if(E.rd>TNMAX&&E.champ!=null){const rk=TRQ.all.map(q=>({q,s:qzScore(q,E)})).sort(qzCmp),i=rk.findIndex(x=>x.q.uid==U.uid);if(i>=0&&i<3&&rk[i].s.pts>0)tot+=QZC.rk[i]}
+ if(tot<=(mine.paidC||0))return;TRQ.pay=1;
+ try{const ref=D("torneo","s1").collection("bets").doc(U.uid+"_Q");let got=0;
+  await db.runTransaction(async tx=>{const sn=await tx.get(ref);if(!sn.exists)return;const cur=sn.data().paidC||0;if(tot<=cur)return;got=tot-cur;tx.update(D("users",U.uid),{gold:FV.increment(got)});tx.update(ref,{paidC:tot})});
+  if(got>0)notify("🎯 Quiniela","+"+got+" monedas por tus aciertos")}catch(e){console.error("[quiniela pago]",e)}
+ TRQ.pay=0}
+
+/* ---------- ✏️ administrador: editar grupos (quién juega contra quién) ---------- */
+TN.G0=TN.G0||TN.G.map(a=>a.slice());
+const TNSCH=[[[0,1],[2,3]],[[0,2],[1,3]],[[0,3],[1,2]]];
+function tnGrOk(g){try{return Array.isArray(g)&&g.length==5&&g.every(a=>Array.isArray(a)&&a.length==4)&&new Set(g.flat()).size==20&&g.flat().every(c=>TN.N.some(n=>n[0]==c))}catch(e){return false}}
+const tnNat=c=>{const n=TN.N.find(x=>x[0]==c);return n?n[2]+" "+n[1]:String(c)};
+function trnGrEdit(){const st=TRN.st||{},rd=st.rd||0,cur=tnGrOk(st.grp)?st.grp:TN.G0,dr=TRN.ge&&tnGrOk(TRN.ge)?TRN.ge:cur,lock=rd>0||!!TRN.test,dirty=JSON.stringify(dr)!=JSON.stringify(cur),sel=TRN.gsel;
+ return`<section class="pn" style="border-color:#ffd86b88"><h3 style="margin-top:0">✏️ Administrador · Editar grupos y emparejamientos</h3><p class="mut" style="margin-top:0">${lock?"🔒 Solo se pueden cambiar antes de iniciar el torneo (reinícialo para editar).":"Toca una nación y luego otra para <b>intercambiarlas</b> (también entre grupos distintos). El orden dentro del grupo define quién juega contra quién en cada jornada."}</p><div class="tgrid">${dr.map((g,gi)=>`<div class="tbox"><h4>Grupo ${"ABCDE"[gi]}</h4>${g.map((c,i)=>{const on=sel&&sel[0]==gi&&sel[1]==i;return`<div class="k4r ${on?"k4sel":""}"><b>${i+1}</b><span>${tnNat(c)}</span><button class="k4qb" data-act="tgs" data-g="${gi}" data-i="${i}" ${lock?"disabled":""}>${on?"✔":"⇄"}</button></div>`}).join("")}<div class="mut" style="font-size:13px;margin-top:6px;line-height:1.35">${TNSCH.map((j,k)=>`<b>J${k+1}</b> ${j.map(([x,y])=>TN.N.find(n=>n[0]==g[x])[2]+" "+TN.N.find(n=>n[0]==g[x])[1]+" – "+TN.N.find(n=>n[0]==g[y])[2]+" "+TN.N.find(n=>n[0]==g[y])[1]).join(" · ")}`).join("<br>")}</div></div>`).join("")}</div>${lock?"":`<div class="tb" style="margin-top:10px"><button class="go" data-act="tgv" ${dirty?"":"disabled"}>💾 Guardar grupos</button><button data-act="tgx">🎲 Sortear al azar</button><button data-act="tgr">↺ Grupos originales</button>${dirty?'<button data-act="tgc">Cancelar cambios</button>':""}</div>`}</section>`}
+{const _g=trnGr;trnGr=function(){return _g.apply(this,arguments)+(U&&U.admin?trnGrEdit():"")}}
+Object.assign(ACT,{
+ tgs(b){const st=TRN.st||{};if(TRN.test||(st.rd||0)>0)return;const gi=+b.dataset.g,i=+b.dataset.i,cur=tnGrOk(st.grp)?st.grp:TN.G0;if(!TRN.ge||!tnGrOk(TRN.ge))TRN.ge=cur.map(a=>a.slice());
+  if(!TRN.gsel)TRN.gsel=[gi,i];else{const [g0,i0]=TRN.gsel,t=TRN.ge[g0][i0];TRN.ge[g0][i0]=TRN.ge[gi][i];TRN.ge[gi][i]=t;TRN.gsel=null}render()},
+ tgc(){TRN.ge=null;TRN.gsel=null;render()},
+ tgx(){const all=TN.G0.flat().slice();for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]]}TRN.ge=[0,1,2,3,4].map(k=>all.slice(k*4,k*4+4));TRN.gsel=null;render()},
+ async tgv(){if(!U||!U.admin||TRN.test||(TRN.st.rd||0)>0)return;if(!tnGrOk(TRN.ge))return toast("Los grupos no son válidos");
+  if(TRQ.all.some(q=>q.g&&Object.keys(q.g).length)&&!confirm("Ya hay quinielas de grupos guardadas: las de los grupos que cambien dejarán de contar. ¿Continuar?"))return;
+  try{await D("torneo","s1").update({grp:TRN.ge});TRN.ge=null;TRN.gsel=null;toast("✅ Grupos guardados",3500)}catch(e){console.error(e);toast("No se pudo guardar los grupos")}render()},
+ async tgr(){if(!U||!U.admin||TRN.test||(TRN.st.rd||0)>0)return;if(!confirm("¿Volver a los grupos originales?"))return;try{await D("torneo","s1").update({grp:FV.delete()});TRN.ge=null;TRN.gsel=null;toast("Grupos originales restaurados",3500)}catch(e){toast("No se pudo restaurar")}render()}});
+
+/* ---------- 🎬 repetición de la final (los movimientos de cada duelo del torneo ya quedan guardados en matches/{id}/moves) ---------- */
+const TFR={res:null,id:null,busy:0};
+function tfrLoad(E){const id=E&&E.fi&&E.fi.f&&E.fi.f.id;if(!id||!db||TFR.busy||TFR.id===id)return;TFR.busy=1;
+ Co("matches").where("tourn","==",1).where("tm","==",id).get().then(s=>{TFR.res=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.status=="finished"&&x.decks&&x.decks.a&&x.decks.b).sort((a,b)=>(a.st||0)-(b.st||0));TFR.id=id;TFR.busy=0;if(VW=="trn"&&app.style.display!="none"&&["vv","el","res"].includes(TRN.tab))render()})
+ .catch(e=>{console.error("[final]",e);TFR.res=[];TFR.id=id;TFR.busy=0})}
+function trnFinalRec(){const E=TRN.E;if(!E||!E.fi)return"";tfrLoad(E);const L=TFR.res;
+ let h=`<section class="pn"><h3 style="margin-top:0">🎬 La Gran Final · repetición</h3>`;
+ if(L==null)h+=`<p class="mut" style="margin:0">Buscando la grabación…</p>`;
+ else if(!L.length)h+=`<p class="mut" style="margin:0">Todavía no hay una grabación de la final. Se guarda sola cuando un jugador real juega su duelo.</p>`;
+ else h+=`<p class="mut" style="margin-top:0">La partida queda guardada: puedes verla completa cuando quieras.</p>`+L.map(x=>`<div class="tm"><span>🎬 <b style="min-width:0;color:#fff">${esc(x.an||"?")}</b> vs <b style="min-width:0;color:#fff">${esc(x.bn||"?")}</b><br><small class="mut">${x.st?esc(tvTime(x.st)):""}</small></span><span style="flex:0 0 auto;min-width:0"><button class="go" data-act="trp" data-mid="${esc(x.id)}">▶ VER REPETICIÓN</button></span></div>`).join("");
+ return h+`</section>`}
+Object.assign(ACT,{trp(b){startSpectate(b.dataset.mid,1)}});
+function tvRplWatch(me){let idle=0;const t=setInterval(()=>{if(!ON.spec||SP!==me||G.over){clearInterval(t);return}
+ if(me.target>=0&&me.seq>=me.target&&!me.run&&!me.q.length)idle++;else idle=0;
+ if(idle>=3){clearInterval(t);const a=P&&P[0]?P[0].lp:1,b=P&&P[1]?P[1].lp:1;specEndIdle(b<=0?true:a<=0?false:a>=b,"Fin de la repetición")}},2000)}
+{const _v=trnVv;trnVv=function(){return _v.apply(this,arguments)+trnFinalRec()}}
+{const _e=trnEl;trnEl=function(){return _e.apply(this,arguments)+trnFinalRec()}}
+{const _r2=trnRes,_fr=trnLk(trnFinalRec);trnRes=function(){let a=_r2.apply(this,arguments);try{if(TRN.E&&TRN.E.champ!=null)a=_fr()+a}catch(e){console.error(e)}return a}}
+
 /* ---------- pantalla del torneo con las pestañas nuevas ---------- */
 trnGr=trnLk(trnGr);trnPa=trnLk(trnPa);trnEq=trnLk(trnEq);trnHi=trnLk(trnHi);trnEl=trnLk(trnEl);
 rTrn=function(){
@@ -3334,9 +3590,9 @@ rTrn=function(){
  if(!trnVis())return A+'<section class="pn"><h2 style="margin-top:0">🔒 Torneo bloqueado</h2><p class="mut">El administrador abrirá esta sección muy pronto. ¡Prepara un mazo de 30 cartas con máximo 3 comodines y cartas de nivel 4 en adelante!</p></section></div>';
  if(!TRN.st){return A+`<section class="pn"><h2 style="margin-top:0">🏆 Torneo Mundial · Temporada 1</h2><p class="mut">${!TRN.ld?"Cargando…":U.admin?"El torneo todavía no está creado.":"El torneo aún no está listo. Vuelve pronto."}</p>${U.admin&&TRN.ld?`<button class="go" data-act="tadm" data-a="create">Crear torneo (quedas como capitán de México)</button>`:""}${U.admin?trnAdmOnly():""}</section></div>`}
  if(!TRN.E)return A+'<section class="pn"><p class="mut">Cargando torneo…</p></section></div>';
- const T=[["res","Resumen"],["eq","Equipo México"],["hi","Historial"],["bt","Pronósticos"],["vv","Ver partidas"],["pr","Premios"],["gr","Grupos"],["pa","Partidos"],["el","Eliminatorias"],["na","Naciones"]];if(U.admin){T.push(["sm","Simulación total"]);T.push(["si","Simulación de 3"]);T.push(["tt","Modo de prueba"])}
+ const T=[["res","Resumen"],...((TRN.st&&TRN.st.rd||0)>=8?[["live","📡 En vivo"]]:[]),["eq","Equipo México"],["hi","Historial"],["bt","Pronósticos"],["qz","🎯 Quiniela"],["vv","Ver partidas"],["pr","Premios"],["gr","Grupos"],["pa","Partidos"],["el","Eliminatorias"],["na","Naciones"]];if(U.admin){T.push(["sm","Simulación total"]);T.push(["si","Simulación de 3"]);T.push(["tt","Modo de prueba"])}
  if(TRN.tab=="vv")tvvOn();else tvvOff();
- const body={res:trnRes,pr:trnPr,eq:trnEq,gr:trnGr,pa:trnPa,el:trnEl,na:trnNa,si:trnSi,tt:trnTT,hi:trnHi,bt:trnBt,vv:trnVv,sm:trnSm}[TRN.tab]||trnRes;
+ const body={res:trnRes,pr:trnPr,eq:trnEq,gr:trnGr,pa:trnPa,el:trnEl,na:trnNa,si:trnSi,tt:trnTT,hi:trnHi,bt:trnBt,vv:trnVv,sm:trnSm,live:trnLv,qz:trnQz}[TRN.tab]||trnRes;
  return A+`${trnBanner()}${trnSchBanner()}<div class="ttabs">${T.map(([k,t])=>`<button class="${TRN.tab==k?"on":""}" data-act="ttab" data-t="${k}">${t}</button>`).join("")}</div>${body()}</div>`};
 Object.assign(ACT,{tsch(){trnSchEdit()}});
 
