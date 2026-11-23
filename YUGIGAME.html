@@ -2669,10 +2669,10 @@ const TN={
 const TNR=["","Fase 1 · Jornada 1","Fase 1 · Jornada 2","Fase 1 · Jornada 3","Fase 2 · Jornada 1","Fase 2 · Jornada 2","Fase 2 · Jornada 3","Eliminación · 36 jugadores","Eliminación · 18 jugadores","Partidas de 3 · 9 jugadores","Liga de 6 · Jornada 1","Liga de 6 · Jornada 2","Liga de 6 · Jornada 3","Liga de 6 · Jornada 4","Liga de 6 · Jornada 5","Semifinales","Final y tercer lugar"];
 const tnDif=L=>L<=3?"Muy débil":L<=5?"Débil":L<=7?"Fuerte":L==8?"Muy fuerte":L==9?"Élite":"Legendario";
 const TNMAX=16,WKU=["c0","ce","cs","cp","cpe"];
-/* reglas de la Temporada 1: 30 cartas, máximo 3 comodines (ultra especiales incluidos) y todas las demás de nivel 4 en adelante */
+/* reglas de la Temporada 1: 30 cartas, máximo 3 comodines (ultra especiales incluidos) y las demás de cualquier nivel */
 function trnCheck(deck){const msgs=[],low=[],bad=[];let n=0,w=0;
  for(const [id,q] of Object.entries(deck||{})){if(!CB[id]||!(q>0))continue;n+=q;const k=lv(+id);
-  if(WKU.includes(k))w+=q;else if(k=="cu"){}else if(/^n\d+$/.test(k)){if(+k.slice(1)<4)low.push([id,q])}else bad.push(id)}
+  if(WKU.includes(k))w+=q;else if(k=="cu"){}else if(/^n\d+$/.test(k)){}else bad.push(id)}
  if(n!=30)msgs.push("Tu mazo tiene "+n+" cartas y debe tener exactamente 30.");
  if(w>3)msgs.push("Tienes "+w+" comodines (de defensa 0; los ultra especiales no cuentan) y el máximo es 3.");
  if(low.length)msgs.push("Hay cartas de nivel menor a 4: "+low.slice(0,6).map(([id,q])=>cnm(id)+(q>1?" ×"+q:"")).join(", ")+(low.length>6?" y "+(low.length-6)+" más":"")+".");
@@ -2693,7 +2693,7 @@ function trnDeckFor(p){
  if(p.sig){const ul=/Yugi/i.test(p.name)?[9001,9003,9011,9024,9001]:[9012,9014,9022,9014,9022],uu=ul.filter(i=>CB[i]);if(uu.length){const base=out.filter(i=>!(i>=9000&&i<9100)).slice(0,30-uu.length);out.length=0;base.concat(uu).forEach(i=>out.push(i))}}
  return out.map(id=>({id,n:CB[id][1],a:CB[id][2],d:CB[id][3]}))}
 /* motor determinista: con el estado (ronda, equipo real, resultados) calcula TODO el torneo */
-function trnEngine(st){if(!TN.G0)TN.G0=TN.G.map(a=>a.slice());TN.G=tnGrOk(st&&st.grp)?st.grp:TN.G0;
+function trnEngine(st){if(!TN.G0)TN.G0=TN.G.map(a=>a.slice());{const GD=tnGrDec(st&&st.grp);TN.G=tnGrOk(GD)?GD:TN.G0}
  const rd=st.rd||0,real=st.real||{},res=st.res||{},cl=st.cl||{},N=TN.N,NI={};N.forEach((n,i)=>NI[n[0]]=i);
  const hs=k=>rlSeed("trnh|"+k)(),P={};
  N.forEach((n,ni)=>{for(let s=0;s<6;s++){const d=TN.ro(n[0],s),rl=n[0]=="mx"?real[s]:real[n[0]+"_"+s];P[ni+":"+s]={k:ni+":"+s,ni,s,name:rl?rl.name:d.n,lv:rl?7:d.lv,th:d.th,uid:rl?rl.uid:null,dk:rl?rl.deck:null,sig:n[0]=="jp"&&s<2}}});
@@ -2760,7 +2760,7 @@ const tnAny=m=>m.tag=="TRI"?tnTri(m):tnRow(m);
 function tnTbl(g,qn){const E=TRN.E;return`<table class="tt"><tr><th>#</th><th>Equipo</th><th>Pts</th><th>V</th></tr>${g.t.map((x,i)=>`<tr class="${x.ni==E.MX?"mx":""} ${qn&&qn(i,x)?"q":""}"><td>${i+1}</td><td>${TN.N[x.ni][2]} ${TN.N[x.ni][1]}</td><td>${x.pts}</td><td>${x.w}</td></tr>`).join("")}</table>`}
 function trnRes(){const st=TRN.st,E=TRN.E,mi=trnMine(),rd=st.rd||0,real=st.real||{},nre=Object.keys(real).length;
  let h=`<section class="pn"><h2 style="margin-top:0">🌍 Torneo Mundial · Temporada 1</h2><p class="mut" style="margin-top:0">120 duelistas, 20 naciones. ${tnRealTxt()}</p><p class="tbig" style="font-size:21px;margin:6px 0"><b>${rd==0?"Inscripciones abiertas":rd>TNMAX?"Torneo terminado":"Ronda "+rd+" de "+TNMAX+" · "+TNR[rd]}</b></p>
- <ul class="trule"><li>Mazo de <b>30 cartas</b>.</li><li>Máximo <b>3 comodines</b> (cartas de defensa 0). Las <b>ultra especiales no cuentan</b> como comodín y se pueden usar.</li><li>Todas las demás cartas deben ser de <b>nivel 4 o superior</b>.</li><li>Cada victoria vale 3 puntos. En los grupos cada jugador enfrenta a un rival de cada otra nación: máximo 9 puntos por jugador y 54 por equipo.</li></ul></section>`;
+ <ul class="trule"><li>Mazo de <b>30 cartas</b>.</li><li>Máximo <b>3 comodines</b> (cartas de defensa 0). Las <b>ultra especiales no cuentan</b> como comodín y se pueden usar.</li><li>Las demás cartas pueden ser de <b>cualquier nivel</b>.</li><li>Cada victoria vale 3 puntos. En los grupos cada jugador enfrenta a un rival de cada otra nación: máximo 9 puntos por jugador y 54 por equipo.</li></ul></section>`;
  if(E&&E.champ){const pod=[["🥇 Campeón",E.champ],["🥈 Segundo",E.second],["🥉 Tercero",E.third],["4.º",E.fourth]];h+=`<section class="pn"><h3 style="margin-top:0">🏆 Podio final</h3>${pod.map(([t,k])=>`<div class="tm ${E.P[k].uid==(U&&U.uid)?"me":""}"><span><b style="min-width:0">${t}</b></span><span style="text-align:right">${tnP(k)}</span></div>`).join("")}</section>`}
   h+=tnTeam("mx",real)+(st.xn?tnTeam(st.xn,real):"")+`<section class="pn">`;
   {const pend=Object.entries(real).find(([k,x])=>k[0]=="w"&&x&&x.uid==U.uid);
@@ -2815,7 +2815,7 @@ function trnElList_old(){const E=TRN.E;if(!E.s36)return`<section class="pn"><h3 
 function trnNa(){const E=TRN.E;return`<section class="pn"><h3 style="margin-top:0">20 naciones · 120 duelistas</h3>${TN.N.map((n,ni)=>`<details style="margin:6px 0"><summary style="cursor:pointer;font-size:18px">${n[2]} ${n[1]} <span class="mut">· Grupo ${"ABCDE"[TN.G.findIndex(g=>g.includes(n[0]))]}</span></summary><table class="tt" style="margin:6px 0 10px"><tr><th>#</th><th>Jugador</th><th>Nivel</th><th>Dificultad</th><th>Mazo</th></tr>${[0,1,2,3,4,5].map(s=>{const p=E.P[ni+":"+s];return`<tr><td>${s+1}</td><td>${esc(p.name)}${p.uid?" ⭐":""}</td><td>${p.uid?"—":p.lv}</td><td>${p.uid?"Real":tnDif(p.lv)}</td><td><button class="mini" data-act="tdeck" data-k="${ni}:${s}">ver</button></td></tr>`}).join("")}</table></details>`).join("")}</section>`}
 function rTrn(){
  const A='<div class="ap" style="width:min(1560px,100%)"><div class="hd"><button class="mini" data-act="goback">← Volver</button><b class="nm">🏆 Torneo</b></div>';
- if(!trnVis())return A+'<section class="pn"><h2 style="margin-top:0">🔒 Torneo bloqueado</h2><p class="mut">El administrador abrirá esta sección muy pronto. ¡Prepara un mazo de 30 cartas con máximo 3 comodines y cartas de nivel 4 en adelante!</p></section></div>';
+ if(!trnVis())return A+'<section class="pn"><h2 style="margin-top:0">🔒 Torneo bloqueado</h2><p class="mut">El administrador abrirá esta sección muy pronto. ¡Prepara un mazo de 30 cartas con máximo 3 comodines y las demás cartas de cualquier nivel!</p></section></div>';
  if(!TRN.st){return A+`<section class="pn"><h2 style="margin-top:0">🏆 Torneo Mundial · Temporada 1</h2><p class="mut">${!TRN.ld?"Cargando…":U.admin?"El torneo todavía no está creado.":"El torneo aún no está listo. Vuelve pronto."}</p>${U.admin&&TRN.ld?`<button class="go" data-act="tadm" data-a="create">Crear torneo (quedas como capitán de México)</button>`:""}${U.admin?trnAdmOnly():""}</section></div>`}
  if(!TRN.E)return A+'<section class="pn"><p class="mut">Cargando torneo…</p></section></div>';
  const T=[["res","Resumen"],["pr","🎁 Premios"],["eq","Mi equipo"],["gr","Grupos"],["pa","Partidos"],["el","Eliminatorias"],["na","Naciones"]];if(U.admin){T.push(["si","🧪 Simulación"]);T.push(["tt","🧪 Modo de prueba"])}
@@ -3559,20 +3559,21 @@ async function qzSettle(){const E=TRN.E;if(!U||!db||!E||TRN.test||TRQ.pay)return
 /* ---------- ✏️ administrador: editar grupos (quién juega contra quién) ---------- */
 TN.G0=TN.G0||TN.G.map(a=>a.slice());
 const TNSCH=[[[0,1],[2,3]],[[0,2],[1,3]],[[0,3],[1,2]]];
+function tnGrDec(g){try{if(Array.isArray(g)&&g.length&&g.every(x=>typeof x=="string"))return g.map(x=>x.split(","));if(g&&typeof g=="object"&&!Array.isArray(g))return Object.keys(g).sort().map(k=>g[k])}catch(e){}return g}
 function tnGrOk(g){try{return Array.isArray(g)&&g.length==5&&g.every(a=>Array.isArray(a)&&a.length==4)&&new Set(g.flat()).size==20&&g.flat().every(c=>TN.N.some(n=>n[0]==c))}catch(e){return false}}
 const tnNat=c=>{const n=TN.N.find(x=>x[0]==c);return n?n[2]+" "+n[1]:String(c)};
-function trnGrEdit(){const st=TRN.st||{},rd=st.rd||0,cur=tnGrOk(st.grp)?st.grp:TN.G0,dr=TRN.ge&&tnGrOk(TRN.ge)?TRN.ge:cur,lock=rd>0||!!TRN.test,dirty=JSON.stringify(dr)!=JSON.stringify(cur),sel=TRN.gsel;
+function trnGrEdit(){const st=TRN.st||{},rd=st.rd||0,cur=tnGrOk(tnGrDec(st.grp))?tnGrDec(st.grp):TN.G0,dr=TRN.ge&&tnGrOk(TRN.ge)?TRN.ge:cur,lock=rd>0||!!TRN.test,dirty=JSON.stringify(dr)!=JSON.stringify(cur),sel=TRN.gsel;
  return`<section class="pn" style="border-color:#ffd86b88"><h3 style="margin-top:0">✏️ Administrador · Editar grupos y emparejamientos</h3><p class="mut" style="margin-top:0">${lock?"🔒 Solo se pueden cambiar antes de iniciar el torneo (reinícialo para editar).":"Toca una nación y luego otra para <b>intercambiarlas</b> (también entre grupos distintos). El orden dentro del grupo define quién juega contra quién en cada jornada."}</p><div class="tgrid">${dr.map((g,gi)=>`<div class="tbox"><h4>Grupo ${"ABCDE"[gi]}</h4>${g.map((c,i)=>{const on=sel&&sel[0]==gi&&sel[1]==i;return`<div class="k4r ${on?"k4sel":""}"><b>${i+1}</b><span>${tnNat(c)}</span><button class="k4qb" data-act="tgs" data-g="${gi}" data-i="${i}" ${lock?"disabled":""}>${on?"✔":"⇄"}</button></div>`}).join("")}<div class="mut" style="font-size:13px;margin-top:6px;line-height:1.35">${TNSCH.map((j,k)=>`<b>J${k+1}</b> ${j.map(([x,y])=>TN.N.find(n=>n[0]==g[x])[2]+" "+TN.N.find(n=>n[0]==g[x])[1]+" – "+TN.N.find(n=>n[0]==g[y])[2]+" "+TN.N.find(n=>n[0]==g[y])[1]).join(" · ")}`).join("<br>")}</div></div>`).join("")}</div>${lock?"":`<div class="tb" style="margin-top:10px"><button class="go" data-act="tgv" ${dirty?"":"disabled"}>💾 Guardar grupos</button><button data-act="tgx">🎲 Sortear al azar</button><button data-act="tgr">↺ Grupos originales</button>${dirty?'<button data-act="tgc">Cancelar cambios</button>':""}</div>`}</section>`}
 {const _g=trnGr;trnGr=function(){return _g.apply(this,arguments)+(U&&U.admin?trnGrEdit():"")}}
 Object.assign(ACT,{
- tgs(b){const st=TRN.st||{};if(TRN.test||(st.rd||0)>0)return;const gi=+b.dataset.g,i=+b.dataset.i,cur=tnGrOk(st.grp)?st.grp:TN.G0;if(!TRN.ge||!tnGrOk(TRN.ge))TRN.ge=cur.map(a=>a.slice());
+ tgs(b){const st=TRN.st||{};if(TRN.test||(st.rd||0)>0)return;const gi=+b.dataset.g,i=+b.dataset.i,cur=tnGrOk(tnGrDec(st.grp))?tnGrDec(st.grp):TN.G0;if(!TRN.ge||!tnGrOk(TRN.ge))TRN.ge=cur.map(a=>a.slice());
   if(!TRN.gsel)TRN.gsel=[gi,i];else{const [g0,i0]=TRN.gsel,t=TRN.ge[g0][i0];TRN.ge[g0][i0]=TRN.ge[gi][i];TRN.ge[gi][i]=t;TRN.gsel=null}render()},
  tgc(){TRN.ge=null;TRN.gsel=null;render()},
  tgx(){const all=TN.G0.flat().slice();for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]]}TRN.ge=[0,1,2,3,4].map(k=>all.slice(k*4,k*4+4));TRN.gsel=null;render()},
  async tgv(){if(!U||!U.admin||TRN.test||(TRN.st.rd||0)>0)return;if(!tnGrOk(TRN.ge))return toast("Los grupos no son válidos");
   if(TRQ.all.some(q=>q.g&&Object.keys(q.g).length)&&!confirm("Ya hay quinielas de grupos guardadas: las de los grupos que cambien dejarán de contar. ¿Continuar?"))return;
-  try{await D("torneo","s1").update({grp:TRN.ge});TRN.ge=null;TRN.gsel=null;toast("✅ Grupos guardados",3500)}catch(e){console.error(e);toast("No se pudo guardar los grupos")}render()},
- async tgr(){if(!U||!U.admin||TRN.test||(TRN.st.rd||0)>0)return;if(!confirm("¿Volver a los grupos originales?"))return;try{await D("torneo","s1").update({grp:FV.delete()});TRN.ge=null;TRN.gsel=null;toast("Grupos originales restaurados",3500)}catch(e){toast("No se pudo restaurar")}render()}});
+  try{await D("torneo","s1").set({grp:TRN.ge.map(g=>g.join(","))},{merge:true});TRN.ge=null;TRN.gsel=null;toast("✅ Grupos guardados",3500)}catch(e){console.error(e);toast("No se pudo guardar los grupos: "+((e&&(e.code||e.message))||e),6000)}render()},
+ async tgr(){if(!U||!U.admin||TRN.test||(TRN.st.rd||0)>0)return;if(!confirm("¿Volver a los grupos originales?"))return;try{await D("torneo","s1").set({grp:FV.delete()},{merge:true});TRN.ge=null;TRN.gsel=null;toast("Grupos originales restaurados",3500)}catch(e){toast("No se pudo restaurar")}render()}});
 
 /* ---------- 🎬 repetición de la final (los movimientos de cada duelo del torneo ya quedan guardados en matches/{id}/moves) ---------- */
 const TFR={res:null,id:null,busy:0};
@@ -3597,7 +3598,7 @@ function tvRplWatch(me){let idle=0;const t=setInterval(()=>{if(!ON.spec||SP!==me
 trnGr=trnLk(trnGr);trnPa=trnLk(trnPa);trnEq=trnLk(trnEq);trnHi=trnLk(trnHi);trnEl=trnLk(trnEl);
 rTrn=function(){
  const A='<div class="ap" style="width:min(1560px,100%)"><div class="hd"><button class="mini" data-act="goback">← Volver</button><b class="nm">🏆 Torneo</b></div>';
- if(!trnVis())return A+'<section class="pn"><h2 style="margin-top:0">🔒 Torneo bloqueado</h2><p class="mut">El administrador abrirá esta sección muy pronto. ¡Prepara un mazo de 30 cartas con máximo 3 comodines y cartas de nivel 4 en adelante!</p></section></div>';
+ if(!trnVis())return A+'<section class="pn"><h2 style="margin-top:0">🔒 Torneo bloqueado</h2><p class="mut">El administrador abrirá esta sección muy pronto. ¡Prepara un mazo de 30 cartas con máximo 3 comodines y las demás cartas de cualquier nivel!</p></section></div>';
  if(!TRN.st){return A+`<section class="pn"><h2 style="margin-top:0">🏆 Torneo Mundial · Temporada 1</h2><p class="mut">${!TRN.ld?"Cargando…":U.admin?"El torneo todavía no está creado.":"El torneo aún no está listo. Vuelve pronto."}</p>${U.admin&&TRN.ld?`<button class="go" data-act="tadm" data-a="create">Crear torneo (quedas como capitán de México)</button>`:""}${U.admin?trnAdmOnly():""}</section></div>`}
  if(!TRN.E)return A+'<section class="pn"><p class="mut">Cargando torneo…</p></section></div>';
  const T=[["res","Resumen"],...((TRN.st&&TRN.st.rd||0)>=8?[["live","📡 En vivo"]]:[]),["eq","Equipo México"],["hi","Historial"],["bt","Pronósticos"],["qz","🎯 Quiniela"],["vv","Ver partidas"],["pr","Premios"],["gr","Grupos"],["pa","Partidos"],["el","Eliminatorias"],["na","Naciones"]];if(U.admin){T.push(["sm","Simulación total"]);T.push(["si","Simulación de 3"]);T.push(["tt","Modo de prueba"])}
