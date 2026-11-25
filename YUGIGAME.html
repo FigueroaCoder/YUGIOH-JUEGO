@@ -4189,4 +4189,144 @@ window.__exo={EXID,exoSummon,complete,isYugi};
   try{if(isN(c)){const p=$("#pi");p&&p.insertAdjacentHTML("beforeend",'<small class="ufx">⚡ '+TXT+(c.neg?" (EFECTO NEGADO)":"")+'</small>')}}catch(e){}
   return r};
 })();
+
+/* ===== TORNEO v18 · menú propio del torneo · pantalla de inscripción · admin asigna nación y lugar · pestaña de equipo de cada usuario ===== */
+(function(){
+ const NA=k=>TN.N.find(n=>n[0]==k),nT=k=>{const n=NA(k);return n?n[2]+" "+n[1]:k};
+ const isNum=k=>/^\d+$/.test(k),rkey=(nk,i)=>nk=="mx"?i:nk+"_"+i;
+ const grL=nk=>{const g=TN.G.findIndex(x=>x.includes(nk));return g>=0?"ABCDE"[g]:"?"};
+ const SEC={res:"Mi duelo y resumen",reg:"Inscripción",my:"Mi equipo",eq:"Equipo México",gr:"Grupos",pa:"Partidos",el:"Eliminatorias",na:"Naciones",pr:"Premios",hi:"Historial",bt:"Pronósticos",qz:"Quiniela",vv:"Ver partidas",live:"En vivo",adm:"Administración",ins:"Inscritos y naciones",sm:"Simulación total",si:"Simulación de 3",tt:"Modo de prueba"};
+ TRN.hub=1;TRN.seeMenu=0;
+ {const st=document.createElement("style");st.textContent=`.thsec{color:#ffd86b;margin:20px 4px 10px;letter-spacing:.14em;text-transform:uppercase;font-size:18px}.tcg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:10px 0}.tcg>div{background:#ffffff0c;border-radius:10px;padding:8px 10px;text-align:center}.tcg b{display:block;font-size:24px;color:#ffd86b}.tcg small{color:#aeb6e8}.tok{border:1.5px solid #7dff9c88;background:#7dff9c14;border-radius:14px;padding:16px 18px;margin:12px 0}.twt{border:1.5px solid #ffd86b88;background:#ffd86b14;border-radius:14px;padding:16px 18px;margin:12px 0}.tck{display:flex;gap:10px;align-items:center;padding:5px 0;font-size:18px}.tck i{font-style:normal;font-weight:800;width:22px;text-align:center}`;document.head.appendChild(st)}
+
+ /* ---- ¿dónde está el usuario? ---- */
+ window.tnMyNat=function(){const real=(TRN.st&&TRN.st.real)||{};if(!U)return null;for(const k of Object.keys(real)){const x=real[k];if(!x||x.uid!=U.uid)continue;if(k[0]=="w")return{pending:1,k,x};if(isNum(k))return{nk:"mx",slot:+k,k,x};const p=k.split("_");return{nk:p[0],slot:+p[1],k,x}}return null};
+ const pendList=()=>{const real=(TRN.st&&TRN.st.real)||{};return Object.entries(real).filter(([k,x])=>k[0]=="w"&&x).sort((a,b)=>(a[1].ts||0)-(b[1].ts||0))};
+ const tile=(t,a,b,eye,title,sub,art,badge)=>`<div class="hm-t" data-act="ttab" data-t="${t}" style="--a:${a};--b:${b}"><div class="hm-art" style="font-size:84px;line-height:1">${art}</div><div class="hm-tx"><span class="hm-eye">${eye}</span><h3>${title}</h3><p>${sub}</p></div>${badge?`<i class="hm-bdg">${badge}</i>`:""}</div>`;
+
+ /* ---- estado arriba del menú ---- */
+ function hubStatus(){const st=TRN.st,E=TRN.E,rd=st.rd||0,my=tnMyNat(),n=my&&my.nk?NA(my.nk):null;
+  const phase=rd==0?"Inscripciones abiertas":rd>TNMAX?"Torneo terminado":"Ronda "+rd+" de "+TNMAX+" · "+TNR[rd];
+  let s;
+  if(my&&my.nk)s=`<div class="tok" style="margin:10px 0 0"><b style="font-size:22px;color:#7dff9c">${n[2]} Representas a ${n[1]}</b><div class="mut">Lugar #${my.slot+1}${my.nk=="mx"&&my.slot==0?" · Capitán":""} · Grupo ${grL(my.nk)}${rd==0?" · Espera el inicio del torneo":""}</div></div>`;
+  else if(my&&my.pending)s=rd>0?`<div class="twt" style="margin:10px 0 0">Las inscripciones cerraron y no se te asignó una nación.</div>`:`<div class="twt" style="margin:10px 0 0"><b style="font-size:20px;color:#ffd86b">⏳ Inscrito · esperando nación</b><div class="mut">El administrador te asignará nación y lugar antes de iniciar.</div></div>`;
+  else s=rd==0?`<div class="twt" style="margin:10px 0 0"><b style="font-size:20px;color:#ffd86b">📝 Aún no estás inscrito</b><div class="mut">Entra a «Inscripción» para validar tu mazo y apuntarte.</div></div>`:`<div class="mut" style="margin-top:10px">Las inscripciones ya cerraron: puedes seguir el torneo desde aquí.</div>`;
+  let ad="";if(U.admin){const real=st.real||{},as=Object.keys(real).filter(k=>k[0]!="w"&&real[k]).length;ad=`<div class="tcg"><div><b>${pendList().length}</b><small>inscritos pendientes</small></div><div><b>${as}</b><small>jugadores asignados</small></div><div><b>${TRN.open?"Sí":"No"}</b><small>liberado a los usuarios</small></div></div>`}
+  return`<section class="pn"><h2 style="margin-top:0">🌍 Torneo Mundial · Temporada 1</h2><p class="mut" style="margin:0">20 naciones · 120 duelistas · ${typeof tnRealTxt=="function"?tnRealTxt():""}</p><p style="font-size:21px;margin:8px 0 0"><b>${phase}</b></p>${s}${ad}</section>`}
+
+ function trnHub(){const st=TRN.st,rd=st.rd||0,my=tnMyNat(),mi=trnMine(),reg=!!my;
+  const pd=rd>=1&&rd<=TNMAX&&mi.cur&&!TRN.res[mi.cur.id+"_"+U.uid];
+  const T=[];
+  T.push(tile("res","#c8901a","#4a2d00",rd==0?"Antes de empezar":rd>TNMAX?"Terminado":"Ronda "+rd,"Mi duelo",pd?"Tienes un duelo pendiente":"Tu resumen, resultados y premios","⚔️",pd?"¡Juega!":""));
+  if(rd==0)T.push(tile("reg","#1f9d6b","#0b3d33","Inscripción",reg?"Inscrito ✓":"Inscribirme",reg?"Ya estás en la lista":"Valida tu mazo y apúntate","📝",reg?"":"Abierto"));
+  if(my&&my.nk)T.push(tile("my","#2b6fd6","#10265a","Mi selección","Mi equipo",nT(my.nk),NA(my.nk)[2]));
+  T.push(tile("eq","#1b9a4a","#0a3b1f","Selección","Equipo México","Jugadores y puntos","🇲🇽"));
+  T.push(tile("gr","#7a3fd1","#26104f","Fase de grupos","Grupos","Tablas y participantes","📊"));
+  T.push(tile("pa","#d1573f","#4f1810","Calendario","Partidos","Resultados por ronda","📅"));
+  T.push(tile("el","#b8325d","#450f26","Camino al título","Eliminatorias","Cuadro de la fase final","🌳"));
+  T.push(tile("na","#128a9a","#06363e","20 selecciones","Naciones","Equipos y mazos","🌍"));
+  T.push(tile("pr","#d19a1f","#4d3302","Recompensas","Premios","Monedas, sobres e insignias","🎁"));
+  T.push(tile("hi","#5865d6","#1a1f55","Estadísticas","Historial","Tu recorrido y cartas goleadoras","📜"));
+  T.push(tile("bt","#2d9d78","#0b3f31","Apuestas","Pronósticos","Apuesta con tus monedas","🎲"));
+  T.push(tile("qz","#c76a1f","#4a2208","Gratis","Quiniela","Adivina el cuadro","🎯"));
+  T.push(tile("vv","#2f89c5","#0e3150","Espectador","Ver partidas","Mira duelos en curso","👁"));
+  if(rd>=8)T.push(tile("live","#d12f4f","#4f0d1a","Tiempo real","En vivo","Muro de resultados","📡"));
+  let h=hubStatus()+`<h3 class="thsec">Menú del torneo</h3><div class="hm-grid">${T.join("")}</div>`;
+  if(U.admin){const A=[];
+   A.push(tile("ins","#e0a21c","#5a3a00","Antes de iniciar","Inscritos y naciones","Asigna nación y lugar a cada jugador","🧾",pendList().length?pendList().length+" nuevos":""));
+   A.push(tile("adm","#8a8f9c","#2a2d36","Control","Administración","Liberar, iniciar, rondas y horarios","🛠"));
+   A.push(tile("sm","#6a5acd","#211a57","Pruebas","Simulación total","Simula todo el torneo","🧮"));
+   A.push(tile("si","#9b59b6","#33174a","Pruebas","Simulación de 3","Prueba una partida de 3","🧪"));
+   A.push(tile("tt","#e67e22","#51280a","Pruebas","Modo de prueba","Ensayo sin afectar a nadie","🔬"));
+   h+=`<h3 class="thsec">Administrador</h3><div class="hm-grid">${A.join("")}</div>`}
+  return h}
+
+ const trnNav=k=>`<div class="tb" style="margin:12px 0;align-items:center;flex-wrap:wrap;gap:10px"><button class="mini" data-act="thub">← Menú del torneo</button><b style="font-size:22px;color:#ffd86b">${SEC[k]||""}</b></div>`;
+
+ /* ---- inscripción ---- */
+ function trnRegBody(solo){const st=TRN.st||{},real=st.real||{},rd=st.rd||0,my=tnMyNat(),ck=trnCheck(U.col&&U.col.deck);
+  const total=Object.keys(real).filter(k=>real[k]).length,rowc=(ok,t)=>`<div class="tck"><i style="color:${ok?"#7dff9c":"#ff9a9a"}">${ok?"✔":"✖"}</i><span>${t}</span></div>`;
+  let h=`<section class="pn"><h2 style="margin-top:0">📝 Inscripción · Torneo Mundial · Temporada 1</h2><p class="mut" style="margin-top:0">${total} jugador${total==1?"":"es"} inscrito${total==1?"":"s"} hasta ahora. Para jugar necesitas un mazo que cumpla las reglas del torneo:</p><ul class="trule"><li>Mazo de <b>30 cartas</b>.</li><li>Máximo <b>3 comodines</b> (cartas de defensa 0). Las <b>ultra especiales no cuentan</b> como comodín y se pueden usar.</li><li>Las demás cartas pueden ser de <b>cualquier nivel</b>.</li></ul>`;
+  if(my){const n=my.nk?NA(my.nk):null,d=my.x&&my.x.ts?new Date(my.x.ts).toLocaleString():"";
+   h+=`<div class="tok"><div style="font-size:28px;font-weight:800;color:#7dff9c">✅ ¡Ya estás inscrito!</div><p style="margin:6px 0 0;font-size:19px">Tu mazo fue validado. <b>Espera el inicio del torneo.</b></p>${d?`<p class="mut" style="margin:4px 0 0">Inscripción: ${esc(d)}</p>`:""}</div>`;
+   if(n)h+=`<p style="font-size:19px;margin:8px 0">${n[2]} El administrador te asignó a <b>${n[1]}</b> · lugar #${my.slot+1} · Grupo ${grL(my.nk)}.</p>`;
+   else h+=rd>0?`<p class="mut">Las inscripciones cerraron y no se te asignó una nación.</p>`:`<p class="mut" style="margin:8px 0 0">⏳ El administrador decidirá en qué nación juegas. Te avisaremos aquí cuando lo haga.</p>`}
+  else if(rd>0)h+=`<div class="twt">Las inscripciones ya cerraron.</div>`;
+  else{h+=`<h3 style="color:#ffd86b;margin:14px 0 4px">Revisión de tu mazo actual</h3>${rowc(ck.n==30,`Cartas en el mazo: <b>${ck.n}/30</b>`)}${rowc(ck.w<=3,`Comodines (defensa 0): <b>${ck.w}</b> · máximo 3`)}${rowc(!ck.msgs.some(m=>/sin nivel/.test(m)),"Todas las cartas tienen un nivel válido")}`;
+   if(TRN.err)h+=`<div class="terr">${TRN.err.map(x=>"✖ "+esc(x)).join("<br>")}</div>`;
+   else if(!ck.ok)h+=`<div class="terr">${ck.msgs.map(x=>"✖ "+esc(x)).join("<br>")}<br><small class="mut">Arregla tu mazo en Colección y vuelve a esta pantalla.</small></div>`;
+   h+=`<div class="tb" style="margin:14px 0 0;gap:10px;flex-wrap:wrap"><button class="go" data-act="ttjoin">VALIDAR MI MAZO E INSCRIBIRME</button><button data-act="gcol">Ir a mi colección</button></div>`}
+  if(solo&&(U.admin||true))h+=`<div class="tb" style="margin:14px 0 0"><button class="mini" data-act="tmenu">Ver menú del torneo →</button></div>`;
+  return h+`</section>`}
+
+ /* ---- pestaña de equipo (de cualquier nación) ---- */
+ function trnMyTeamPage(){const E=TRN.E,my=tnMyNat();if(!my||!my.nk)return`<section class="pn"><p class="mut">Todavía no tienes una nación asignada. Cuando el administrador te asigne una, aquí verás a tu equipo.</p></section>`;
+  const rd=E.rd,ni=E.NI[my.nk],n=TN.N[ni],gi=E.ph1.findIndex(g=>g.nats.includes(ni)),g2=E.ph2?E.ph2.findIndex(g=>g.nats.includes(ni)):-1;
+  const sum=o=>[0,1,2,3,4,5].reduce((t,s)=>t+(o[ni+":"+s]||0),0),mi=trnMine();
+  let h=`<section class="pn"><h2 style="margin-top:0">${n[2]} Equipo ${n[1]}</h2><div class="tcg"><div><b>${gi>=0?"ABCDE"[gi]:"?"}</b><small>Grupo</small></div><div><b>${sum(E.pp1)}/54</b><small>Puntos Fase 1</small></div><div><b>${E.ph2?sum(E.pp2)+"/54":"—"}</b><small>Puntos Fase 2</small></div><div><b>#${my.slot+1}</b><small>Tu lugar</small></div></div>`;
+  if(rd>=1&&rd<=TNMAX&&mi.cur&&!TRN.res[mi.cur.id+"_"+U.uid])h+=`<div class="twt"><b style="color:#ffd86b;font-size:20px">⚔️ Tienes un duelo pendiente</b> <span class="mut">· Ronda ${mi.cur.r}</span><div style="margin-top:8px"><button class="go" data-act="tplay" data-id="${esc(mi.cur.id)}">JUGAR AHORA</button></div></div>`;
+  h+=`<table class="tt"><tr><th>#</th><th>Jugador</th><th>Tipo</th><th>Pts F1</th><th>Pts F2</th></tr>${[0,1,2,3,4,5].map(s=>{const k=ni+":"+s,p=E.P[k];return`<tr class="${p.uid&&p.uid==U.uid?"mx":""}"><td>${s+1}${s==0&&my.nk=="mx"?" 🎖":""}</td><td>${esc(p.name)}${p.uid&&p.uid==U.uid?" (tú)":""}</td><td>${p.uid?"Real ⭐":(U.admin?"NPC · nivel "+p.lv:"NPC")}</td><td>${E.pp1[k]||0}</td><td>${E.pp2[k]||0}</td></tr>`}).join("")}</table></section>`;
+  if(gi>=0)h+=`<section class="pn"><h3 style="margin-top:0">Grupo ${"ABCDE"[gi]} · Fase 1</h3>${tnTbl(E.ph1[gi],(j,x)=>E.q1&&(j<2||E.q1.t.includes(x.ni)))}</section>`;
+  if(g2>=0)h+=`<section class="pn"><h3 style="margin-top:0">Grupo ${g2+1} · Fase 2</h3>${tnTbl(E.ph2[g2],(j)=>E.q2&&j<2)}</section>`;
+  const ks=m=>m.tag=="TRI"?m.mem:[m.a,m.b];let ms="";
+  for(let r=Math.min(rd,TNMAX);r>=1;r--){const L=(E.BR[r]||[]).filter(m=>ks(m).some(k=>E.P[k].ni==ni));if(L.length)ms+=`<h4 style="color:#ffd86b;margin:12px 0 4px">Ronda ${r} · ${TNR[r]}</h4>`+L.map(tnAny).join("")}
+  h+=`<section class="pn"><h3 style="margin-top:0">Partidos de ${n[1]}</h3>${ms||'<p class="mut">Todavía no hay partidos. Aparecerán cuando inicie el torneo.</p>'}</section>`;
+  return h}
+ const trnMyTeamL=trnLk(trnMyTeamPage);
+
+ /* ---- administración ---- */
+ function trnAdmPage(){TRN._noAsg=1;try{return trnAdm()}finally{TRN._noAsg=0}}
+ function slotOpts(nk){const real=(TRN.st||{}).real||{};return[0,1,2,3,4,5].map(i=>{const r=real[rkey(nk,i)];return`<option value="${i}" ${r?"disabled":""}>#${i+1}${nk=="mx"&&i==0?" (capitán)":""} · ${r?"ocupado por "+esc(r.name):"reemplaza a "+esc(TN.ro(nk,i).n)}</option>`}).join("")}
+ window.trnNatChg=function(k){const ns=document.getElementById("as_n_"+k),ss=document.getElementById("as_s_"+k);if(ns&&ss)ss.innerHTML=slotOpts(ns.value)};
+ trnAsg=function(){if(TRN.test||TRN._noAsg)return"";const st=TRN.st||{},real=st.real||{},rd=st.rd||0,E=TRN.E,pend=pendList();
+  const free=nk=>[0,1,2,3,4,5].filter(i=>!real[rkey(nk,i)]).length;
+  const ord=TN.N.slice().sort((a,b)=>(a[0]=="mx"?-1:0)-(b[0]=="mx"?-1:0));
+  const natOpts=ord.map(n=>`<option value="${n[0]}">${n[2]} ${n[1]} · Grupo ${grL(n[0])} · ${free(n[0])} libres</option>`).join("");
+  const asg=[];TN.N.forEach((n,ni)=>[0,1,2,3,4,5].forEach(i=>{const r=real[rkey(n[0],i)];if(r)asg.push([n[0],i,r])}));
+  let h=`<section class="pn" style="border-color:#ffd86b88"><h3 style="margin-top:0">🧾 Inscritos y naciones</h3><p class="mut" style="margin-top:0">Los jugadores se inscriben y quedan pendientes. Elige la <b>nación</b> y el <b>lugar</b> (#1 a #6) de cada uno: ocupará el sitio de un NPC. Puedes usar cualquiera de las 20 naciones. Solo se puede asignar antes de iniciar el torneo.</p>`;
+  h+=`<h4 style="color:#ffd86b;margin:8px 0 4px">Pendientes (${pend.length})</h4>`+(pend.length?pend.map(([k,x])=>{const ck=trnCheck(x.deck),d=x.ts?new Date(x.ts).toLocaleString():"";return`<div class="tm" style="align-items:center"><span style="text-align:left"><b style="min-width:0;color:#fff;text-align:left">${esc(x.name)}</b><br><small class="mut">${ck.ok?"✔ mazo válido":"⚠ mazo con problemas"} · ${esc(d)}</small></span><select id="as_n_${k}" onchange="trnNatChg('${k}')" style="max-width:100%">${natOpts}</select><select id="as_s_${k}" style="max-width:100%">${slotOpts("mx")}</select><button class="go" data-act="tasg" data-a="put" data-k="${k}" ${rd>0?"disabled":""}>Asignar</button><button data-act="tasg" data-a="del" data-k="${k}">Quitar</button></div>`}).join(""):`<p class="mut">No hay inscritos pendientes.</p>`);
+  if(asg.length)h+=`<h4 style="color:#ffd86b;margin:14px 0 4px">Asignados (${asg.length})</h4>`+asg.map(([nk,i,r])=>`<div class="tm"><span style="text-align:left"><b style="min-width:0;color:#fff;text-align:left">${esc(r.name)}</b></span><span>${nT(nk)} · #${i+1}${nk=="mx"&&i==0?" · Capitán":""} · Grupo ${grL(nk)}</span>${nk=="mx"&&i==0?"":`<button data-act="tasg" data-a="un" data-k="${rkey(nk,i)}" ${rd>0?"disabled":""}>Volver a pendiente</button>`}</div>`).join("");
+  return h+`</section>`};
+ function trnInsPage(){if(TRN.test)return`<section class="pn"><p class="mut">No disponible en modo de prueba. Sal de la prueba para gestionar a los inscritos.</p></section>`;
+  const st=TRN.st,rd=st.rd||0,pend=pendList().length,asg=Object.keys(st.real||{}).filter(k=>k[0]!="w"&&st.real[k]).length;
+  return`<section class="pn" style="border-color:#ffd86b88"><h3 style="margin-top:0">🚦 Pasos para abrir el torneo</h3><div class="tm"><span style="text-align:left"><b style="min-width:0">1.</b> Liberar el torneo: los jugadores verán primero la pantalla de inscripción.</span><button class="${TRN.open?"":"go"}" data-act="tadm" data-a="open" ${rd>0?"disabled":""}>${TRN.open?"🔒 Ocultar a los demás":"🔓 Liberar torneo"}</button></div><div class="tm"><span style="text-align:left"><b style="min-width:0">2.</b> Revisa a los inscritos y asigna nación y lugar a cada uno (abajo).</span><span>${pend} pendientes · ${asg} asignados</span></div><div class="tm"><span style="text-align:left"><b style="min-width:0">3.</b> Inicia el torneo: se cierran las inscripciones y empieza la Ronda 1.</span><button class="go" data-act="tstart2" ${rd>0?"disabled":""}>▶ Iniciar torneo</button></div></section>`+trnAsg()}
+
+ /* ---- acciones ---- */
+ {const _g=ACT.gtrn;ACT.gtrn=function(){TRN.hub=1;TRN.seeMenu=0;TRN.tab="res";return _g.apply(this,arguments)}}
+ {const _t=ACT.ttab;ACT.ttab=function(b){TRN.hub=0;return _t.apply(this,arguments)}}
+ Object.assign(ACT,{thub(){TRN.hub=1;render()},tmenu(){TRN.seeMenu=1;TRN.hub=1;render()},
+  async tstart2(){if(!U||!U.admin)return;const st=TRN.st||{},real=st.real||{},p=Object.keys(real).filter(k=>k[0]=="w"&&real[k]).length;if((st.rd||0)>0)return toast("El torneo ya inició");if(p&&!confirm("Hay "+p+" inscrito(s) sin nación asignada: no jugarán el torneo.\n¿Iniciar de todos modos?"))return;return ACT.tadm({dataset:{a:"start"}})},
+  async tasg(b){if(!U||!U.admin||!db||TRN.test)return;const a=b.dataset.a,k=b.dataset.k,ref=D("torneo","s1");
+   try{
+    if(a=="put"){const nk=(document.getElementById("as_n_"+k)||{}).value,si=(document.getElementById("as_s_"+k)||{}).value;if(!nk||si===""||si==null)return toast("Elige nación y lugar");const tk=nk=="mx"?si:nk+"_"+si;
+     await db.runTransaction(async tx=>{const s=await tx.get(ref),st=s.data()||{},real=st.real||{};if((st.rd||0)>0)throw"El torneo ya inició";if(!real[k])throw"Ese inscrito ya no está pendiente";if(real[tk])throw"Ese lugar ya está ocupado";tx.update(ref,{["real."+k]:FV.delete(),["real."+tk]:real[k]})});toast("Jugador asignado a "+nT(nk))}
+    else if(a=="del"){if(!confirm("¿Quitar esta inscripción?"))return;await ref.update({["real."+k]:FV.delete()});toast("Inscripción quitada")}
+    else if(a=="un"){await db.runTransaction(async tx=>{const s=await tx.get(ref),st=s.data()||{},real=st.real||{};if((st.rd||0)>0)throw"El torneo ya inició";if(!real[k]||k=="0")throw"No se puede mover a este jugador";tx.update(ref,{["real."+k]:FV.delete(),["real.w"+Date.now().toString(36)]:real[k]})});toast("Jugador devuelto a pendientes")}
+    else if(a=="xn")toast("Ya no hace falta: elige la nación de cada jugador al asignarlo")
+   }catch(e){console.error(e);toast(typeof e=="string"?e:"No se pudo completar la acción")}}});
+ /* liberar el torneo crea el torneo si todavía no existe */
+ {const _ta=ACT.tadm;ACT.tadm=async function(b){if(b&&b.dataset&&b.dataset.a=="open"&&!TRN.open&&!TRN.st&&U&&U.admin&&!TRN.test&&TRN.ld){try{await _ta.call(this,{dataset:{a:"create"}})}catch(e){console.error(e)}}return _ta.apply(this,arguments)}}
+
+ /* ---- texto de selecciones con jugadores reales (cualquier nación) ---- */
+ tnRealTxt=function(){const real=(TRN.st&&TRN.st.real)||{},s=new Set(["mx"]);Object.keys(real).forEach(k=>{if(real[k]&&k[0]!="w"&&!isNum(k))s.add(k.split("_")[0])});return"Selecciones con jugadores reales: "+[...s].map(nT).join(", ")+"."};
+
+ /* ---- avisar al jugador cuando le asignan nación ---- */
+ {const _re=trnRe;trnRe=function(){const r=_re.apply(this,arguments);try{const m=tnMyNat(),s=m&&m.nk?m.nk+":"+m.slot:(m?"p":"");if(TRN._ms!==undefined&&s!==TRN._ms&&m&&m.nk&&U&&!U.admin)toast("🎉 El administrador te asignó a "+nT(m.nk)+" · lugar #"+(m.slot+1),7000);TRN._ms=s}catch(e){}return r}}
+
+ /* ---- no perder lo elegido en los selectores del admin cuando se refresca la pantalla ---- */
+ {const _r=render;render=function(){const keep={};try{app.querySelectorAll('select[id^="as_"]').forEach(s=>keep[s.id]=s.value)}catch(e){}const r=_r.apply(this,arguments);try{Object.keys(keep).filter(i=>i.indexOf("as_n_")==0).forEach(i=>{const e=document.getElementById(i);if(e){e.value=keep[i];trnNatChg(i.slice(5))}});Object.keys(keep).filter(i=>i.indexOf("as_s_")==0).forEach(i=>{const e=document.getElementById(i);if(e&&!e.querySelector('option[value="'+keep[i]+'"]:disabled'))e.value=keep[i]})}catch(e){}return r}}
+
+ /* ---- pantalla del torneo ---- */
+ const _rt=rTrn;
+ rTrn=function(){const st=TRN.st;if(!U||!trnVis()||!st||!TRN.E)return _rt.apply(this,arguments);
+  const rd=st.rd||0,A='<div class="ap" style="width:min(1560px,100%)"><div class="hd"><button class="mini" data-act="goback">← Volver</button><b class="nm">🏆 Torneo</b></div>',keep=TRN.tab,OWN=["reg","my","adm","ins"],regFirst=!U.admin&&rd==0&&!TRN.seeMenu,own=OWN.includes(keep)||TRN.hub||regFirst;
+  let full="";TRN._noAdm=1;try{if(own)TRN.tab="eq";full=_rt.apply(this,arguments)}catch(e){console.error(e)}finally{TRN.tab=keep;TRN._noAdm=0}
+  if(own){try{tvvOff()}catch(e){}}
+  const m="🏆 Torneo</b></div>",i0=full.indexOf(m),j0=full.indexOf('<div class="ttabs">'),ban=i0>-1&&j0>i0?full.slice(i0+m.length,j0):"";
+  if(regFirst)return A+trnRegBody(1)+"</div>";
+  if(TRN.hub)return A+ban+trnHub()+"</div>";
+  if(OWN.includes(keep)){const body={reg:()=>trnRegBody(0),my:trnMyTeamL,adm:trnAdmPage,ins:trnInsPage}[keep];return A+ban+trnNav(keep)+body()+"</div>"}
+  const i=full.indexOf('<div class="ttabs">');if(i<0)return full;const j=full.indexOf("</div>",i)+6;return full.slice(0,i)+trnNav(keep)+full.slice(j)};
+ {const _ad=trnAdm;trnAdm=function(){if(TRN._noAdm)return"";return _ad.apply(this,arguments)}}
+})();
 </script></body></html>
