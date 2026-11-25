@@ -492,8 +492,8 @@ if(R.lp>0&&ev.length)pop({i:1,owner:e,pos:"a"},"¡SOBRANTE! -"+R.lp+" LP","#ff3b
 if(r.dmg>0){await lp(e,P[e].lp-r.dmg);msg(`${e?NAME(e)+" pierde":"Pierdes"} ${r.dmg} LP`)}else if(ev.some(x=>x.s))msg("¡El escudo absorbe el ataque! Nada más es dañado");else if(!ev.some(x=>x.k))msg("La defensa resiste el ataque");
 await chk3();G.busy=1}
 function end(win){if(G.over)return;G.over=1;G.busy=1;if(!G.specDone)reportResult(win);(async()=>{const ttl=win?"¡VICTORIA!":(G.n3?"PUESTO "+(G.place||3):"DERROTA");await bn(ttl);const o=$("#ov");o.querySelector("h1").textContent=ttl;o.querySelector("p").textContent=win?(G.n3?"¡Eres el último duelista en pie!":"Reduciste los puntos de vida del rival a cero."):(G.n3?"Fuiste eliminado del duelo. Terminaste en el puesto "+(G.place||3)+" de 3.":"El rival redujo tus puntos de vida a cero.");$("#go").textContent=ON.on?"VOLVER A LA SALA":STORY.cur?(win&&!STORY.cur.practice?"VOLVER AL MAPA":win?"REPETIR RIVAL":"REINTENTAR"):"NUEVO DUELO";$("#ovm").textContent=STORY.cur?"VOLVER AL MAPA":"MENÚ";$("#ovm").style.display=ON.on?"none":"";$("#oxit").style.display=(STORY.cur&&!win&&!ON.on)?"":"none";$("#orev").style.display=(ON.on&&!G.n3&&!G.specDone)?"":"none";if(G.rwHtml)o.querySelector("p").insertAdjacentHTML("beforeend",G.rwHtml);o.style.display="flex";if(STORY.cur&&win)storyEnd().then(()=>checkLevels())})()}
-async function startTurn(p){G.t=p;G.tg=NX(p);G.tst=Date.now();G.n++;G.mv=2;G.atk=0;clr();G.busy=1;G.bw=1;hud();await bn(p?(G.n3?"TURNO DE "+NAME(p).toUpperCase():"TURNO DEL RIVAL"):"TU TURNO");G.bw=0;if(G.over)return;if(cardless(p)){if(G.n3){await elimP(p);await chk3();if(!G.over)await startTurn(NX(p))}else end(p==1);return}if(p||G.sim3){if(ON.on)rxPump();else await npc()}else{G.busy=0;hud()}}
-async function npc2(){await W(600);const me=P[1],op=P[0];let mv=2,NPA=0;
+async function startTurn(p){G.t=p;G.tg=NX(p);G.tst=Date.now();G.n++;G.mv=2+((P[p]&&P[p].xm>0)?(P[p].xm--,1):0);G.atk=0;clr();G.busy=1;G.bw=1;hud();await bn(p?(G.n3?"TURNO DE "+NAME(p).toUpperCase():"TURNO DEL RIVAL"):"TU TURNO");G.bw=0;if(G.over)return;if(cardless(p)){if(G.n3){await elimP(p);await chk3();if(!G.over)await startTurn(NX(p))}else end(p==1);return}if(p||G.sim3){if(ON.on)rxPump();else await npc()}else{G.busy=0;hud()}}
+async function npc2(){await W(600);const me=P[1],op=P[0];let mv=Math.max(2,G.mv|0),NPA=0;
 while(mv>0&&!G.over){const hs=me.hand;let best=null,bs=0;
 if(G.n>ATKN()&&!NPA)for(const a of me.A.filter(c=>c&&fxCanAtk(c))){const cs=[0,1,2].filter(i=>op.A[i]||op.D[i]);for(const col of cs.length?cs:[null]){const r=calc(a,col),s=r.ev.reduce((t,x)=>t+(x.s?400:x.k?1500+x.c.a:x.x),0)+r.lp*1.5;if((r.lp>0||r.ev.some(x=>x.k))&&s>bs){bs=s;best={a,col}}}}
 if(best&&!(STORY.cur&&STORY.cur.err&&Math.random()*100<STORY.cur.err)){TLV.on&&txl({t:"atk",i:best.a.i,c:best.col,m:best.a.mode||null});await attack(best.a,best.col);NPA=1;G.atk=1;mv--;if(G.over)return;hud();await W(400);continue}
@@ -1472,7 +1472,7 @@ for(const p of P.map((_,i)=>i).filter(i=>alive(i)&&P[i].lp<=0).sort((a,b)=>P[a].
 const al=P.map((_,i)=>i).filter(alive);if(al.length<=1&&!G.over)end(al[0]===0)}
 async function NS(s,c,pos,i){if(i==null)i=AR(s,pos).indexOf(null);ON.npcRun&&txn({t:"sum",h:P[s].hand.indexOf(c),id:c.id,s:pos,i});await summon(s,c,pos,i)}
 function txn(m){if(!ON.on)return;m.n=ON.seq++;m.by=String(ON.npcSeat);D("matches",ON.mid).collection("moves").doc(String(m.n).padStart(5,"0")).set(m).catch(()=>toast("Problema de conexión"))}
-async function npc3(){await W(600);const s=G.t,me=P[s];let mv=2,NPA=0;
+async function npc3(){await W(600);const s=G.t,me=P[s];let mv=Math.max(2,G.mv|0),NPA=0;
 while(mv>0&&!G.over&&!me.out){const hs=me.hand,opps=P.map((_,i)=>i).filter(i=>i!==s&&alive(i));let best=null,bs=0;
 if(G.n>ATKN()&&!NPA)for(const a of me.A.filter(c=>c&&fxCanAtk(c))){for(const o of opps){G.tg=o;const op=P[o],cs=[0,1,2].filter(i=>op.A[i]||op.D[i]);for(const col of cs.length?cs:[null]){const r=calc(a,col),sc=r.ev.reduce((t,x)=>t+(x.s?400:x.k?1500+x.c.a:x.x),0)+r.lp*1.5+(op.lp<3000?900:0)+(o==0?150:0);if((r.lp>0||r.ev.some(x=>x.k))&&sc>bs){bs=sc;best={a,col,o}}}}}
 G.tg=NX(s);
@@ -4328,5 +4328,54 @@ window.__exo={EXID,exoSummon,complete,isYugi};
   if(OWN.includes(keep)){const body={reg:()=>trnRegBody(0),my:trnMyTeamL,adm:trnAdmPage,ins:trnInsPage}[keep];return A+ban+trnNav(keep)+body()+"</div>"}
   const i=full.indexOf('<div class="ttabs">');if(i<0)return full;const j=full.indexOf("</div>",i)+6;return full.slice(0,i)+trnNav(keep)+full.slice(j)};
  {const _ad=trnAdm;trnAdm=function(){if(TRN._noAdm)return"";return _ad.apply(this,arguments)}}
+})();
+
+/* ===== v19: 18 cartas de nivel 4 a 6 ahora con efecto (pasan a Ultra especiales) ===== */
+(function(){
+ const LST=[
+  [415,"jinz",["Machine"],"dark","Al ser invocado, niega los efectos de todos los monstruos con efecto que el rival tenga en el campo."],
+  [516,"qins",["Insect"],"","Al ser invocada, robas 1 carta de tu Deck (si tienes menos de 5 cartas en la mano)."],
+  [543,"gmet",["Machine"],"","Al ser invocado, todos tus monstruos en Posición de Defensa ganan +500 DEF para siempre."],
+  [524,"harp",["Winged Beast"],"","Al ser invocadas, todos los monstruos del rival en Posición de Ataque pierden 25% de su ATK actual para siempre."],
+  [538,"rebd",["Dragon"],"dark","Al ser invocado, inflige 800 puntos de daño directo a los Puntos de Vida del rival."],
+  [510,"arle",["Spellcaster"],"dark","Al ser invocado, eliges 1 monstruo del rival: intercambia su ATK y su DEF para siempre."],
+  [169,"dmag",["Spellcaster"],"dark","Al ser invocado, destruyes 1 monstruo del rival que esté en Posición de Ataque (a tu elección)."],
+  [105,"bewd",["Dragon"],"light","Al ser invocado, la DEF de todos los monstruos del rival en Posición de Defensa baja al 50% para siempre."],
+  [227,"pala",["Spellcaster"],"dark","Al ser invocado, todos tus demás monstruos aumentan 60% su ATK y su DEF actuales para siempre."],
+  [315,"ange",["Fairy"],"light","Al ser invocado, recuperas 1500 Puntos de Vida."],
+  [643,"ecl",["Spellcaster"],"dark","Al ser invocada, te llevas a tu mano la carta de mayor ATK de la mano del rival (si tienes menos de 5 cartas)."],
+  [335,"ckn",["Warrior"],"dark","Al ser invocado, revives 1 monstruo de tu Cementerio con la mitad de su ATK y lo colocas en tu campo."],
+  [305,"bdmd",["Dragon","Spellcaster"],"dark","Al ser invocado, destruye a todos los monstruos del rival que tengan 2000 de ATK o menos."],
+  [336,"lrda",["Dragon"],"dark","Al ser invocado, inflige 300 de daño directo al rival por cada monstruo que tenga en su campo."],
+  [529,"gpol",["Insect"],"","Al ser invocada, durante tus próximos 2 turnos tienes 1 movimiento extra (3 movimientos en vez de 2)."],
+  [351,"zorc",["Fiend"],"dark","Al ser invocado, destruyes 1 monstruo del rival (a tu elección) y el rival pierde LP igual a la mitad del ATK de ese monstruo."],
+  [346,"gchm",["Warrior"],"dark","Al ser invocado, robas hasta 2 cartas (sin pasar de 5 en la mano)."],
+  [741,"ldrl",["Dragon"],"light","Al ser invocado, todos los monstruos del rival pierden 30% de su ATK y su DEF actuales para siempre."]
+ ];
+ LST.forEach(([id,k,t,at,d])=>{if(!CB[id]||ULT[id])return;ULT[id]={k,t,at,lk:0,d}});
+ const adj=(x,ka,kd)=>{fxInit(x);const da=Math.round(x.a*ka)-x.a,dd=Math.round(x.d*kd)-x.d;x.a=Math.max(0,x.a+da);x.d=Math.max(0,x.d+dd);x.ba=Math.max(0,x.ba+da);x.bd=Math.max(0,x.bd+dd);try{setPos(x)}catch(e){}};
+ const none=(c,t)=>fxPopFx(c,t);
+ const FX={
+  async jinz(c,p){const xs=oppsF(p).filter(y=>y.fx&&y.fx!="vanilla"&&!y.neg);if(!xs.length)return none(c,"el rival no tiene monstruos con efecto");for(const x of xs){x.neg=1;fxPopFx(x,"efecto NEGADO")}await W(900)},
+  async qins(c,p,o,q){if(q.deck.length&&q.hand.length<(q.hm||5)){fxPopFx(c,"roba 1 carta");await draw(p);await W(500)}else none(c,"no puede robar (mano llena o sin Deck)")},
+  async gmet(c,p){const xs=field(p).filter(x=>x.pos=="d");for(const x of xs){x.d+=500;x.bd+=500;setPos(x);fxPopFx(x,"+500 DEF")}await W(700)},
+  async harp(c,p){const xs=oppsF(p).filter(x=>x.pos=="a");if(!xs.length)return none(c,"el rival no tiene monstruos en Ataque");xs.forEach(x=>{adj(x,.75,1);fxPopFx(x,"ATK -25%")});await W(800)},
+  async rebd(c,p,o){fxPopFx(c,"800 de daño directo");await fxLP(o,-800);await W(400)},
+  async arle(c,p){const cs=oppsF(p);if(!cs.length)return none(c,"el rival no tiene monstruos");const auto=cs.slice().sort((x,y)=>(y.a-y.d)-(x.a-x.d))[0],t=await fxPick(p,cs,c.n+": elige el monstruo rival al que intercambias ATK y DEF",auto);if(!t)return;[t.a,t.d]=[t.d,t.a];[t.ba,t.bd]=[t.bd,t.ba];setPos(t);fxPopFx(t,"ATK y DEF intercambiados");await W(800)},
+  async dmag(c,p){const cs=oppsF(p).filter(x=>x.pos=="a");if(!cs.length)return none(c,"el rival no tiene monstruos en Ataque");const t=await fxPick(p,cs,c.n+": elige el monstruo rival en Ataque que destruyes",cs.slice().sort((x,y)=>y.a-x.a)[0]);if(t){fxPopFx(c,"destruye a "+t.n);await W(500);await kill(t,"effect")}},
+  async bewd(c,p){const xs=oppsF(p).filter(x=>x.pos=="d");if(!xs.length)return none(c,"el rival no tiene monstruos en Defensa");xs.forEach(x=>{adj(x,1,.5);fxPopFx(x,"DEF -50%")});await W(800)},
+  async pala(c,p){const xs=field(p).filter(x=>x!==c);if(!xs.length)return none(c,"no tienes otros monstruos");xs.forEach(x=>{adj(x,1.6,1.6);fxPopFx(x,"ATK y DEF +60%")});await W(800)},
+  async ange(c,p){fxPopFx(c,"recupera 1500 LP");await fxLP(p,1500);await W(400)},
+  async ecl(c,p,o,q){const h=P[o].hand.slice().sort((x,y)=>y.a-x.a);if(!h.length||q.hand.length>=5)return none(c,h.length?"tu mano está llena":"el rival no tiene cartas en la mano");const t=h[0];if(t.he)t.he.remove();P[o].hand.splice(P[o].hand.indexOf(t),1);layout(o);try{updDk(o)}catch(e){}fxAddHand(p,t);fxPopFx(c,"se lleva "+t.n+" de la mano rival");await W(700)},
+  async ckn(c,p,o,q){const gs=q.gy.filter(x=>x!==c).sort((x,y)=>y.a-x.a),pos=q.A.includes(null)?"a":q.D.includes(null)?"d":null;if(!gs.length||!pos)return none(c,gs.length?"no hay espacio en tu campo":"sin monstruos en tu Cementerio");const g=await fxPick(p,gs,c.n+": elige el monstruo del Cementerio que revives (con la mitad de su ATK)",gs[0],1);if(!g)return;fxPopFx(c,"revive a "+g.n);fxFromGY(p,g);g.ba=Math.floor(g.ba/2);g.a=g.ba;await W(500);if(await fxSpawn(p,g,pos))await fxOnSummon(g)},
+  async bdmd(c,p){const xs=oppsF(p).filter(x=>x.a<=2000);if(!xs.length)return none(c,"ningún monstruo rival tiene 2000 de ATK o menos");fxPopFx(c,"destruye a "+xs.length+" monstruo"+(xs.length>1?"s":"")+" del rival");await W(500);for(const x of xs){if(onField(x))await kill(x,"effect")}},
+  async lrda(c,p,o){const n=field(o).length;if(!n)return none(c,"el rival no tiene monstruos");fxPopFx(c,"inflige "+300*n+" de daño directo");await fxLP(o,-300*n);await W(400)},
+  async gpol(c,p,o,q){q.xm=(q.xm||0)+2;fxPopFx(c,"tus próximos 2 turnos tendrán 1 movimiento extra");await W(500)},
+  async zorc(c,p){const cs=oppsF(p);if(!cs.length)return none(c,"el rival no tiene monstruos");const t=await fxPick(p,cs,c.n+": elige el monstruo rival que destruyes",cs.slice().sort((x,y)=>y.a-x.a)[0]);if(!t)return;const dm=Math.floor(t.a/2),to=t.owner;fxPopFx(c,"destruye a "+t.n);await W(500);await kill(t,"effect");if(dm>0)await fxLP(to,-dm)},
+  async gchm(c,p,o,q){let n=0;for(let i=0;i<2;i++){if(q.deck.length&&q.hand.length<5){await draw(p);n++}}fxPopFx(c,n?"roba "+n+" carta"+(n>1?"s":""):"no puede robar (mano llena o sin Deck)");await W(500)},
+  async ldrl(c,p){const xs=oppsF(p);if(!xs.length)return none(c,"el rival no tiene monstruos");xs.forEach(x=>{adj(x,.7,.7);fxPopFx(x,"ATK y DEF -30%")});await W(800)}
+ };
+ const _fs=fxOnSummon;
+ fxOnSummon=async function(c){await _fs.apply(this,arguments);try{fxInit(c);if(!Object.prototype.hasOwnProperty.call(FX,c.fx)||c.neg||G.over||!onField(c))return;const p=c.owner;await FX[c.fx](c,p,OP(p),P[p]);fxRecalc()}catch(e){console.error("[fx v19]",e)}};
 })();
 </script></body></html>
