@@ -4473,4 +4473,173 @@ window.__exo={EXID,exoSummon,complete,isYugi};
   let a="",b="";if(I.d&&!I.d.tri&&I.d.opps[0].real){const o=I.d.opps[0],mid=I.d.m.id,mine=rdyDoc(mid,U.uid),ot=rdyDoc(mid,o.uid);a=!!mine;b=!!ot;if(ot&&ot.ts!==seenRdy&&!mine){seenRdy=ot.ts;toast("🔔 "+o.name+" ya confirmó que puede jugar tu duelo del torneo. ¡Entra al Calendario y confirma!",9000)}}
   const sig=[I.k,I.r,a,b].join("|");if(sig!==lastSig){const first=lastSig==="";lastSig=sig;if(!first&&(TRN.hub||TRN.tab=="cal"||TRN.tab=="res"))render()}}catch(e){}},3000);
 })();
+
+/* ===== v21: 10 cartas de nivel 5 ahora con efecto (pasan a Ultra especiales) · las de Dragon Ball con ataques tipo Kame Hame Ha ===== */
+(function(){
+ const LST=[
+  [737,"abys",["Fairy","Ritual"],"dark","Juicio del Abismo: al ser invocada, eliges 1 de 2 efectos: el rival pierde 800 Puntos de Vida, o mandas al Cementerio 1 carta al azar de la mano del rival."],
+  [743,"vegt",["Warrior"],"","¡Final Flash!: al ser invocado, destruyes 1 monstruo del rival (a tu elección) que tenga 3500 de ATK o menos. Si el rival no tiene ninguno, pierde 700 Puntos de Vida."],
+  [744,"goku",["Warrior"],"light","¡Kame Hame Ha!: en su primer ataque, carga una esfera azul y dispara una onda gigante que destruye a los monstruos rivales que estén de frente, en su misma columna."],
+  [745,"ragt",["Warrior"],"light","Furia Super Saiyajin: al ser invocado, gana 400 de ATK para siempre por cada monstruo que el rival tenga en el campo (máximo +1600)."],
+  [748,"xenb",["Warrior"],"light","Corte de la Patrulla del Tiempo: antes de hacer su primer ataque, se teletransporta y destruye con un corte de espada a 1 monstruo rival en Posición de Defensa (a tu elección)."],
+  [757,"sinc",["Spellcaster"],"","Viento Cristalino: al ser invocada, tus demás monstruos en Ataque ganan +500 ATK y los que estén en Defensa ganan +500 DEF para siempre."],
+  [759,"bchs",["Spellcaster"],"dark","Rito del Caos: al ser invocado, eliges 1 monstruo de tu Cementerio y lo llevas a tu mano (si tienes menos de 5 cartas)."],
+  [760,"cenl",["Fiend"],"dark","Luz de Luna: al ser invocado, si tienes menos Puntos de Vida que el rival recuperas 1500; si no, le infliges 700 de daño directo."],
+  [765,"nagm",["Fiend"],"dark","Mirada Maligna: al ser invocado, eliges 1 monstruo rival: pierde 1000 de ATK y de DEF para siempre y, si tiene efecto, queda negado durante todo el juego."],
+  [767,"hbig",["Spellcaster"],"dark","Ojo Supremo: al ser invocado, el rival descarta de su mano la carta con más ATK y la manda al Cementerio."]
+ ];
+ LST.forEach(([id,k,t,at,d],n)=>{const o=CB[id],nid=9119+n;if(!o||CB[nid])return;C.push([nid,o[1],o[2],o[3]]);CB[nid]=C[C.length-1];IMG[nid]=IMG[id];ULT[nid]={k,t,at,lk:0,d}});
+
+ /* ---------- utilidades visuales ---------- */
+ const cx=c=>SX(c.i,c.owner)+40,cy=c=>SY(c.owner,c.pos)+56;
+ const mk=css=>{const e=document.createElement("div");e.style.cssText="position:absolute;pointer-events:none;"+css;st.appendChild(e);return e};
+ const gone=(e,a)=>{a.onfinish=()=>e.remove();return a};
+ const none=(c,t)=>fxPopFx(c,t);
+ const mod=(x,da,dd)=>{fxInit(x);const a0=x.a,d0=x.d;x.a=Math.max(0,x.a+da);x.d=Math.max(0,x.d+dd);x.ba=Math.max(0,x.ba+(x.a-a0));x.bd=Math.max(0,x.bd+(x.d-d0));try{setPos(x)}catch(e){}};
+ /* punto hacia el que apunta una onda de energía */
+ function tgtPt(c,t){
+  if(t&&t.el&&onField(t))return[cx(t),cy(t)];
+  try{if(!G.n3)return[cx(c),c.owner?690:30];const o=OP(c.owner),T=T3[o];if(T)return[T[0]+100,T[1]+100]}catch(e){}
+  return[640,360]}
+ /* onda de energía (Kame Hame Ha, Final Flash...) */
+ function ray(x1,y1,x2,y2,col,w,ms){
+  const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy)||1,a=Math.atan2(dy,dx)*180/Math.PI;
+  const b=mk(`left:${x1}px;top:${y1-w/2}px;width:${L}px;height:${w}px;z-index:60;transform-origin:0 50%;border-radius:${w}px;background:linear-gradient(90deg,#fff,${col} 12%,${col} 88%,#fff);box-shadow:0 0 ${w}px ${col},0 0 ${w*3}px ${col}`);
+  const k=document.createElement("div");k.style.cssText=`position:absolute;left:0;right:0;top:28%;bottom:28%;border-radius:${w}px;background:#fff;box-shadow:0 0 ${Math.round(w/2)}px #fff`;b.appendChild(k);
+  gone(b,b.animate([{transform:`rotate(${a}deg) scaleX(0)`,opacity:1},{transform:`rotate(${a}deg) scaleX(1)`,opacity:1,offset:.22},{transform:`rotate(${a}deg) scaleX(1) scaleY(1.15)`,opacity:1,offset:.7},{transform:`rotate(${a}deg) scaleX(1) scaleY(.05)`,opacity:0}],{duration:ms,easing:"ease-out"}))}
+ /* esfera de energía que se carga con partículas que convergen */
+ function orb(x,y,col,r,ms){
+  const o=mk(`left:${x-r}px;top:${y-r}px;width:${2*r}px;height:${2*r}px;z-index:61;border-radius:50%;opacity:0;background:radial-gradient(circle,#fff 0,#fff 22%,${col} 48%,${col}00 72%);box-shadow:0 0 ${r}px ${col}`);
+  gone(o,o.animate([{transform:"scale(.05)",opacity:.2},{transform:"scale(.7)",opacity:1,offset:.7},{transform:"scale(1)",opacity:1}],{duration:ms,easing:"ease-in"}));
+  for(let i=0;i<16;i++){const a=rnd(6.28),d=70+rnd(80),p=mk(`left:${x}px;top:${y}px;width:6px;height:6px;border-radius:50%;opacity:0;background:${col};box-shadow:0 0 8px ${col};z-index:61`);
+   gone(p,p.animate([{transform:`translate(${Math.cos(a)*d}px,${Math.sin(a)*d}px) scale(1)`,opacity:0},{opacity:1,offset:.3},{transform:"translate(0,0) scale(.3)",opacity:0}],{duration:ms*.8,delay:rnd(ms*.4)}))}}
+ /* grito de ataque en pantalla */
+ function shout(txt,col,ms,size){
+  const e=mk(`left:0;width:1280px;top:${290-(size>80?18:0)}px;text-align:center;z-index:85;white-space:nowrap;opacity:0;font:italic 800 ${size||64}px "Barlow Condensed",Rajdhani,sans-serif;letter-spacing:.04em;color:#fff;-webkit-text-stroke:2px ${col};text-shadow:0 0 18px ${col},0 0 40px ${col},0 4px 0 #000a`);
+  e.textContent=txt;
+  gone(e,e.animate([{transform:"scale(2.6) rotate(-3deg)",opacity:0},{transform:"scale(1) rotate(-3deg)",opacity:1,offset:.18},{transform:"scale(1.08) rotate(-3deg)",opacity:1,offset:.8},{transform:"scale(1.3) rotate(-3deg)",opacity:0}],{duration:ms||1100,easing:"ease-out"}))}
+ /* aura de poder con relámpagos */
+ function aura(c,col,ms){
+  const x=cx(c),y=cy(c),e=mk(`left:${x-70}px;top:${y-120}px;width:140px;height:190px;z-index:6;opacity:0;border-radius:50% 50% 40% 40%;background:radial-gradient(ellipse at 50% 70%,#fff8 0,${col}cc 35%,${col}00 70%);filter:blur(3px)`);
+  gone(e,e.animate([{transform:"scaleY(.6) translateY(30px)",opacity:0},{transform:"scaleY(1.15)",opacity:1,offset:.3},{transform:"scaleY(.95)",opacity:.9,offset:.6},{transform:"scaleY(1.3) translateY(-20px)",opacity:0}],{duration:ms||1500}));
+  let ps="";for(let i=0;i<7;i++){let px=0,py=20,pts=px+","+py;const dir=(i%2?1:-1)*(20+rnd(50));for(let j=0;j<5;j++){px+=dir/3+rnd(24)-12;py-=22+rnd(22);pts+=" "+px.toFixed(0)+","+py.toFixed(0)}ps+=`<polyline points="${pts}" fill="none" stroke="${i%3?"#fff":col}" stroke-width="3" stroke-linejoin="bevel"/>`}
+  const z=mk(`left:${x-80}px;top:${y-100}px;width:160px;height:200px;z-index:7`);z.innerHTML=`<svg width="160" height="200" viewBox="-80 -100 160 200" style="overflow:visible;filter:drop-shadow(0 0 5px ${col})">${ps}</svg>`;
+  gone(z,z.animate([{opacity:1},{opacity:0},{opacity:1},{opacity:.2},{opacity:1},{opacity:0},{opacity:1},{opacity:0}],{duration:ms||1500}))}
+ const slash=(x,y,col)=>{ray(x-90,y-90,x+90,y+90,col,10,420);setTimeout(()=>ray(x+90,y-90,x-90,y+90,"#fff",8,420),220)};
+ const charge=()=>{snd(110,1.2,"sawtooth",.06,700);setTimeout(()=>snd(220,.9,"triangle",.05,900),250)};
+ const blast=()=>{snd(500,.9,"sawtooth",.11,45);setTimeout(()=>snd(90,.7,"square",.08,30),120)};
+
+
+ function ask(p,title,labels,def){if(p!==0||ON.on||TLV.on||G.spec||G.over)return Promise.resolve(def);return new Promise(res=>{const old=$("#fxpk");if(old)old.remove();const b=document.createElement("div");b.id="fxpk";b.innerHTML=`<h3>⚡ ${esc(title)}</h3><div class="pkl" style="flex-direction:column;align-items:stretch">${labels.map((x,i)=>`<button class="pks" data-i="${i}" style="font-size:16px;margin:4px 0">${esc(x)}</button>`).join("")}</div>`;b.querySelectorAll("button").forEach(x=>x.onclick=ev=>{ev.stopPropagation();b.remove();res(+x.dataset.i)});b.onclick=ev=>ev.stopPropagation();st.appendChild(b)})}
+
+ /* ---------- efectos del primer ataque (Goku y Xeno Trunks) ---------- */
+ const AT={
+  /* Goku SSJ2: Kame Hame Ha, destruye a los monstruos de frente en su columna */
+  async goku(a,col){
+   const k=col==null?a.i:col,E=P[OP(a.owner)],ts=[E.D[k],E.A[k]].filter(x=>x&&onField(x));if(!ts.length)return false;
+   const x=cx(a),y=cy(a),tp=tgtPt(a,ts[0]),c2="#46c8ff";
+   charge();orb(x,y,c2,46,1300);shout("¡KA... ME... HA... ME...!",c2,1250,58);await W(1300);
+   shout("¡¡HAAAAAA!!",c2,1200,92);blast();ray(x,y,tp[0],tp[1],c2,70,1100);flash(c2+"66");await W(380);
+   ts.forEach(t=>burst(cx(t),cy(t),c2,44));shake();await W(300);
+   fxPopFx(a,"¡Kame Hame Ha! destruye a "+ts.map(t=>t.n).join(" y "));await W(300);
+   for(const t of ts){if(onField(t))await kill(t,"effect")}
+   await W(300);return true},
+  /* Xeno Trunks: teletransportación + corte de espada a un monstruo en Defensa */
+  async xenb(a){
+   const cs=oppsF(a.owner).filter(x=>x.pos=="d"&&onField(x));if(!cs.length)return false;
+   const col="#7ad8ff";
+   const t=await fxPick(a.owner,cs,a.n+": elige el monstruo rival en Defensa que cortas antes de atacar",cs.slice().sort((x,y)=>y.a-x.a)[0]);if(!t||!onField(t))return false;
+   try{a.el.animate([{opacity:1},{opacity:0},{opacity:1},{opacity:.15},{opacity:1}],{duration:800})}catch(e){}
+   burst(cx(a),cy(a),col,24);snd(900,.5,"sine",.07,200);shout("¡CORTE DE LA PATRULLA DEL TIEMPO!",col,1400,50);await W(800);
+   const tx=cx(t),ty=cy(t);slash(tx,ty,col);burst(tx,ty,col,30);shake();snd(700,.3,"sawtooth",.1,120);await W(550);
+   fxPopFx(a,"destruye a "+t.n);await kill(t,"effect");await W(400);return true}
+ };
+ {const _atk21=attack;attack=async function(a,col){
+  try{fxInit(a);if(a&&Object.prototype.hasOwnProperty.call(AT,a.fx)&&!a.neg&&!a.used.first21&&!G.over&&onField(a)){if(await AT[a.fx](a,col))a.used.first21=1}}catch(e){console.error("[fx v21 atk]",e)}
+  return _atk21.apply(this,arguments)}}
+
+ /* ---------- efectos ---------- */
+ const FX={
+  /* Super Vegeta: Final Flash */
+  async vegt(c,p,o){
+   const cs=oppsF(p).filter(x=>x.a<=3500),col="#ffd23c";
+   let t=null;if(cs.length)t=await fxPick(p,cs,c.n+": elige el monstruo rival (ATK 3500 o menos) que destruyes con el Final Flash",cs.slice().sort((x,y)=>y.a-x.a)[0]);
+   const tp=tgtPt(c,t),x=cx(c),y=cy(c);
+   charge();orb(x,y,col,40,1100);shout("¡FINAL...!",col,1100,64);await W(1100);
+   shout("¡¡FLASH!!",col,1100,96);blast();ray(x,y,tp[0],tp[1],col,64,1000);flash("#ffe27a77");await W(380);
+   burst(tp[0],tp[1],col,44);shake();await W(260);
+   if(t&&onField(t)){fxPopFx(c,"destruye a "+t.n);await W(250);await kill(t,"effect")}
+   else if(!cs.length){fxPopFx(c,"el rival pierde 700 LP");await fxLP(o,-700)}
+   await W(300)},
+  /* Future Trunks: Furia Super Saiyajin */
+  async ragt(c,p){
+   const n=oppsF(p).length;if(!n)return none(c,"el rival no tiene monstruos");
+   const g=Math.min(4,n)*400,col="#ffd23c",x=cx(c),y=cy(c);
+   shout("¡¡FURIA SUPER SAIYAJIN!!",col,1500,64);snd(80,1.2,"sawtooth",.08,500);aura(c,col,1800);flash(col+"44");shake();burst(x,y,col,36);await W(900);
+   c.a+=g;c.ba+=g;setPos(c);fxPopFx(c,"+"+g+" ATK");await W(700)},
+  /* Sincro Maga de Ala Transparente */
+  async sinc(c,p){
+   const xs=field(p).filter(x=>x!==c);if(!xs.length)return none(c,"no tienes otros monstruos");
+   flash("#7dffb444");snd(600,.6,"sine",.07,1200);
+   for(const x of xs){burst(cx(x),cy(x),"#7dffb4",16);if(x.pos=="a"){mod(x,500,0);fxPopFx(x,"+500 ATK")}else{mod(x,0,500);fxPopFx(x,"+500 DEF")}}
+   await W(800)},
+  /* The Second Abyss Angel: 800 LP o carta al azar de la mano */
+  async abys(c,p,o){
+   const hand=P[o].hand,col="#b66bff",x=cx(c),y=cy(c),tp=tgtPt(c,null);
+   let opt=0;if(hand.length)opt=await ask(p,c.n+": elige el efecto del Juicio del Abismo",["El rival pierde 800 Puntos de Vida","Mandar al Cementerio 1 carta al azar de la mano del rival"],0);
+   shout("¡JUICIO DEL ABISMO!",col,1300,56);orb(x,y,col,34,900);snd(160,1,"sawtooth",.07,520);await W(900);
+   blast();ray(x,y,tp[0],tp[1],col,46,900);flash(col+"55");await W(350);burst(tp[0],tp[1],col,36);shake();
+   if(opt==1&&hand.length){const r=rlSeed("abys|"+G.n+"|"+o+"|"+hand.length)(),t=hand[Math.min(hand.length-1,Math.floor(r*hand.length))];fxPopFx(c,"el rival manda "+t.n+" al Cementerio");fxDiscard(o,t);await W(600)}
+   else{fxPopFx(c,"el rival pierde 800 LP");await fxLP(o,-800);await W(300)}},
+  /* Black Chaos */
+  async bchs(c,p,o,q){
+   if(q.hand.length>=5)return none(c,"tu mano está llena");
+   const gs=q.gy.filter(x=>x!==c).sort((x,y)=>y.a-x.a);if(!gs.length)return none(c,"sin monstruos en tu Cementerio");
+   const g=await fxPick(p,gs,c.n+": elige el monstruo de tu Cementerio que llevas a tu mano",gs[0],1);if(!g)return;
+   flash("#8a2bff44");burst(cx(c),cy(c),"#8a2bff",30);snd(140,.9,"sawtooth",.07,420);
+   fxPopFx(c,"recupera a "+g.n);fxFromGY(p,g);fxAddHand(p,g);await W(700)},
+  /* Centur-Ión Luz de Luna Chimerea */
+  async cenl(c,p,o,q){
+   const x=cx(c),y=cy(c),col="#cfe8ff";
+   flash(col+"55");burst(x,y,col,30);orb(x,y-30,col,36,800);snd(880,.8,"sine",.06,440);await W(700);
+   if(P[p].lp<P[o].lp){fxPopFx(c,"recuperas 1500 LP");await fxLP(p,1500)}
+   else{const tp=tgtPt(c,null);ray(x,y,tp[0],tp[1],col,34,800);await W(300);burst(tp[0],tp[1],col,26);shake();fxPopFx(c,"inflige 700 de daño directo");await fxLP(o,-700)}
+   await W(300)},
+  /* Naga, Familiar del Ojo Maligno */
+  async nagm(c,p){
+   const cs=oppsF(p);if(!cs.length)return none(c,"el rival no tiene monstruos");
+   const t=await fxPick(p,cs,c.n+": elige el monstruo rival que sufre la Mirada Maligna",cs.slice().sort((x,y)=>y.a-x.a)[0]);if(!t||!onField(t))return;
+   const col="#ff3d5a",tp=tgtPt(c,t);
+   shout("¡MIRADA MALIGNA!",col,1200,56);snd(130,1,"sawtooth",.07,330);orb(cx(c),cy(c),col,30,800);await W(800);
+   ray(cx(c),cy(c),tp[0],tp[1],col,30,800);await W(350);burst(tp[0],tp[1],col,30);
+   mod(t,-1000,-1000);fxPopFx(t,"ATK y DEF -1000");
+   if(t.fx&&t.fx!="vanilla"&&!t.neg){t.neg=1;fxPopFx(t,"efecto NEGADO")}
+   await W(700)},
+  /* Number C11: Hyper Big Eye */
+  async hbig(c,p,o){
+   const h=P[o].hand.slice().sort((x,y)=>y.a-x.a);if(!h.length)return none(c,"el rival no tiene cartas en la mano");
+   const t=h[0],col="#ffd86b",tp=tgtPt(c,null);
+   shout("¡OJO SUPREMO!",col,1200,56);flash(col+"44");orb(cx(c),cy(c),col,30,800);snd(300,.9,"triangle",.07,900);await W(800);
+   ray(cx(c),cy(c),tp[0],tp[1],col,26,800);await W(350);
+   fxPopFx(c,"el rival descarta "+t.n);fxDiscard(o,t);await W(700)}
+ };
+ const _fs21=fxOnSummon;
+ fxOnSummon=async function(c){await _fs21.apply(this,arguments);try{fxInit(c);if(!Object.prototype.hasOwnProperty.call(FX,c.fx)||c.neg||G.over||!onField(c))return;const p=c.owner;await FX[c.fx](c,p,OP(p),P[p]);fxRecalc()}catch(e){console.error("[fx v21]",e)}};
+
+ /* ---------- letrero de efecto: se queda hasta que el rival lo cierre (toque) o 15 s ---------- */
+ const _fa21=fxAnnounce;
+ fxAnnounce=async function(c){
+  const u=ULT[c.id];if(u&&u.quiet)return _fa21.apply(this,arguments);
+  c.el.classList.add("ult");
+  try{burst(SX(c.i,c.owner)+40,SY(c.owner,c.pos)+40,"#ff3df2",46);flash("#ff3df255");beam(SX(c.i,c.owner),SY(c.owner,c.pos),"#ff3df2")}catch(e){}
+  [520,660,880].forEach((f,i)=>setTimeout(()=>snd(f,.35,"triangle",.09,f*1.5),i*140));
+  log(`⚡ ${c.owner?"El rival jugó":"Jugaste"} ${c.n}: ¡carta con efecto!`);
+  const b=document.createElement("div");b.id="fxbox";
+  b.innerHTML=`<img src="${IMG[c.id][0]}" alt=""><div><small>⚡ ¡CARTA CON EFECTO!</small><h2>${esc(c.n)}</h2><p>${esc(u.d)}</p></div>`;
+  const h=document.createElement("small");h.style.cssText="position:absolute;right:16px;bottom:8px;font:700 13px Rajdhani,sans-serif;letter-spacing:.06em;color:#ffd1fb;opacity:.9";b.appendChild(h);
+  st.appendChild(b);
+  if(G.fast){b.remove();return}
+  await new Promise(res=>{let left=15;const done=()=>{clearInterval(iv);b.remove();res()},iv=setInterval(()=>{left--;h.textContent="Toca para cerrar · se cierra sola en "+left+" s";if(left<=0||G.over||!b.isConnected)done()},1000);
+   h.textContent="Toca para cerrar · se cierra sola en "+left+" s";b.onclick=ev=>{ev.stopPropagation();done()}})};
+})();
 </script></body></html>
