@@ -447,7 +447,7 @@ function beam(x,y,col){const b=document.createElement("div");b.className="bm";b.
 function burst(x,y,col,n=28){const g=document.createElement("div");g.className="rg";g.style.cssText=`left:${x-10}px;top:${y-10}px;width:20px;height:20px;border-color:${col};box-shadow:0 0 16px ${col}`;st.appendChild(g);g.animate([{transform:"scale(1)",opacity:1},{transform:"scale(9)",opacity:0}],{duration:650,easing:"ease-out"}).onfinish=()=>g.remove();for(let i=0;i<n;i++){const p=document.createElement("div");p.className="pt";p.style.cssText=`left:${x}px;top:${y}px;background:${col};box-shadow:0 0 8px ${col}`;st.appendChild(p);const a=rnd(6.28),d=60+rnd(150);p.animate([{transform:"none",opacity:1},{transform:`translate(${Math.cos(a)*d}px,${Math.sin(a)*d}px) scale(.2)`,opacity:0}],{duration:700+rnd(500),easing:"ease-out"}).onfinish=()=>p.remove()}}
 function shake(){st.animate([{transform:"rotate(var(--r,0deg)) scale(var(--s)) translate(0,0)"},{transform:"rotate(var(--r,0deg)) scale(var(--s)) translate(-14px,8px)"},{transform:"rotate(var(--r,0deg)) scale(var(--s)) translate(12px,-10px)"},{transform:"rotate(var(--r,0deg)) scale(var(--s)) translate(-8px,6px)"},{transform:"rotate(var(--r,0deg)) scale(var(--s)) translate(0,0)"}],{duration:380})}
 function flash(c="#fff"){const f=$("#fx");f.style.background=c;f.animate([{opacity:.95},{opacity:0}],{duration:420})}
-function lp(p,v){v=Math.max(0,v);return new Promise(r=>{const o=P[p].lp,t0=performance.now(),el=$(`#lp${p} .n`),b=$(`#lp${p}`);b.querySelector("i").style.width=v/80+"%";b.classList.toggle("low",v<2500);if(v<o&&p&&!G.fast)lpSnd();if(v<o)b.animate([{transform:"translateX(-9px)"},{transform:"translateX(9px)"},{transform:"none"}],{duration:300,iterations:2});(function f(t){const k=Math.min(1,(t-t0)/(G.fast?1:800));el.textContent=Math.round(o+(v-o)*k);k<1?requestAnimationFrame(f):(P[p].lp=v,r())})(t0)})}
+function lp(p,v){v=Math.max(0,v);return new Promise(r=>{const o=P[p].lp,t0=performance.now(),el=$(`#lp${p} .n`),b=$(`#lp${p}`);b.querySelector("i").style.width=Math.min(100,v/80)+"%";b.classList.toggle("low",v<2500);if(v<o&&p&&!G.fast)lpSnd();if(v<o)b.animate([{transform:"translateX(-9px)"},{transform:"translateX(9px)"},{transform:"none"}],{duration:300,iterations:2});(function f(t){const k=Math.min(1,(t-t0)/(G.fast?1:800));el.textContent=Math.round(o+(v-o)*k);k<1?requestAnimationFrame(f):(P[p].lp=v,r())})(t0)})}
 function updDk(p){$(`#dk${p} b`).textContent=P[p].deck.length;$(`#dk${p}`).style.opacity=P[p].deck.length?1:.25}
 function updGY(p){const g=P[p].gy,e=$(`#gy${p}`);e.style.backgroundImage=g.length?`url(${IMG[g[g.length-1].id][0]})`:"none"}
 function layout(p){const h=P[p].hand,n=h.length,t3=G.n3&&p>0,gap=Math.min(t3?8:p?56:100,640/Math.max(n,1)),cx=t3?(p==1?592:688):640;h.forEach((c,i)=>{const m=i-(n-1)/2,e=c.he;e.style.left=cx-50+m*gap+"px";e.style.top=(t3?-8+m*m:p?-86+m*m*1.5:612+m*m*3)+"px";e.style.setProperty("--r",m*(p?-3:3.5)+"deg")})}
@@ -4334,23 +4334,23 @@ window.__exo={EXID,exoSummon,complete,isYugi};
 /* ===== v19: 18 cartas de nivel 4 a 6 ahora con efecto (pasan a Ultra especiales) ===== */
 (function(){
  const LST=[
-  [415,"jinz",["Machine"],"dark","Al ser invocado, niega los efectos de todos los monstruos con efecto que el rival tenga en el campo."],
-  [516,"qins",["Insect"],"","Al ser invocada, robas 1 carta de tu Deck (si tienes menos de 5 cartas en la mano)."],
-  [543,"gmet",["Machine"],"","Al ser invocado, todos tus monstruos en Posición de Defensa ganan +500 DEF para siempre."],
-  [524,"harp",["Winged Beast"],"","Al ser invocadas, todos los monstruos del rival en Posición de Ataque pierden 25% de su ATK actual para siempre."],
+  [415,"jinz",["Machine"],"dark","Al ser invocado, niega los efectos de todos los monstruos rivales que estén en el campo en ese momento, durante toda la partida."],
+  [516,"qins",["Insect"],"","Al ser invocada, durante los siguientes 5 turnos puedes tener 6 cartas en la mano (en vez de 5). Después vuelves a 5 en cuanto dejes de tener 6."],
+  [543,"gmet",["Machine"],"","Si se invoca en Defensa: tus demás monstruos en Defensa ganan +500 DEF y él gana +1000 DEF. Si se invoca en Ataque: el monstruo que lo protege en Defensa (en su misma columna) sube a 5000 de DEF."],
+  [524,"harp",["Winged Beast"],"","Al ser invocadas, todos los monstruos del rival en Posición de Ataque pierden 40% de su ATK actual para siempre."],
   [538,"rebd",["Dragon"],"dark","Al ser invocado, inflige 800 puntos de daño directo a los Puntos de Vida del rival."],
   [510,"arle",["Spellcaster"],"dark","Al ser invocado, eliges 1 monstruo del rival: intercambia su ATK y su DEF para siempre."],
   [169,"dmag",["Spellcaster"],"dark","Al ser invocado, destruyes 1 monstruo del rival que esté en Posición de Ataque (a tu elección)."],
   [105,"bewd",["Dragon"],"light","Al ser invocado, la DEF de todos los monstruos del rival en Posición de Defensa baja al 50% para siempre."],
-  [227,"pala",["Spellcaster"],"dark","Al ser invocado, todos tus demás monstruos aumentan 60% su ATK y su DEF actuales para siempre."],
-  [315,"ange",["Fairy"],"light","Al ser invocado, recuperas 1500 Puntos de Vida."],
+  [227,"pala",["Spellcaster"],"dark","Al ser invocado, todos tus demás monstruos aumentan 40% su ATK y su DEF actuales para siempre."],
+  [315,"ange",["Fairy"],"light","Al ser invocado, recuperas 1500 Puntos de Vida, aunque ya tengas 8000 o más: se suman igual."],
   [643,"ecl",["Spellcaster"],"dark","Al ser invocada, te llevas a tu mano la carta de mayor ATK de la mano del rival (si tienes menos de 5 cartas)."],
-  [335,"ckn",["Warrior"],"dark","Al ser invocado, revives 1 monstruo de tu Cementerio con la mitad de su ATK y lo colocas en tu campo."],
+  [335,"ckn",["Warrior"],"dark","Al ser invocado, eliges 1 monstruo de tu Cementerio (el que quieras) y decides: ponerlo en el campo sin gastar movimiento (con la mitad de su ATK) o dejarlo en tu mano."],
   [305,"bdmd",["Dragon","Spellcaster"],"dark","Al ser invocado, destruye a todos los monstruos del rival que tengan 2000 de ATK o menos."],
   [336,"lrda",["Dragon"],"dark","Al ser invocado, inflige 300 de daño directo al rival por cada monstruo que tenga en su campo."],
   [529,"gpol",["Insect"],"","Al ser invocada, durante tus próximos 2 turnos tienes 1 movimiento extra (3 movimientos en vez de 2)."],
-  [351,"zorc",["Fiend"],"dark","Al ser invocado, destruyes 1 monstruo del rival (a tu elección) y el rival pierde LP igual a la mitad del ATK de ese monstruo."],
-  [346,"gchm",["Warrior"],"dark","Al ser invocado, robas hasta 2 cartas (sin pasar de 5 en la mano)."],
+  [351,"zorc",["Fiend"],"dark","Al ser invocado, destruyes 1 monstruo del rival (a tu elección) y además el rival pierde 500 Puntos de Vida."],
+  [346,"gchm",["Warrior"],"dark","Al ser invocado, la siguiente carta que pongas después de él llega al campo con 20% más de ATK y DEF."],
   [741,"ldrl",["Dragon"],"light","Al ser invocado, todos los monstruos del rival pierden 30% de su ATK y su DEF actuales para siempre."]
  ];
  LST.forEach(([id,k,t,at,d],n)=>{const o=CB[id],nid=9101+n;if(!o||CB[nid])return;C.push([nid,o[1],o[2],o[3]]);CB[nid]=C[C.length-1];IMG[nid]=IMG[id];ULT[nid]={k,t,at,lk:0,d}});
@@ -4358,26 +4358,29 @@ window.__exo={EXID,exoSummon,complete,isYugi};
  const none=(c,t)=>fxPopFx(c,t);
  const FX={
   async jinz(c,p){const xs=oppsF(p).filter(y=>y.fx&&y.fx!="vanilla"&&!y.neg);if(!xs.length)return none(c,"el rival no tiene monstruos con efecto");for(const x of xs){x.neg=1;fxPopFx(x,"efecto NEGADO")}await W(900)},
-  async qins(c,p,o,q){if(q.deck.length&&q.hand.length<(q.hm||5)){fxPopFx(c,"roba 1 carta");await draw(p);await W(500)}else none(c,"no puede robar (mano llena o sin Deck)")},
-  async gmet(c,p){const xs=field(p).filter(x=>x.pos=="d");for(const x of xs){x.d+=500;x.bd+=500;setPos(x);fxPopFx(x,"+500 DEF")}await W(700)},
-  async harp(c,p){const xs=oppsF(p).filter(x=>x.pos=="a");if(!xs.length)return none(c,"el rival no tiene monstruos en Ataque");xs.forEach(x=>{adj(x,.75,1);fxPopFx(x,"ATK -25%")});await W(800)},
+  async qins(c,p,o,q){q.big=6;q.hm=6;fxPopFx(c,"6 cartas en la mano durante 5 turnos");await W(600)},
+  async gmet(c,p,o,q){if(c.pos=="d"){field(p).filter(x=>x.pos=="d"&&x!==c).forEach(x=>{x.d+=500;x.bd+=500;setPos(x);fxPopFx(x,"+500 DEF")});c.d+=1000;c.bd+=1000;setPos(c);fxPopFx(c,"+1000 DEF");await W(700)}else{const g=q.D[c.i];if(g&&g!==c){const dl=Math.max(0,5000-g.d);g.d+=dl;g.bd+=dl;setPos(g);fxPopFx(g,"DEF 5000");await W(700)}else none(c,"no tiene un defensor que lo proteja")}},
+  async harp(c,p){const xs=oppsF(p).filter(x=>x.pos=="a");if(!xs.length)return none(c,"el rival no tiene monstruos en Ataque");xs.forEach(x=>{adj(x,.6,1);fxPopFx(x,"ATK -40%")});await W(800)},
   async rebd(c,p,o){fxPopFx(c,"800 de daño directo");await fxLP(o,-800);await W(400)},
   async arle(c,p){const cs=oppsF(p);if(!cs.length)return none(c,"el rival no tiene monstruos");const auto=cs.slice().sort((x,y)=>(y.a-y.d)-(x.a-x.d))[0],t=await fxPick(p,cs,c.n+": elige el monstruo rival al que intercambias ATK y DEF",auto);if(!t)return;[t.a,t.d]=[t.d,t.a];[t.ba,t.bd]=[t.bd,t.ba];setPos(t);fxPopFx(t,"ATK y DEF intercambiados");await W(800)},
   async dmag(c,p){const cs=oppsF(p).filter(x=>x.pos=="a");if(!cs.length)return none(c,"el rival no tiene monstruos en Ataque");const t=await fxPick(p,cs,c.n+": elige el monstruo rival en Ataque que destruyes",cs.slice().sort((x,y)=>y.a-x.a)[0]);if(t){fxPopFx(c,"destruye a "+t.n);await W(500);await kill(t,"effect")}},
   async bewd(c,p){const xs=oppsF(p).filter(x=>x.pos=="d");if(!xs.length)return none(c,"el rival no tiene monstruos en Defensa");xs.forEach(x=>{adj(x,1,.5);fxPopFx(x,"DEF -50%")});await W(800)},
-  async pala(c,p){const xs=field(p).filter(x=>x!==c);if(!xs.length)return none(c,"no tienes otros monstruos");xs.forEach(x=>{adj(x,1.6,1.6);fxPopFx(x,"ATK y DEF +60%")});await W(800)},
+  async pala(c,p){const xs=field(p).filter(x=>x!==c);if(!xs.length)return none(c,"no tienes otros monstruos");xs.forEach(x=>{adj(x,1.4,1.4);fxPopFx(x,"ATK y DEF +40%")});await W(800)},
   async ange(c,p){fxPopFx(c,"recupera 1500 LP");await fxLP(p,1500);await W(400)},
   async ecl(c,p,o,q){const h=P[o].hand.slice().sort((x,y)=>y.a-x.a);if(!h.length||q.hand.length>=5)return none(c,h.length?"tu mano está llena":"el rival no tiene cartas en la mano");const t=h[0];if(t.he)t.he.remove();P[o].hand.splice(P[o].hand.indexOf(t),1);layout(o);try{updDk(o)}catch(e){}fxAddHand(p,t);fxPopFx(c,"se lleva "+t.n+" de la mano rival");await W(700)},
-  async ckn(c,p,o,q){const gs=q.gy.filter(x=>x!==c).sort((x,y)=>y.a-x.a),pos=q.A.includes(null)?"a":q.D.includes(null)?"d":null;if(!gs.length||!pos)return none(c,gs.length?"no hay espacio en tu campo":"sin monstruos en tu Cementerio");const g=await fxPick(p,gs,c.n+": elige el monstruo del Cementerio que revives (con la mitad de su ATK)",gs[0],1);if(!g)return;fxPopFx(c,"revive a "+g.n);fxFromGY(p,g);g.ba=Math.floor(g.ba/2);g.a=g.ba;await W(500);if(await fxSpawn(p,g,pos))await fxOnSummon(g)},
+  async ckn(c,p,o,q){const pos=q.A.includes(null)?"a":q.D.includes(null)?"d":null,hf=q.hand.length<5;if(!pos&&!hf)return none(c,"no tienes espacio en el campo ni en la mano");const gs=q.gy.filter(x=>x!==c).sort((x,y)=>y.a-x.a);if(!gs.length)return none(c,"sin monstruos en tu Cementerio");const g=await fxPick(p,gs,c.n+": elige el monstruo de tu Cementerio que recuperas",gs[0],1);if(!g)return;let tf=true;if(pos&&hf)tf=(await fxAsk(p,c.n+": ¿dónde quieres a "+g.n+"?",["Ponerlo en el campo (gratis, con la mitad de su ATK)","Dejarlo en tu mano (con su ATK completo)"],0))==0;else if(!pos)tf=false;fxPopFx(c,(tf?"revive a ":"recupera a ")+g.n);fxFromGY(p,g);if(tf){g.ba=Math.floor(g.ba/2);g.a=g.ba;await W(500);if(await fxSpawn(p,g,pos))await fxOnSummon(g)}else{fxAddHand(p,g);await W(500)}},
   async bdmd(c,p){const xs=oppsF(p).filter(x=>x.a<=2000);if(!xs.length)return none(c,"ningún monstruo rival tiene 2000 de ATK o menos");fxPopFx(c,"destruye a "+xs.length+" monstruo"+(xs.length>1?"s":"")+" del rival");await W(500);for(const x of xs){if(onField(x))await kill(x,"effect")}},
   async lrda(c,p,o){const n=field(o).length;if(!n)return none(c,"el rival no tiene monstruos");fxPopFx(c,"inflige "+300*n+" de daño directo");await fxLP(o,-300*n);await W(400)},
   async gpol(c,p,o,q){q.xm=(q.xm||0)+2;fxPopFx(c,"tus próximos 2 turnos tendrán 1 movimiento extra");await W(500)},
-  async zorc(c,p){const cs=oppsF(p);if(!cs.length)return none(c,"el rival no tiene monstruos");const t=await fxPick(p,cs,c.n+": elige el monstruo rival que destruyes",cs.slice().sort((x,y)=>y.a-x.a)[0]);if(!t)return;const dm=Math.floor(t.a/2),to=t.owner;fxPopFx(c,"destruye a "+t.n);await W(500);await kill(t,"effect");if(dm>0)await fxLP(to,-dm)},
-  async gchm(c,p,o,q){let n=0;for(let i=0;i<2;i++){if(q.deck.length&&q.hand.length<5){await draw(p);n++}}fxPopFx(c,n?"roba "+n+" carta"+(n>1?"s":""):"no puede robar (mano llena o sin Deck)");await W(500)},
+  async zorc(c,p,o){const cs=oppsF(p);if(cs.length){const t=await fxPick(p,cs,c.n+": elige el monstruo rival que destruyes",cs.slice().sort((x,y)=>y.a-x.a)[0]);if(t){fxPopFx(c,"destruye a "+t.n);await W(500);await kill(t,"effect")}}else none(c,"el rival no tiene monstruos");fxPopFx(c,"el rival pierde 500 LP");await fxLP(o,-500);await W(400)},
+  async gchm(c,p,o,q){q.gaia=1;fxPopFx(c,"la siguiente carta que pongas llega con +20% ATK y DEF");await W(500)},
   async ldrl(c,p){const xs=oppsF(p);if(!xs.length)return none(c,"el rival no tiene monstruos");xs.forEach(x=>{adj(x,.7,.7);fxPopFx(x,"ATK y DEF -30%")});await W(800)}
  };
+ function fxAsk(p,title,labels,def){if(p!==0||ON.on||TLV.on||G.spec||G.over)return Promise.resolve(def);return new Promise(res=>{const old=$("#fxpk");if(old)old.remove();const b=document.createElement("div");b.id="fxpk";b.innerHTML=`<h3>⚡ ${esc(title)}</h3><div class="pkl" style="flex-direction:column;align-items:stretch">${labels.map((x,i)=>`<button class="pks" data-i="${i}" style="font-size:16px;margin:4px 0">${esc(x)}</button>`).join("")}</div>`;b.querySelectorAll("button").forEach(x=>x.onclick=ev=>{ev.stopPropagation();b.remove();res(+x.dataset.i)});b.onclick=ev=>ev.stopPropagation();st.appendChild(b)})}
+ {const _tc=takeCards;takeCards=async function(p){const q=P[p];if(q&&q.big>0)q.hm=6;await _tc.apply(this,arguments);if(q&&q.big>0)q.hm=6}}
+ {const _stt=startTurn;startTurn=async function(p){const q=P[p];if(q&&q.big>0){q.big--;q.hm=q.big>0?6:0}return _stt.apply(this,arguments)}}
  const _fs=fxOnSummon;
- fxOnSummon=async function(c){await _fs.apply(this,arguments);try{fxInit(c);if(!Object.prototype.hasOwnProperty.call(FX,c.fx)||c.neg||G.over||!onField(c))return;const p=c.owner;await FX[c.fx](c,p,OP(p),P[p]);fxRecalc()}catch(e){console.error("[fx v19]",e)}};
+ fxOnSummon=async function(c){await _fs.apply(this,arguments);try{fxInit(c);const q0=P[c.owner];if(q0&&q0.gaia&&c.fx!="gchm"&&onField(c)&&!G.over){q0.gaia=0;adj(c,1.2,1.2);fxPopFx(c,"+20% ATK y DEF (Gaia)");await W(500)}if(!Object.prototype.hasOwnProperty.call(FX,c.fx)||c.neg||G.over||!onField(c))return;const p=c.owner;await FX[c.fx](c,p,OP(p),P[p]);fxRecalc()}catch(e){console.error("[fx v19]",e)}};
 })();
 
 /* ===== v20: calendario · "Jugar próxima partida" · coordinación y duelo en vivo entre usuarios del torneo ===== */
@@ -4400,12 +4403,11 @@ window.__exo={EXID,exoSummon,complete,isYugi};
 
  /* ---- coordinación con un usuario real ---- */
  function coordPanel(I){const d=I.d;if(!d||d.tri||!d.opps[0].real||I.k!="open")return"";
-  const o=d.opps[0],mid=d.m.id,me=rdyDoc(mid,U.uid),ot=rdyDoc(mid,o.uid),both=me&&ot,cEnd=I.c?I.c-LIVE_H:0,fb=!I.c||nowS()>=cEnd;
-  return`<div class="tbox" style="margin-top:10px"><b style="color:#7fe3ff">👥 Tu rival es un usuario real</b><p class="mut" style="margin:4px 0 8px">Tienen ${I.c?"hasta el "+fmtDT(cEnd):"toda la jornada"} para coincidir: cada quien confirma que puede jugar y, cuando los dos estén listos, uno inicia el duelo en vivo y el otro lo acepta (tiene 10 segundos). Mantengan el juego abierto.</p>
+  const o=d.opps[0],mid=d.m.id,me=rdyDoc(mid,U.uid),ot=rdyDoc(mid,o.uid),both=me&&ot;
+  return`<div class="tbox" style="margin-top:10px"><b style="color:#7fe3ff">👥 Tu rival es un usuario real</b><p class="mut" style="margin:4px 0 8px">El duelo es en vivo contra él, no contra su mazo. Tienen ${I.c?"hasta el "+fmtDT(I.c):"toda la jornada"} para coincidir: cada quien confirma que puede jugar y, cuando los dos estén listos, uno inicia el duelo y el otro lo acepta (tiene 10 segundos). Mantengan el juego abierto.</p>
   <div class="tm ${me?"me":""}"><span>Tú</span><b style="min-width:0">${me?"✅ listo · vence en "+cdT(me.exp):"⏳ sin confirmar"}</b></div>
   <div class="tm ${ot?"me":""}"><span>${o.flag} ${esc(o.name)}</span><b style="min-width:0">${ot?"✅ listo · vence en "+cdT(ot.exp):"⏳ sin confirmar"}</b></div>
-  <div class="tb" style="margin-top:8px;gap:8px;flex-wrap:wrap">${me?`<button data-act="trdy" data-m="${esc(mid)}" data-a="off">Cancelar mi confirmación</button>`:`<button class="go" data-act="trdy" data-m="${esc(mid)}" data-a="on">✅ ESTOY LISTO PARA JUGAR (15 min)</button>`}${both?`<button class="go" data-act="tlive" data-m="${esc(mid)}">⚔️ INICIAR DUELO EN VIVO</button>`:""}${fb?`<button data-act="tcpu" data-m="${esc(mid)}">Jugar contra la copia de su mazo</button>`:""}</div>
-  ${fb?"":`<p class="mut" style="margin:6px 0 0">Si no logran coincidir, desde el ${fmtDT(cEnd)} podrás jugar contra la copia del mazo de tu rival.</p>`}</div>`}
+  <div class="tb" style="margin-top:8px;gap:8px;flex-wrap:wrap">${me?`<button data-act="trdy" data-m="${esc(mid)}" data-a="off">Cancelar mi confirmación</button>`:`<button class="go" data-act="trdy" data-m="${esc(mid)}" data-a="on">✅ ESTOY LISTO PARA JUGAR (15 min)</button>`}${both?`<button class="go" data-act="tlive" data-m="${esc(mid)}">⚔️ INICIAR DUELO EN VIVO</button>`:""}</div></div>`}
 
  /* ---- tarjeta "Jugar próxima partida" ---- */
  function nextCard(I,coord){if(!I||["none","pre","end"].includes(I.k))return"";
@@ -4449,7 +4451,6 @@ window.__exo={EXID,exoSummon,complete,isYugi};
   async trdy(b){const mid=b.dataset.m,a=b.dataset.a,E=TRN.E,m=E&&E.M.find(x=>x.id==mid);if(!U||!db||TRN.test)return;if(!m||m.r!=E.rd)return toast("Ese duelo ya no está abierto");if(a=="on"&&trnPh(m.r)!="open")return toast("La jornada no está abierta todavía");
    const n=nowS();try{await D("torneo","s1").collection("bets").doc("rdy_"+mid+"_"+U.uid).set({rdy:1,uid:U.uid,name:U.name,mid,ev:"R."+mid,r:m.r,pick:"rdy",amt:0,ts:n,exp:a=="on"?n+RDY_MS:0});toast(a=="on"?"✅ Confirmaste que puedes jugar durante 15 minutos":"Confirmación cancelada",4500)}catch(e){console.error(e);toast("No se pudo guardar tu confirmación")}},
   tlive(b){trnLive(b.dataset.m)},
-  tcpu(b){TRN._cpu=1;try{trnPlay(b.dataset.m)}finally{TRN._cpu=0}},
   tnext(){const I=nextInfo();if(!I||!I.d&&I.k!="free")return;
    if(I.k=="wait")return toast("🔒 Se abre el "+fmtDT(I.o)+" (faltan "+fmtLeft(I.o-nowS())+")",6000);
    if(I.k=="closed")return toast("⌛ El plazo de esta jornada ya terminó",5000);
@@ -4459,7 +4460,7 @@ window.__exo={EXID,exoSummon,complete,isYugi};
    if(me&&ot)return trnLive(mid);if(!me)return ACT.trdy({dataset:{m:mid,a:"on"}});toast("⏳ Ya confirmaste. Esperando a que "+d.opps[0].name+" confirme que puede jugar.",6000)}});
 
  /* contra un usuario real: primero se coordinan (la copia del mazo solo en las últimas horas) */
- {const _p=trnPlay;trnPlay=function(mid){try{const st=TRN.st,E=TRN.E;if(st&&E&&U&&!TRN.test&&!TRN._cpu){const m=E.M.find(x=>x.id==mid);if(m&&m.tag!="TRI"&&m.r==E.rd){const o=[m.a,m.b].map(k=>E.P[k]).find(p=>p.uid!=U.uid);if(o&&o.uid&&trnPh(m.r)=="open"){const c=closeOf(m.r);if(c&&nowS()<c-LIVE_H){toast("👥 Tu rival es un usuario real: confirmen que pueden jugar y empiecen el duelo en vivo desde el Calendario. Jugar contra la copia de su mazo se habilita el "+fmtDT(c-LIVE_H),8000);openCal();return}}}}}catch(e){console.error(e)}return _p.apply(this,arguments)}}
+ {const _p=trnPlay;trnPlay=function(mid){try{const st=TRN.st,E=TRN.E;if(st&&E&&U&&!TRN.test){const m=E.M.find(x=>x.id==mid);if(m&&m.tag!="TRI"&&m.r==E.rd){const o=[m.a,m.b].map(k=>E.P[k]).find(p=>p.uid!=U.uid);if(o&&o.uid&&trnPh(m.r)=="open"){toast("👥 Tu rival es un usuario real: el duelo es en vivo contra él. Confirmen que pueden jugar e inicien el duelo desde el Calendario.",8000);openCal();return}}}}catch(e){console.error(e)}return _p.apply(this,arguments)}}
 
  /* resultado del duelo en vivo del torneo */
  {const _so=startOnline;startOnline=function(mid,role,m,rp){const r=_so.apply(this,arguments);try{ON.tm=(m&&m.tm)||null}catch(e){}return r}}
