@@ -4691,5 +4691,37 @@ window.__exo={EXID,exoSummon,complete,isYugi};
  {const _an=fxAnnounce;fxAnnounce=async function(c){const r=await _an.apply(this,arguments);try{if(!CUS.has((ULT[c.id]||{}).k))entry(c)}catch(e){console.error(e)}return r}}
  {const _at=attack;attack=async function(a,col){try{const th=thOf(a);if(th&&!G.fast&&a.el&&a.fx!=="vanilla"&&!a.neg&&a.fx!=="goku"&&a.fx!=="xenb"){const [A,B]=TH[th];orb(cx(a),cy(a),A,26,450);aura(a,A,700)}}catch(e){}return _at.apply(this,arguments)}}
  {const _od=fxOnDeath;fxOnDeath=async function(c){try{const th=thOf(c);if(th&&!G.fast&&c.el){const [A,B]=TH[th],x=cx(c),y=cy(c);if(isFinite(x)&&isFinite(y)){sig(th,c,x,y,A,B);ring(x,y,A,60,2.4,.1,700);burst(x,y,A,22)}}}catch(e){}return _od.apply(this,arguments)}}
+
+ /* ---------- v23: trío en línea (2 jugadores + 1 NPC): el anfitrión elige la fuerza del NPC ---------- */
+ const TIERS=[
+  {k:"Muy débil",lv:2,fx:0,nm:["Novato Nacho","Aprendiz Lalo","Cadete Beto","Pipo el Distraído"]},
+  {k:"Débil",lv:4,fx:0,nm:["Duelista Tadeo","Guardián Rufino","Escudero Pancho","Viajero Ciro"]},
+  {k:"Fuerte",lv:6,fx:1,nm:["Cazador Valdemar","Centinela Ibáñez","Domadora Quilla","Mercader Alaric"]},
+  {k:"Muy fuerte",lv:8,fx:2,nm:["Maestro Orión","Capitana Zafiro","Archimago Belmont","Dama Ceniza"]},
+  {k:"Élite",lv:10,fx:3,nm:["Gran Maestro Ankhor","Emperatriz Nyx","Señor del Vacío Zerath","Reina Eclipse Maruvia"]}];
+ TRO.tier=TRO.tier||3;
+ function npcBuild(ti,seed){
+  const T=TIERS[ti-1],R=rlSeed("npc3|"+seed),nd=T.lv;
+  let deck=JSON.parse(JSON.stringify(storyDeck({deck:{lo:Math.max(1,nd-1),hi:Math.min(10,nd+1),style:"bal",xn:nd>7?nd-7:0}})));
+  if(T.fx){
+   const ids=Object.keys(ULT).map(Number).filter(i=>CB[i]&&!ULT[i].quiet).sort((a,b)=>(CB[a][2]+CB[a][3])-(CB[b][2]+CB[b][3])),th=Math.floor(ids.length/3);
+   const band=ti==3?ids.slice(0,th):ti==4?ids.slice(th,2*th):ids.slice(2*th),pick=[];
+   const bag=band.slice();while(pick.length<T.fx&&bag.length)pick.push(bag.splice(Math.floor(R()*bag.length),1)[0]);
+   deck=deck.filter(x=>!(ULT[x.id])).sort((a,b)=>(b.a+b.d)-(a.a+a.d)).slice(0,30-pick.length);
+   pick.forEach(i=>deck.push({id:i,n:CB[i][1],a:CB[i][2],d:CB[i][3]}))}
+  return{name:T.nm[Math.floor(R()*T.nm.length)]+" (NPC · "+T.k+")",deck}}
+ {const _rt=rTrio;rTrio=function(){let h=_rt.apply(this,arguments);
+  const sel=`<select id="trnd">${TIERS.map((x,i)=>`<option value="${i+1}" ${(TRO.tier||3)==i+1?"selected":""}>${x.k}${x.fx?" · "+x.fx+" carta"+(x.fx>1?"s":"")+" de efecto":""}</option>`).join("")}</select><span class="mut" style="font-size:13px">Fuerza del NPC: Fuerte 1 carta de efecto, Muy fuerte 2, Élite 3.</span>`;
+  return h.replace(/<select id="trnd">[\s\S]*?<\/select>/,sel)}}
+ document.addEventListener("change",e=>{if(e.target&&e.target.id=="trnd")TRO.tier=+e.target.value||3});
+ ACT.tstart=async function(b){
+  const m=TRO.mine;if(!m||m.host!=U.uid)return;const wn=!!(b&&b.dataset&&b.dataset.npc=="1"),ti=Math.min(5,Math.max(1,+(($("#trnd")||{}).value)||TRO.tier||3));
+  try{await db.runTransaction(async t=>{
+   const ref=D("rooms",m.id),s=await t.get(ref);if(!s.exists)throw"La sala ya no existe";const r=s.data();
+   if(r.status!="open"||!(r.mem.length==3||(wn&&r.mem.length==2)))throw"Faltan jugadores";
+   const seats=r.mem.length==2?[...r.mem,"npc"]:r.mem,np=seats.length>r.mem.length,mid=U.uid+"_"+Date.now(),first=Math.floor(Math.random()*3);
+   t.set(D("matches",mid),{trio:true,seats,npc:np,status:"playing",beat_0:Date.now(),beat_1:Date.now(),beat_2:Date.now()});
+   if(np){const n=npcBuild(ti,mid);t.update(ref,{status:"playing",seats,first,mid,startedAt:nowS(),npcD:TIERS[ti-1].lv,npcT:ti,"names.npc":n.name,"decks.npc":n.deck})}
+   else t.update(ref,{status:"playing",seats,first,mid,startedAt:nowS()})})}catch(e){toast(String(e))}}
 })();
 </script></body></html>
