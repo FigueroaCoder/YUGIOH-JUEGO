@@ -2825,7 +2825,7 @@ const trnAdmOnly=()=>`<div style="margin-top:10px"><button class="${TRN.open?"":
 /* ---------- inscripción ---------- */
 async function trnJoin(){if(!U||!db)return;TRN.err=null;const ck=trnCheck(U.col&&U.col.deck);if(!ck.ok){TRN.err=ck.msgs;return render()}
  try{await db.runTransaction(async tx=>{const r=D("torneo","s1"),s=await tx.get(r);if(!s.exists)throw"El torneo aún no está creado.";const st=s.data(),real=st.real||{};
-   if((st.rd||0)>0)throw"Las inscripciones ya cerraron.";if(Object.values(real).some(x=>x&&x.uid==U.uid))throw"Ya estás inscrito.";
+   if((st.rd||0)>0)throw"Las inscripciones ya cerraron.";if(Date.now()>=tqRegEnd()&&!U.admin)throw"Las inscripciones cerraron el "+tqLbl(tqRegEnd())+".";if(Object.values(real).some(x=>x&&x.uid==U.uid))throw"Ya estás inscrito.";
    tx.update(r,{["real.w"+Date.now().toString(36)]:{uid:U.uid,name:U.name,deck:U.col.deck||{},ts:Date.now()}})});
   toast("✅ Tu mazo cumple las reglas. Quedaste inscrito: estás pendiente de saber en qué grupo y selección jugarás.",6500)}
  catch(e){TRN.err=[typeof e=="string"?e:"No se pudo inscribir. Intenta de nuevo."];render()}}
@@ -4190,6 +4190,26 @@ window.__exo={EXID,exoSummon,complete,isYugi};
   return r};
 })();
 
+/* ===== v20: límite de inscripción con temporizador + grupo oculto hasta las 3 pm (o hasta que el admin marque "listo") ===== */
+var TQT={reg:Date.parse("2026-11-28T11:59:00-06:00"),rev:Date.parse("2026-11-28T15:00:00-06:00")};
+function tqRaw(){return TRN.raw||TRN.st||{}}
+function tqRegEnd(){return +tqRaw().regEnd||TQT.reg}
+function tqRevAt(){return +tqRaw().revealAt||TQT.rev}
+function tqRegOpen(){return Date.now()<tqRegEnd()}
+function tqRevealed(){return !!(U&&U.admin)||!!tqRaw().ready||Date.now()>=tqRevAt()||((TRN.st||{}).rd||0)>0}
+function tqLbl(ms){try{return new Date(ms).toLocaleString("es-MX",{timeZone:"America/Mexico_City",weekday:"long",day:"numeric",month:"long",hour:"numeric",minute:"2-digit",hour12:true})}catch(e){return new Date(ms).toLocaleString()}}
+function tqFmt(ms){ms=Math.max(0,ms);const d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),m=Math.floor(ms%36e5/6e4),q=Math.floor(ms%6e4/1e3),p=x=>String(x).padStart(2,"0");return(d?d+"d ":"")+p(h)+":"+p(m)+":"+p(q)}
+function tqClockBox(){const rd=(TRN.st||{}).rd||0;if(rd>0)return"";const e=tqRegEnd(),now=Date.now();
+ if(now<e)return`<div class="twt"><b style="font-size:19px;color:#ffd86b">⏳ Inscripciones abiertas hasta el ${esc(tqLbl(e))}</b><div class="tqbig"><span class="tqclk" data-to="${e}">${tqFmt(e-now)}</span></div><div class="mut">Tiempo restante para inscribirte (hora de México).</div></div>`;
+ return`<div class="twt"><b style="font-size:19px;color:#ff9a9a">🔒 Inscripciones cerradas</b><div class="mut">El límite fue el ${esc(tqLbl(e))}.</div></div>`}
+function tqHidBox(){const r=tqRevAt(),now=Date.now();return`<div class="twt"><b style="font-size:20px;color:#ffd86b">🎲 ¡Estás inscrito! Tu grupo se mostrará pronto</b><div class="mut">Lo verás el ${esc(tqLbl(r))}, o antes si el administrador lo marca listo.</div>${now<r?`<div class="tqbig"><span class="tqclk" data-to="${r}">${tqFmt(r-now)}</span></div>`:""}</div>`}
+function tqAdminReady(){if(!U||!U.admin)return"";const on=!!tqRaw().ready,r=tqRevAt();return`<div class="twt"><b>👁 Grupos visibles para los jugadores: ${tqRevealed()?"SÍ":"NO"}</b><div class="mut">Se muestran solos el ${esc(tqLbl(r))}${on?" · ya está marcado listo":""}. También puedes mostrarlos ahora mismo.</div><div class="tb" style="margin:8px 0 0;gap:10px;flex-wrap:wrap"><button class="${on?"":"go"}" data-act="tqready">${on?"↩ Volver a ocultar los grupos":"✅ Marcar listo: mostrar grupos ahora"}</button></div></div>`}
+{const st=document.createElement("style");st.textContent=".tqbig{font-size:36px;font-weight:800;color:#ffd86b;font-variant-numeric:tabular-nums;letter-spacing:.05em;margin:6px 0 2px}";document.head.appendChild(st)}
+setInterval(()=>{try{const now=Date.now(),rv=tqRevealed(),k=(now>=tqRegEnd()?1:0)+(rv?2:0);document.querySelectorAll(".tqclk").forEach(e=>{e.textContent=tqFmt(+e.dataset.to-now)});
+ if(TRN._qv===false&&rv&&U&&!U.admin){const m=tnMyNat();if(m&&m.nk)toast("🎉 ¡Ya puedes ver tu grupo y tu selección! Entra a Inscripción.",8000)}
+ if(TRN._qk!==undefined&&TRN._qk!==k&&typeof VW!=="undefined"&&VW=="trn"&&app.style.display!="none")render();
+ TRN._qk=k;TRN._qv=rv}catch(e){}},1000);
+
 /* ===== TORNEO v18 · menú propio del torneo · pantalla de inscripción · admin asigna nación y lugar · pestaña de equipo de cada usuario ===== */
 (function(){
  const NA=k=>TN.N.find(n=>n[0]==k),nT=k=>{const n=NA(k);return n?n[2]+" "+n[1]:k};
@@ -4208,11 +4228,11 @@ window.__exo={EXID,exoSummon,complete,isYugi};
  function hubStatus(){const st=TRN.st,E=TRN.E,rd=st.rd||0,my=tnMyNat(),n=my&&my.nk?NA(my.nk):null;
   const phase=rd==0?"Inscripciones abiertas":rd>TNMAX?"Torneo terminado":"Ronda "+rd+" de "+TNMAX+" · "+TNR[rd];
   let s;
-  if(my&&my.nk)s=`<div class="tok" style="margin:10px 0 0"><b style="font-size:22px;color:#7dff9c">${n[2]} Representas a ${n[1]}</b><div class="mut">Lugar #${my.slot+1}${my.nk=="mx"&&my.slot==0?" · Capitán":""} · Grupo ${grL(my.nk)}${rd==0?" · Espera el inicio del torneo":""}</div></div>`;
+  if(my&&my.nk&&!tqRevealed())s=tqHidBox();else if(my&&my.nk)s=`<div class="tok" style="margin:10px 0 0"><b style="font-size:22px;color:#7dff9c">${n[2]} Representas a ${n[1]}</b><div class="mut">Lugar #${my.slot+1}${my.nk=="mx"&&my.slot==0?" · Capitán":""} · Grupo ${grL(my.nk)}${rd==0?" · Espera el inicio del torneo":""}</div></div>`;
   else if(my&&my.pending)s=rd>0?`<div class="twt" style="margin:10px 0 0">Las inscripciones cerraron y no se te asignó una nación.</div>`:`<div class="twt" style="margin:10px 0 0"><b style="font-size:20px;color:#ffd86b">⏳ Inscrito · esperando nación</b><div class="mut">El administrador te asignará nación y lugar antes de iniciar.</div></div>`;
   else s=rd==0?`<div class="twt" style="margin:10px 0 0"><b style="font-size:20px;color:#ffd86b">📝 Aún no estás inscrito</b><div class="mut">Entra a «Inscripción» para validar tu mazo y apuntarte.</div></div>`:`<div class="mut" style="margin-top:10px">Las inscripciones ya cerraron: puedes seguir el torneo desde aquí.</div>`;
   let ad="";if(U.admin){const real=st.real||{},as=Object.keys(real).filter(k=>k[0]!="w"&&real[k]).length;ad=`<div class="tcg"><div><b>${pendList().length}</b><small>inscritos pendientes</small></div><div><b>${as}</b><small>jugadores asignados</small></div><div><b>${TRN.open?"Sí":"No"}</b><small>liberado a los usuarios</small></div></div>`}
-  return`<section class="pn"><h2 style="margin-top:0">🌍 Torneo Mundial · Temporada 1</h2><p class="mut" style="margin:0">20 naciones · 120 duelistas · ${typeof tnRealTxt=="function"?tnRealTxt():""}</p><p style="font-size:21px;margin:8px 0 0"><b>${phase}</b></p>${s}${ad}</section>`+(typeof trnNextCard=="function"?trnNextCard():"")}
+  return`<section class="pn"><h2 style="margin-top:0">🌍 Torneo Mundial · Temporada 1</h2><p class="mut" style="margin:0">20 naciones · 120 duelistas · ${typeof tnRealTxt=="function"?tnRealTxt():""}</p><p style="font-size:21px;margin:8px 0 0"><b>${phase}</b></p>${s}${tqClockBox()}${ad}${tqAdminReady()}</section>`+(typeof trnNextCard=="function"?trnNextCard():"")}
 
  function trnHub(){const st=TRN.st,rd=st.rd||0,my=tnMyNat(),mi=trnMine(),reg=!!my;
   const pd=rd>=1&&rd<=TNMAX&&mi.cur&&!TRN.res[mi.cur.id+"_"+U.uid];
@@ -4232,6 +4252,7 @@ window.__exo={EXID,exoSummon,complete,isYugi};
   T.push(tile("qz","#c76a1f","#4a2208","Gratis","Quiniela","Adivina el cuadro","🎯"));
   T.push(tile("vv","#2f89c5","#0e3150","Espectador","Ver partidas","Mira duelos en curso","👁"));
   if(rd>=8)T.push(tile("live","#d12f4f","#4f0d1a","Tiempo real","En vivo","Muro de resultados","📡"));
+  if(!tqRevealed()){for(let i=T.length-1;i>=0;i--)if(/data-t="(my|eq|gr|pa|el|na)"/.test(T[i]))T.splice(i,1)}
   let h=hubStatus()+`<h3 class="thsec">Menú del torneo</h3><div class="hm-grid">${T.join("")}</div>`;
   if(U.admin){const A=[];
    A.push(tile("ins","#e0a21c","#5a3a00","Antes de iniciar","Inscritos y naciones","Asigna nación y lugar a cada jugador","🧾",pendList().length?pendList().length+" nuevos":""));
@@ -4247,12 +4268,13 @@ window.__exo={EXID,exoSummon,complete,isYugi};
  /* ---- inscripción ---- */
  function trnRegBody(solo){const st=TRN.st||{},real=st.real||{},rd=st.rd||0,my=tnMyNat(),ck=trnCheck(U.col&&U.col.deck);
   const total=Object.keys(real).filter(k=>real[k]).length,rowc=(ok,t)=>`<div class="tck"><i style="color:${ok?"#7dff9c":"#ff9a9a"}">${ok?"✔":"✖"}</i><span>${t}</span></div>`;
-  let h=`<section class="pn"><h2 style="margin-top:0">📝 Inscripción · Torneo Mundial · Temporada 1</h2><p class="mut" style="margin-top:0">${total} jugador${total==1?"":"es"} inscrito${total==1?"":"s"} hasta ahora. Para jugar necesitas un mazo que cumpla las reglas del torneo:</p><ul class="trule"><li>Mazo de <b>30 cartas</b>.</li><li>Máximo <b>3 comodines</b> (cartas de defensa 0). Las <b>ultra especiales no cuentan</b> como comodín y se pueden usar.</li><li>Las demás cartas pueden ser de <b>cualquier nivel</b>.</li></ul>`;
+  let h=`<section class="pn"><h2 style="margin-top:0">📝 Inscripción · Torneo Mundial · Temporada 1</h2><p class="mut" style="margin-top:0">${total} jugador${total==1?"":"es"} inscrito${total==1?"":"s"} hasta ahora. Para jugar necesitas un mazo que cumpla las reglas del torneo:</p><ul class="trule"><li>Mazo de <b>30 cartas</b>.</li><li>Máximo <b>3 comodines</b> (cartas de defensa 0). Las <b>ultra especiales no cuentan</b> como comodín y se pueden usar.</li><li>Las demás cartas pueden ser de <b>cualquier nivel</b>.</li></ul>${tqClockBox()}`;
   if(my){const n=my.nk?NA(my.nk):null,d=my.x&&my.x.ts?new Date(my.x.ts).toLocaleString():"";
    h+=`<div class="tok"><div style="font-size:28px;font-weight:800;color:#7dff9c">✅ ¡Ya estás inscrito!</div><p style="margin:6px 0 0;font-size:19px">Tu mazo fue validado. <b>Espera el inicio del torneo.</b></p>${d?`<p class="mut" style="margin:4px 0 0">Inscripción: ${esc(d)}</p>`:""}</div>`;
-   if(n)h+=`<p style="font-size:19px;margin:8px 0">${n[2]} El administrador te asignó a <b>${n[1]}</b> · lugar #${my.slot+1} · Grupo ${grL(my.nk)}.</p>`;
+   if(!tqRevealed()&&rd==0)h+=tqHidBox();
+   else if(n)h+=`<p style="font-size:19px;margin:8px 0">${n[2]} El administrador te asignó a <b>${n[1]}</b> · lugar #${my.slot+1} · Grupo ${grL(my.nk)}.</p>`;
    else h+=rd>0?`<p class="mut">Las inscripciones cerraron y no se te asignó una nación.</p>`:`<p class="mut" style="margin:8px 0 0">⏳ El administrador decidirá en qué nación juegas. Te avisaremos aquí cuando lo haga.</p>`}
-  else if(rd>0)h+=`<div class="twt">Las inscripciones ya cerraron.</div>`;
+  else if(rd>0||(!tqRegOpen()&&!U.admin))h+=`<div class="twt">Las inscripciones ya cerraron.</div>`;
   else{h+=`<h3 style="color:#ffd86b;margin:14px 0 4px">Revisión de tu mazo actual</h3>${rowc(ck.n==30,`Cartas en el mazo: <b>${ck.n}/30</b>`)}${rowc(ck.w<=3,`Comodines (defensa 0): <b>${ck.w}</b> · máximo 3`)}${rowc(!ck.msgs.some(m=>/sin nivel/.test(m)),"Todas las cartas tienen un nivel válido")}`;
    if(TRN.err)h+=`<div class="terr">${TRN.err.map(x=>"✖ "+esc(x)).join("<br>")}</div>`;
    else if(!ck.ok)h+=`<div class="terr">${ck.msgs.map(x=>"✖ "+esc(x)).join("<br>")}<br><small class="mut">Arregla tu mazo en Colección y vuelve a esta pantalla.</small></div>`;
@@ -4290,12 +4312,13 @@ window.__exo={EXID,exoSummon,complete,isYugi};
   return h+`</section>`};
  function trnInsPage(){if(TRN.test)return`<section class="pn"><p class="mut">No disponible en modo de prueba. Sal de la prueba para gestionar a los inscritos.</p></section>`;
   const st=TRN.st,rd=st.rd||0,pend=pendList().length,asg=Object.keys(st.real||{}).filter(k=>k[0]!="w"&&st.real[k]).length;
-  return`<section class="pn" style="border-color:#ffd86b88"><h3 style="margin-top:0">🚦 Pasos para abrir el torneo</h3><div class="tm"><span style="text-align:left"><b style="min-width:0">1.</b> Liberar el torneo: los jugadores verán primero la pantalla de inscripción.</span><button class="${TRN.open?"":"go"}" data-act="tadm" data-a="open" ${rd>0?"disabled":""}>${TRN.open?"🔒 Ocultar a los demás":"🔓 Liberar torneo"}</button></div><div class="tm"><span style="text-align:left"><b style="min-width:0">2.</b> Revisa a los inscritos y asigna nación y lugar a cada uno (abajo).</span><span>${pend} pendientes · ${asg} asignados</span></div><div class="tm"><span style="text-align:left"><b style="min-width:0">3.</b> Inicia el torneo: se cierran las inscripciones y empieza la Ronda 1.</span><button class="go" data-act="tstart2" ${rd>0?"disabled":""}>▶ Iniciar torneo</button></div></section>`+trnAsg()}
+  return`<section class="pn" style="border-color:#ffd86b88"><h3 style="margin-top:0">🚦 Pasos para abrir el torneo</h3><div class="tm"><span style="text-align:left"><b style="min-width:0">1.</b> Liberar el torneo: los jugadores verán primero la pantalla de inscripción.</span><button class="${TRN.open?"":"go"}" data-act="tadm" data-a="open" ${rd>0?"disabled":""}>${TRN.open?"🔒 Ocultar a los demás":"🔓 Liberar torneo"}</button></div><div class="tm"><span style="text-align:left"><b style="min-width:0">2.</b> Revisa a los inscritos y asigna nación y lugar a cada uno (abajo).</span><span>${pend} pendientes · ${asg} asignados</span></div><div class="tm"><span style="text-align:left"><b style="min-width:0">3.</b> Inicia el torneo: se cierran las inscripciones y empieza la Ronda 1.</span><button class="go" data-act="tstart2" ${rd>0?"disabled":""}>▶ Iniciar torneo</button></div></section>`+tqAdminReady()+trnAsg()}
 
  /* ---- acciones ---- */
  {const _g=ACT.gtrn;ACT.gtrn=function(){TRN.hub=1;TRN.seeMenu=0;TRN.tab="res";return _g.apply(this,arguments)}}
  {const _t=ACT.ttab;ACT.ttab=function(b){TRN.hub=0;return _t.apply(this,arguments)}}
  Object.assign(ACT,{thub(){TRN.hub=1;render()},tmenu(){},
+  async tqready(){if(!U||!U.admin||!db)return;if(TRN.test)return toast("No disponible en modo de prueba");const on=!tqRaw().ready;try{await D("torneo","s1").update({ready:on});toast(on?"✅ Grupos visibles para todos los inscritos":"Grupos ocultos de nuevo (se mostrarán a las 3:00 p.m.)",5000)}catch(e){console.error(e);toast("No se pudo actualizar")}},
   async tstart2(){if(!U||!U.admin)return;const st=TRN.st||{},real=st.real||{},p=Object.keys(real).filter(k=>k[0]=="w"&&real[k]).length;if((st.rd||0)>0)return toast("El torneo ya inició");if(p&&!confirm("Hay "+p+" inscrito(s) sin nación asignada: no jugarán el torneo.\n¿Iniciar de todos modos?"))return;return ACT.tadm({dataset:{a:"start"}})},
   async tasg(b){if(!U||!U.admin||!db||TRN.test)return;const a=b.dataset.a,k=b.dataset.k,ref=D("torneo","s1");
    try{
@@ -4312,7 +4335,7 @@ window.__exo={EXID,exoSummon,complete,isYugi};
  tnRealTxt=function(){const real=(TRN.st&&TRN.st.real)||{},s=new Set(["mx"]);Object.keys(real).forEach(k=>{if(real[k]&&k[0]!="w"&&!isNum(k))s.add(k.split("_")[0])});return"Selecciones con jugadores reales: "+[...s].map(nT).join(", ")+"."};
 
  /* ---- avisar al jugador cuando le asignan nación ---- */
- {const _re=trnRe;trnRe=function(){const r=_re.apply(this,arguments);try{const m=tnMyNat(),s=m&&m.nk?m.nk+":"+m.slot:(m?"p":"");if(TRN._ms!==undefined&&s!==TRN._ms&&m&&m.nk&&U&&!U.admin)toast("🎉 El administrador te asignó a "+nT(m.nk)+" · lugar #"+(m.slot+1),7000);TRN._ms=s}catch(e){}return r}}
+ {const _re=trnRe;trnRe=function(){const r=_re.apply(this,arguments);try{const m=tnMyNat(),s=m&&m.nk?m.nk+":"+m.slot:(m?"p":"");if(m&&m.nk&&U&&!U.admin&&!tqRevealed())return r;if(TRN._ms!==undefined&&s!==TRN._ms&&m&&m.nk&&U&&!U.admin)toast("🎉 El administrador te asignó a "+nT(m.nk)+" · lugar #"+(m.slot+1),7000);TRN._ms=s}catch(e){}return r}}
 
  /* ---- no perder lo elegido en los selectores del admin cuando se refresca la pantalla ---- */
  {const _r=render;render=function(){const keep={};try{app.querySelectorAll('select[id^="as_"]').forEach(s=>keep[s.id]=s.value)}catch(e){}const r=_r.apply(this,arguments);try{Object.keys(keep).filter(i=>i.indexOf("as_n_")==0).forEach(i=>{const e=document.getElementById(i);if(e){e.value=keep[i];trnNatChg(i.slice(5))}});Object.keys(keep).filter(i=>i.indexOf("as_s_")==0).forEach(i=>{const e=document.getElementById(i);if(e&&!e.querySelector('option[value="'+keep[i]+'"]:disabled'))e.value=keep[i]})}catch(e){}return r}}
